@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+openpyxl==3.1.5
+anthropic==0.40.0
+aiofiles==23.2.1
+PyJWT==2.8.0
+bcrypt==4.1.2

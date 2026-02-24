@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContaIntel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#0f1117; --paper:#f5f2ed; --cream:#ede9e1;
+  --gold:#c9a84c; --gold-d:#8a6d2f; --gold-l:#e8d5a3;
+  --blue:#1a3a5c; --blue-m:#2d5a8e; --blue-l:#4a7db5;
+  --red:#c0392b; --green:#1a7a4a; --green-l:#27ae60;
+  --orange:#d35400;
+  --sbw:258px; --hh:60px; --r:12px;
+  --sh:0 4px 20px rgba(15,17,23,.08);
+  --sh2:0 8px 40px rgba(15,17,23,.14);
+  --tr:all .2s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);display:flex;height:100vh;overflow:hidden;font-size:14px}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sbw);background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow:hidden}
+#sb::before{content:'';position:absolute;top:-50px;left:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(201,168,76,.14) 0,transparent 70%);pointer-events:none}
+.sb-logo{padding:18px 17px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-mark{font-family:'DM Serif Display',serif;font-size:23px;color:var(--gold);letter-spacing:-.5px}
+.logo-sub{font-size:9.5px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.35);margin-top:1px}
+.sb-entity{margin:11px 13px 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:10px 12px;cursor:pointer;transition:var(--tr)}
+.sb-entity:hover{background:rgba(255,255,255,.11)}
+.sb-ename{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-enif{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,238,245,.38);margin-top:2px}
+.sb-ebadges{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.sb-yr{background:var(--gold);color:var(--ink);font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px}
+.sb-tag{background:rgba(255,255,255,.1);color:rgba(232,238,245,.6);font-size:9.5px;padding:2px 7px;border-radius:20px}
+.sb-sec{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.25);padding:14px 17px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 17px;cursor:pointer;font-size:13px;font-weight:400;color:rgba(232,238,245,.62);border-left:3px solid transparent;transition:var(--tr)}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item.active{background:rgba(201,168,76,.11);color:var(--gold-l);border-left-color:var(--gold);font-weight:500}
+.nav-ico{font-size:14px;width:17px;text-align:center}
+.nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:auto}
+.sb-foot{margin-top:auto;padding:13px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px}
+.ava{width:30px;height:30px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--blue);flex-shrink:0}
+.sb-uname{font-size:12px;font-weight:600;color:#fff}
+.sb-urole{font-size:10px;color:rgba(232,238,245,.36)}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#hdr{height:var(--hh);background:#fff;border-bottom:1px solid rgba(15,17,23,.08);display:flex;align-items:center;padding:0 22px;gap:10px;flex-shrink:0}
+.hdr-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);flex:1}
+.hdr-title span{color:var(--blue-m)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;border:none;transition:var(--tr);font-family:inherit}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-m)}
+.btn-g{background:var(--gold);color:var(--ink);font-weight:600}.btn-g:hover{background:var(--gold-d);color:#fff}
+.btn-o{background:transparent;color:var(--ink);border:1px solid rgba(15,17,23,.13)}.btn-o:hover{background:var(--cream)}
+.btn-r{background:var(--red);color:#fff}.btn-r:hover{opacity:.88}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+#content{flex:1;overflow-y:auto;overflow-x:hidden}
+.panel{display:none;padding:22px;animation:fIn .22s ease}
+.panel.active{display:block}
+@keyframes fIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:20px}
+.card+.card{margin-top:16px}
+.ch{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:10px}
+.ct{font-family:'DM Serif Display',serif;font-size:16px;color:var(--ink)}
+.cs{font-size:12px;color:#aaa;margin-top:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+
+/* KPIs */
+.kpi{background:#fff;border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);border-left:4px solid transparent;transition:var(--tr)}
+.kpi:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.kpi.gn{border-left-color:var(--green-l)}.kpi.yl{border-left-color:var(--gold)}.kpi.rd{border-left-color:var(--red)}.kpi.bl{border-left-color:var(--blue-l)}
+.kl{font-size:10.5px;font-weight:600;letter-spacing:.5px;color:#aaa;text-transform:uppercase}
+.kv{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--ink);margin:5px 0 4px;letter-spacing:-.5px}
+.kd{font-size:11px}.up{color:var(--green)}.dn{color:var(--red)}.nt{color:#aaa}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-gn{background:rgba(26,122,74,.1);color:var(--green)}.b-yl{background:rgba(201,168,76,.14);color:var(--gold-d)}
+.b-rd{background:rgba(192,57,43,.1);color:var(--red)}.b-bl{background:rgba(26,58,92,.1);color:var(--blue)}
+.b-gy{background:var(--cream);color:#777}.b-or{background:rgba(211,84,0,.1);color:var(--orange)}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 11px;background:var(--cream);color:#777;font-size:10.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid rgba(15,17,23,.05)}
+tr:hover td{background:rgba(26,58,92,.02)}
+tr:last-child td{border-bottom:none}
+.mono{font-family:'DM Mono',monospace;font-size:12px}.nr{text-align:right}.bld{font-weight:600}
+.row-int td{background:rgba(26,58,92,.025);font-weight:600}
+
+/* RATIO ROWS */
+.rr{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid var(--cream);gap:10px}
+.rr:last-child{border-bottom:none}
+.rn{font-size:12.5px;color:#666;flex:1}.rv{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;min-width:60px;text-align:right}
+.rf{font-size:11px;color:#ccc;flex:1.2;font-family:'DM Mono',monospace}
+
+/* ALERTS */
+.ai{display:flex;gap:11px;padding:11px 13px;border-radius:8px;margin-bottom:6px}
+.ai.cr{background:rgba(192,57,43,.05);border-left:3px solid var(--red)}
+.ai.wn{background:rgba(201,168,76,.08);border-left:3px solid var(--gold)}
+.ai.in{background:rgba(26,58,92,.05);border-left:3px solid var(--blue-l)}
+.ai.ok{background:rgba(26,122,74,.06);border-left:3px solid var(--green-l)}
+.a-ico{font-size:16px;padding-top:1px}.a-t{font-size:12.5px;font-weight:600;margin-bottom:2px}.a-d{font-size:12px;color:#777;line-height:1.4}
+
+/* CHECKLIST */
+.ci{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--cream);font-size:12.5px}
+.ci:last-child{border-bottom:none}
+.chk{width:19px;height:19px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.chk.ok{background:var(--green-l);color:#fff}.chk.pd{background:var(--gold);color:#fff}.chk.lt{background:var(--red);color:#fff}
+
+/* IMPORT */
+.dz{border:2px dashed rgba(26,58,92,.18);border-radius:10px;padding:32px 18px;text-align:center;cursor:pointer;transition:var(--tr);background:rgba(26,58,92,.015);position:relative}
+.dz:hover,.dz.drag{border-color:var(--blue-l);background:rgba(26,58,92,.05)}
+.dz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.d-ico{font-size:32px;margin-bottom:9px}.d-t{font-size:14px;font-weight:600;margin-bottom:3px}.d-s{font-size:12px;color:#aaa}
+.prog{height:5px;background:var(--cream);border-radius:3px;overflow:hidden;margin-top:9px}
+.prog-f{height:100%;border-radius:3px;background:var(--blue);transition:width .35s ease}
+.log{font-family:'DM Mono',monospace;font-size:11.5px;color:#666;line-height:1.9;margin-top:10px;padding:12px;background:var(--cream);border-radius:7px}
+
+/* IRC TABS */
+.irc-tab{background:transparent;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;color:#888;transition:var(--tr)}
+.irc-tab.active{background:var(--blue);color:#fff}
+.irc-tab:hover:not(.active){background:var(--cream)}
+.irc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream);gap:12px}
+.irc-label{font-size:12.5px;color:var(--ink);flex:1;line-height:1.4}
+.irc-ref{font-size:10px;color:#bbb;display:block;margin-top:1px}
+.irc-input{width:130px!important;text-align:right;flex-shrink:0;font-family:'DM Mono',monospace}
+/* IRC */
+.is{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--cream)}
+.is:last-child{border-bottom:none}
+.sn{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0}
+.sb2{flex:1}.sl{font-size:11.5px;font-weight:600;color:#666;margin-bottom:2px}.sv{font-family:'DM Mono',monospace;font-size:15px;color:var(--blue-m);font-weight:500}
+.ss{font-size:11px;color:#bbb;margin-top:2px}.is.hl{background:rgba(26,58,92,.04);border-radius:8px;padding:12px;border-bottom:none;margin-top:4px}
+
+/* CHAT */
+#chat-wrap{display:none;flex-direction:column;height:calc(100vh - var(--hh))}
+#chat-wrap.active{display:flex}
+.qqs{padding:8px 18px 0;display:flex;gap:6px;flex-wrap:wrap}
+.qq{padding:5px 10px;background:var(--cream);border:1px solid rgba(15,17,23,.07);border-radius:20px;font-size:11.5px;color:var(--blue);cursor:pointer;transition:var(--tr);font-family:inherit;font-weight:500}
+.qq:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cms{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:13px}
+.msg{max-width:78%}
+.msg.u{align-self:flex-end}.msg.a{align-self:flex-start}
+.mb{padding:11px 15px;border-radius:13px;font-size:13.5px;line-height:1.6}
+.msg.u .mb{background:var(--blue);color:#fff;border-bottom-right-radius:3px}
+.msg.a .mb{background:#fff;color:var(--ink);border-bottom-left-radius:3px;box-shadow:var(--sh)}
+.mt{font-size:10px;color:#ccc;margin-top:3px;font-family:'DM Mono',monospace}
+.msg.u .mt{text-align:right}
+.af{font-size:9.5px;font-weight:600;color:var(--gold-d);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.adot{width:13px;height:13px;background:var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:var(--ink)}
+.cia{padding:13px 18px 16px;background:#fff;border-top:1px solid rgba(15,17,23,.07);display:flex;gap:9px;align-items:flex-end}
+.ciw{flex:1;background:var(--paper);border:1px solid rgba(15,17,23,.11);border-radius:9px;padding:9px 13px;transition:var(--tr)}
+.ciw:focus-within{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(26,58,92,.07)}
+#ci{width:100%;border:none;background:transparent;font-family:inherit;font-size:13.5px;color:var(--ink);resize:none;outline:none;line-height:1.5;min-height:21px;max-height:90px}
+#ci::placeholder{color:#ccc}
+.dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);margin:0 2px;animation:bn 1.4s infinite ease-in-out}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bn{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+/* FORM */
+.fg{margin-bottom:14px}
+.fl{font-size:10.5px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+.fi{width:100%;border:1px solid rgba(15,17,23,.13);border-radius:7px;padding:8px 11px;font-family:inherit;font-size:13.5px;color:var(--ink);background:var(--paper);outline:none;transition:var(--tr)}
+.fi:focus{border-color:var(--blue-l);box-shadow:0 0 0 3px rgba(26,58,92,.07);background:#fff}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(15,17,23,.48);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:1000}
+.mo.open{display:flex}
+.md{background:#fff;border-radius:13px;width:500px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:var(--sh2);animation:su .22s ease}
+@keyframes su{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mh{padding:18px 20px 13px;border-bottom:1px solid var(--cream);display:flex;align-items:center;justify-content:space-between}
+.mt2{font-family:'DM Serif Display',serif;font-size:18px}
+.mc{background:none;border:none;font-size:17px;cursor:pointer;color:#ccc;transition:var(--tr)}.mc:hover{color:var(--red)}
+.mb2{padding:18px 20px}.mf{padding:13px 20px;border-top:1px solid var(--cream);display:flex;gap:9px;justify-content:flex-end}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:12.5px;font-weight:500;z-index:9999;display:none;box-shadow:0 6px 20px rgba(0,0,0,.22)}
+
+/* SEARCH */
+.srch{width:100%;border:1px solid rgba(15,17,23,.11);border-radius:7px;padding:7px 11px;font-family:inherit;font-size:13px;color:var(--ink);background:var(--cream);outline:none;transition:var(--tr);margin-bottom:12px}
+.srch:focus{border-color:var(--blue-l);background:#fff}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:40px 20px;color:#bbb}
+.empty-ico{font-size:36px;margin-bottom:10px}
+.empty-t{font-size:15px;font-weight:600;color:#aaa;margin-bottom:6px}
+.empty-s{font-size:12.5px}
+
+/* LOADING */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ENTITY SELECTOR */
+.ec{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:8px;cursor:pointer;transition:var(--tr);border-bottom:1px solid var(--cream)}
+.ec:last-child{border-bottom:none}
+.ec:hover{background:rgba(26,58,92,.04)}
+.ec-av{width:34px;height:34px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
+.ec-n{font-size:13px;font-weight:600;flex:1}.ec-nif{font-size:11px;font-family:'DM Mono',monospace;color:#aaa}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(15,17,23,.11);border-radius:3px}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--blue);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.login-box{background:#fff;border-radius:18px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.login-logo{font-family:'DM Serif Display',serif;font-size:32px;color:var(--blue);margin-bottom:4px}
+.login-sub{font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:32px}
+.login-err{background:rgba(192,57,43,.08);color:var(--red);font-size:12.5px;padding:9px 12px;border-radius:8px;margin-bottom:14px;display:none}
+/* USER MGMT */
+.role-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase}
+.role-admin{background:rgba(192,57,43,.12);color:var(--red)}
+.role-gestor{background:rgba(26,58,92,.12);color:var(--blue)}
+.role-cliente{background:rgba(26,122,74,.12);color:var(--green)}
+
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sb">
+  <div class="sb-logo">
+    <div class="logo-mark">ContaIntel</div>
+    <div class="logo-sub">Inteligência Contabilística</div>
+  </div>
+
+  <div class="sb-entity" onclick="openModal('mo-entity')">
+    <div class="sb-ename" id="sb-ename">Selecionar Cliente...</div>
+    <div class="sb-enif" id="sb-enif">NIF: —</div>
+    <div class="sb-ebadges">
+      <span class="sb-yr" id="sb-yr">2025</span>
+      <span class="sb-tag" id="sb-regime">—</span>
+    </div>
+  </div>
+
+  <div class="sb-sec">Análise</div>
+  <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
+  <div class="nav-item" onclick="nav('balancete')"><span class="nav-ico">📋</span>Balancete</div>
+  <div class="nav-item" onclick="nav('racios')"><span class="nav-ico">📈</span>Rácios Financeiros</div>
+
+  <div class="sb-sec">Fiscal</div>
+  <div class="nav-item" onclick="nav('irc')"><span class="nav-ico">🧮</span>Simulação IRC</div>
+  <div class="nav-item" onclick="nav('iva')"><span class="nav-ico">💰</span>Apuramento IVA</div>
+
+  <div class="sb-sec">Gestão</div>
+  <div class="nav-item" onclick="nav('clientes')"><span class="nav-ico">🏢</span>Clientes</div>
+  <div class="nav-item" id="nav-users" style="display:none" onclick="nav('users')"><span class="nav-ico">👥</span>Utilizadores</div>
+  <div class="nav-item" onclick="nav('conformidade')"><span class="nav-ico">✅</span>Conformidade<span class="nav-badge" id="alert-count">—</span></div>
+  <div class="nav-item" onclick="nav('importar')"><span class="nav-ico">📥</span>Importar Dados</div>
+  <div class="nav-item" onclick="nav('ai')"><span class="nav-ico">🤖</span>IA Assistente</div>
+
+  <div class="sb-foot">
+    <div class="ava">MP</div>
+    <div>
+      <div class="sb-uname">Miguel Pereira</div>
+      <div class="sb-urole">TOC · Uso Interno</div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+  <div id="hdr">
+    <div class="hdr-title" id="hdr-title">Dashboard — <span id="hdr-client">Nenhum cliente selecionado</span></div>
+    <button class="btn btn-o btn-sm" onclick="resetConfig()" title="Reconfigurar servidor">⚙️</button>
+    <button class="btn btn-o btn-sm" onclick="logout()" title="Sair">🚪 Sair</button>
+    <button class="btn btn-o btn-sm" onclick="nav('importar')">📥 Importar</button>
+    <button class="btn btn-p btn-sm" onclick="nav('irc')">🧮 IRC</button>
+    <button class="btn btn-g btn-sm" onclick="nav('ai')">🤖 IA</button>
+  </div>
+
+  <div id="content">
+
+    <!-- ══ DASHBOARD ══ -->
+    <div id="panel-dashboard" class="panel active">
+      <div id="dash-no-data" class="card" style="text-align:center;padding:40px">
+        <div style="font-size:40px;margin-bottom:12px">📂</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:8px">Comece por selecionar um cliente</div>
+        <div style="color:#aaa;margin-bottom:18px">Selecione um cliente na barra lateral e importe o balancete para ver a análise completa.</div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn btn-p" onclick="openModal('mo-entity')">🏢 Selecionar Cliente</button>
+          <button class="btn btn-o" onclick="nav('clientes')">➕ Novo Cliente</button>
+        </div>
+      </div>
+
+      <div id="dash-data" style="display:none">
+        <div class="g4" style="margin-bottom:16px" id="kpi-grid"></div>
+        <div class="g2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="ch"><div><div class="ct">⚠️ Alertas</div><div class="cs" id="alert-period"></div></div></div>
+            <div id="alerts-list"></div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">✅ Checklist Fiscal</div></div>
+            <div id="checklist-list"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div><div class="ct">📑 Demonstração de Resultados</div></div>
+            <button class="btn btn-o btn-sm" onclick="nav('balancete')">Balancete completo →</button>
+          </div>
+          <div class="tw"><table id="pnl-table"><thead><tr><th>Rubrica</th><th>Conta</th><th class="nr">Valor (€)</th><th class="nr">% Rend.</th></tr></thead><tbody id="pnl-body"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BALANCETE ══ -->
+    <div id="panel-balancete" class="panel">
+      <div class="card">
+        <div class="ch">
+          <div><div class="ct">Balancete</div><div class="cs" id="bal-subtitle">—</div></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="bal-nivel" class="fi" style="width:155px;padding:5px 9px;font-size:12px" onchange="loadBalancete()">
+              <option value="2">Nível 2 (resumido)</option>
+              <option value="3">Nível 2+3</option>
+              <option value="99">Todos os níveis</option>
+            </select>
+            <button class="btn btn-o btn-sm" onclick="exportCSV()">⬇️ CSV</button>
+          </div>
+        </div>
+        <input type="text" class="srch" id="bal-search" placeholder="🔍 Pesquisar conta ou descrição..." oninput="loadBalancete()">
+        <div class="tw">
+          <table>
+            <thead><tr><th>Conta</th><th>Descrição</th><th class="nr">Déb. Período</th><th class="nr">Créd. Período</th><th class="nr">Déb. Acum.</th><th class="nr">Créd. Acum.</th><th class="nr">Devedor</th><th class="nr">Credor</th></tr></thead>
+            <tbody id="bal-body"><tr><td colspan="8" class="empty">Importar dados para visualizar o balancete.</td></tr></tbody>
+          </table>
+        </div>
+        <div id="bal-footer" style="padding:8px 0 0;font-size:11.5px;color:#aaa;font-family:'DM Mono',monospace"></div>
+      </div>
+    </div>
+
+    <!-- ══ RÁCIOS ══ -->
+    <div id="panel-racios" class="panel">
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
+        <button class="irc-tab active" onclick="racioTab('overview',this)">📊 Visão Geral</button>
+        <button class="irc-tab" onclick="racioTab('liquidez',this)">💧 Liquidez</button>
+        <button class="irc-tab" onclick="racioTab('rentabilidade',this)">📈 Rentabilidade</button>
+        <button class="irc-tab" onclick="racioTab('estrutura',this)">🏦 Estrutura</button>
+        <button class="irc-tab" onclick="racioTab('cashflow',this)">💰 Cash Flow</button>
+        <button class="irc-tab" onclick="racioTab('fm',this)">⚖️ Fundo Maneio</button>
+        <button class="irc-tab" onclick="racioTab('historico',this)">📅 Histórico</button>
+      </div>
+
+      <!-- TAB: VISÃO GERAL (gauges) -->
+      <div id="racios-tab-overview" class="irc-tab-content">
+        <div id="racios-overview-content">
+          <div class="empty"><div class="empty-ico">📈</div><div class="empty-t">Importe um balancete para calcular rácios</div></div>
+        </div>
+      </div>
+      <!-- TAB: LIQUIDEZ -->
+      <div id="racios-tab-liquidez" class="irc-tab-content" style="display:none">
+        <div id="racios-liquidez-content"></div>
+      </div>
+      <!-- TAB: RENTABILIDADE -->
+      <div id="racios-tab-rentabilidade" class="irc-tab-content" style="display:none">
+        <div id="racios-rentabilidade-content"></div>
+      </div>
+      <!-- TAB: ESTRUTURA -->
+      <div id="racios-tab-estrutura" class="irc-tab-content" style="display:none">
+        <div id="racios-estrutura-content"></div>
+      </div>
+      <!-- TAB: CASH FLOW -->
+      <div id="racios-tab-cashflow" class="irc-tab-content" style="display:none">
+        <div id="racios-cashflow-content"></div>
+      </div>
+      <!-- TAB: FUNDO DE MANEIO -->
+      <div id="racios-tab-fm" class="irc-tab-content" style="display:none">
+        <div id="racios-fm-content"></div>
+      </div>
+      <!-- TAB: HISTÓRICO -->
+      <div id="racios-tab-historico" class="irc-tab-content" style="display:none">
+        <div id="racios-historico-content"></div>
+      </div>
+    </div>
+
+    <!-- ══ IRC ══ -->
+    <div id="panel-irc" class="panel">
+
+      <!-- TABS -->
+      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content">
+        <button class="irc-tab active" onclick="ircTab('resumo',this)">📊 Resumo</button>
+        <button class="irc-tab" onclick="ircTab('q07',this)">📋 Quadro 07</button>
+        <button class="irc-tab" onclick="ircTab('ta',this)">🚗 Trib. Autónoma</button>
+        <button class="irc-tab" onclick="ircTab('bf',this)">⭐ Benefícios Fiscais</button>
+        <button class="irc-tab" onclick="ircTab('ppc',this)">📅 Pagamentos Conta</button>
+      </div>
+
+      <!-- TAB: RESUMO -->
+      <div id="irc-tab-resumo" class="irc-tab-content">
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div><div class="ct">🧮 Dados Base</div><div class="cs" id="irc-subtitle">—</div></div>
+              <button class="btn btn-p btn-sm" onclick="runIRCFull()">⚡ Calcular Tudo</button>
+            </div>
+            <div class="ai in" style="margin-bottom:14px"><div class="a-ico">ℹ️</div><div><div class="a-t">Preencha os separadores para cálculo completo</div><div class="a-d">Quadro 07 → Tributação Autónoma → Benefícios Fiscais → clique Calcular</div></div></div>
+            <div class="fg"><label class="fl">Resultado Líquido (do balancete)</label>
+              <input class="fi" type="number" id="irc-rl" value="0" placeholder="0.00" step="0.01" readonly style="background:var(--cream)"></div>
+            <div class="fg"><label class="fl">Regime</label>
+              <select class="fi" id="irc-regime">
+                <option value="pme">PME (17% até €50.000 + 21%)</option>
+                <option value="geral">Regime Geral (21%)</option>
+                <option value="reduzido">Interior/Açores/Madeira (12,5%)</option>
+              </select></div>
+            <div class="fr">
+              <div class="fg"><label class="fl">Retenções na Fonte</label>
+                <input class="fi" type="number" id="irc-retencoes" value="0" placeholder="0.00" step="0.01"></div>
+              <div class="fg"><label class="fl">Pagamentos por Conta Efetuados</label>
+                <input class="fi" type="number" id="irc-ppc" value="0" placeholder="0.00" step="0.01"></div>
+            </div>
+          </div>
+          <div class="card" id="irc-result-card">
+            <div class="ch"><div class="ct">💶 Resultado Final</div></div>
+            <div class="empty"><div class="empty-ico">🧮</div><div class="empty-t">Preencha os campos e clique "Calcular Tudo"</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: QUADRO 07 -->
+      <div id="irc-tab-q07" class="irc-tab-content" style="display:none">
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">📋 Acréscimos ao Lucro Tributável</div><div class="cs">Art. 23.º-A CIRC — Gastos não dedutíveis</div></div>
+
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;padding:6px 0 8px;border-bottom:1px solid var(--cream);margin-bottom:10px">Campo 752 — Gastos não dedutíveis</div>
+
+            <div class="irc-row"><span class="irc-label">Multas, coimas e penalidades <span class="irc-ref">Art.23-A nº1 a)</span></span>
+              <input class="fi irc-input" type="number" id="ac-multas" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">IRC e impostos sobre lucros <span class="irc-ref">Art.23-A nº1 a)</span></span>
+              <input class="fi irc-input" type="number" id="ac-irc-contab" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Tributações autónomas <span class="irc-ref">Art.88 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ac-ta" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Depreciações não aceites fiscalmente <span class="irc-ref">Art.34 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ac-dep" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Provisões não dedutíveis <span class="irc-ref">Art.39 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ac-prov" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Perdas por imparidade não aceites <span class="irc-ref">Art.28-A CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ac-impar" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">50% rep./entret./viagens não doc. <span class="irc-ref">Art.23-A nº1 r)</span></span>
+              <input class="fi irc-input" type="number" id="ac-rep" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Gastos financeiros não dedutíveis <span class="irc-ref">Art.67 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ac-fin" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Outros acréscimos</span>
+              <input class="fi irc-input" type="number" id="ac-outros" value="0" placeholder="0" oninput="calcQ07()"></div>
+
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid var(--blue);margin-top:8px">
+              <span style="font-weight:700;color:var(--blue)">Total Acréscimos</span>
+              <span class="mono" style="font-weight:700;color:var(--blue);font-size:15px" id="total-acrescimos">€ 0,00</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ch"><div class="ct">📋 Deduções ao Lucro Tributável</div><div class="cs">Art. 17.º e ss. CIRC</div></div>
+
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;padding:6px 0 8px;border-bottom:1px solid var(--cream);margin-bottom:10px">Campo 774 — Deduções</div>
+
+            <div class="irc-row"><span class="irc-label">Reversão de provisões tributadas <span class="irc-ref">Art.39 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ded-rev-prov" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Reversão de imparidades tributadas <span class="irc-ref">Art.28-A CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ded-rev-impar" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Mais-valias fiscais líquidas <span class="irc-ref">Art.46-48 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ded-mv" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Correção por dupla tributação económica <span class="irc-ref">Art.51 CIRC</span></span>
+              <input class="fi irc-input" type="number" id="ded-dte" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Diferenças temporárias favoráveis</span>
+              <input class="fi irc-input" type="number" id="ded-dif-temp" value="0" placeholder="0" oninput="calcQ07()"></div>
+            <div class="irc-row"><span class="irc-label">Outros rendimentos não tributáveis</span>
+              <input class="fi irc-input" type="number" id="ded-outros" value="0" placeholder="0" oninput="calcQ07()"></div>
+
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;padding:14px 0 8px;border-bottom:1px solid var(--cream);margin-bottom:10px">Campo 309 — Prejuízos Fiscais</div>
+
+            <div class="irc-row"><span class="irc-label">Prejuízos de anos anteriores <span class="irc-ref">Art.52 CIRC · Lim. 70%</span></span>
+              <input class="fi irc-input" type="number" id="ded-prejuizos" value="0" placeholder="0" oninput="calcQ07()"></div>
+
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid var(--green-l);margin-top:8px">
+              <span style="font-weight:700;color:var(--green)">Total Deduções</span>
+              <span class="mono" style="font-weight:700;color:var(--green);font-size:15px" id="total-deducoes">€ 0,00</span>
+            </div>
+
+            <div style="background:rgba(26,58,92,.05);border-radius:8px;padding:12px;margin-top:10px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+                <span>Resultado Líquido</span><span class="mono" id="q07-rl">€ 0,00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+                <span>+ Acréscimos</span><span class="mono" style="color:var(--red)" id="q07-ac">+ € 0,00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+                <span>− Deduções</span><span class="mono" style="color:var(--green)" id="q07-ded">− € 0,00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--blue);font-weight:700">
+                <span style="color:var(--blue)">Matéria Coletável</span>
+                <span class="mono" style="color:var(--blue);font-size:16px" id="q07-mc">€ 0,00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: TRIBUTAÇÃO AUTÓNOMA -->
+      <div id="irc-tab-ta" class="irc-tab-content" style="display:none">
+        <div class="card">
+          <div class="ch"><div><div class="ct">🚗 Tributação Autónoma</div><div class="cs">Art. 88.º CIRC — Calculada sobre despesas, independentemente do resultado</div></div>
+            <div id="ta-total-badge" class="badge b-rd" style="font-size:14px;padding:5px 12px">€ 0,00</div>
+          </div>
+          <div class="ai wn" style="margin-bottom:16px"><div class="a-ico">⚠️</div><div><div class="a-t">A tributação autónoma é devida mesmo em caso de prejuízo fiscal</div><div class="a-d">Art. 88.º n.º 14 CIRC — Agravamento de 10 p.p. em caso de prejuízo (exceto se ano de início).</div></div></div>
+
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">VIATURAS LIGEIRAS — Art. 88.º n.º 3 e 4</div>
+          <div style="overflow-x:auto;margin-bottom:18px">
+            <table>
+              <thead><tr><th>Custo aquisição</th><th>Taxa</th><th>Valor encargos</th><th>TA</th><th></th></tr></thead>
+              <tbody id="ta-viaturas"></tbody>
+            </table>
+            <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addViatura()">+ Adicionar Viatura</button>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">DESPESAS DE REPRESENTAÇÃO — Art. 88.º n.º 7</div>
+          <div class="fr" style="margin-bottom:16px">
+            <div class="fg"><label class="fl">Valor despesas representação</label>
+              <input class="fi" type="number" id="ta-rep-val" value="0" placeholder="0.00" oninput="calcTA()"></div>
+            <div class="fg"><label class="fl">Taxa aplicável</label>
+              <select class="fi" id="ta-rep-taxa" onchange="calcTA()">
+                <option value="0.10">10% — Geral</option>
+              </select></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;border-bottom:1px solid var(--cream)">
+            <span>TA Representação</span><span class="mono" id="ta-rep-result">€ 0,00</span>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">AJUDAS DE CUSTO E KM — Art. 88.º n.º 9</div>
+          <div class="fr" style="margin-bottom:10px">
+            <div class="fg"><label class="fl">Ajudas de custo não doc.</label>
+              <input class="fi" type="number" id="ta-ajudas-val" value="0" placeholder="0.00" oninput="calcTA()"></div>
+            <div class="fg"><label class="fl">Taxa</label>
+              <select class="fi" id="ta-ajudas-taxa" onchange="calcTA()">
+                <option value="0.05">5% — Geral</option>
+              </select></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;border-bottom:1px solid var(--cream)">
+            <span>TA Ajudas de Custo</span><span class="mono" id="ta-ajudas-result">€ 0,00</span>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">LUCROS DISTRIBUÍDOS — Art. 88.º n.º 11</div>
+          <div class="fr" style="margin-bottom:10px">
+            <div class="fg"><label class="fl">Lucros distribuídos (regime simplificado ou isenção)</label>
+              <input class="fi" type="number" id="ta-lucros-val" value="0" placeholder="0.00" oninput="calcTA()"></div>
+            <div class="fg"><label class="fl">Taxa</label>
+              <select class="fi" id="ta-lucros-taxa" onchange="calcTA()">
+                <option value="0.23">23% — Geral</option>
+                <option value="0.28">28% — Residentes art.94</option>
+              </select></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12.5px;border-bottom:1px solid var(--cream)">
+            <span>TA Lucros</span><span class="mono" id="ta-lucros-result">€ 0,00</span>
+          </div>
+
+          <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 10px">GASTOS NÃO DOCUMENTADOS — Art. 88.º n.º 1</div>
+          <div class="fr" style="margin-bottom:10px">
+            <div class="fg"><label class="fl">Gastos não documentados</label>
+              <input class="fi" type="number" id="ta-naodoc-val" value="0" placeholder="0.00" oninput="calcTA()"></div>
+            <div class="fg"><label class="fl">Taxa</label>
+              <select class="fi" id="ta-naodoc-taxa" onchange="calcTA()">
+                <option value="0.50">50% — Entidades sujeitas a IRC</option>
+                <option value="0.70">70% — Paraísos fiscais</option>
+              </select></div>
+          </div>
+
+          <div style="margin-top:16px">
+            <div class="fg" style="margin-bottom:8px"><label class="fl">Empresa teve prejuízo fiscal? (agravamento 10 p.p.)</label>
+              <select class="fi" id="ta-prejuizo" onchange="calcTA()">
+                <option value="0">Não — resultado positivo</option>
+                <option value="1">Sim — agravamento 10 p.p. (Art.88 n.º14)</option>
+              </select></div>
+          </div>
+
+          <div style="background:rgba(192,57,43,.06);border-radius:10px;padding:14px;margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-size:12px;color:#888;margin-bottom:3px">Total Tributação Autónoma</div>
+              <div style="font-size:10.5px;color:#bbb">Lançar em acréscimos no Quadro 07</div>
+            </div>
+            <div class="mono" style="font-size:24px;font-weight:600;color:var(--red)" id="ta-total">€ 0,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: BENEFÍCIOS FISCAIS -->
+      <div id="irc-tab-bf" class="irc-tab-content" style="display:none">
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">⭐ Deduções à Coleta</div><div class="cs">Art. 90.º CIRC — Deduzem ao IRC liquidado (não à MC)</div></div>
+
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;padding:6px 0 8px;border-bottom:1px solid var(--cream);margin-bottom:12px">BENEFÍCIOS FISCAIS</div>
+
+            <div class="irc-row"><span class="irc-label">RFAI — Regime Fiscal Apoio Investimento <span class="irc-ref">Art.22 CFI · 25%/10%</span></span>
+              <input class="fi irc-input" type="number" id="bf-rfai" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">DLRR — Dedução Lucros Retidos e Reinvestidos <span class="irc-ref">Art.27 CFI · 10% lim. 25% coleta</span></span>
+              <input class="fi irc-input" type="number" id="bf-dlrr" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">SIFIDE — Invest. I&amp;D <span class="irc-ref">Art.35 CFI · 32,5%/50%</span></span>
+              <input class="fi irc-input" type="number" id="bf-sifide" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">Mecenato <span class="irc-ref">EBF Art.62 · 130%-150%</span></span>
+              <input class="fi irc-input" type="number" id="bf-mecenato" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">Criação emprego jovem qualificado <span class="irc-ref">Art.19-A EBF</span></span>
+              <input class="fi irc-input" type="number" id="bf-emprego" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">Zonas Francas da Madeira / Açores <span class="irc-ref">EBF</span></span>
+              <input class="fi irc-input" type="number" id="bf-zfm" value="0" placeholder="0" oninput="calcBF()"></div>
+            <div class="irc-row"><span class="irc-label">Outros benefícios fiscais (EBF)</span>
+              <input class="fi irc-input" type="number" id="bf-outros" value="0" placeholder="0" oninput="calcBF()"></div>
+
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-top:2px solid var(--gold);margin-top:8px">
+              <span style="font-weight:700;color:var(--gold-d)">Total Benefícios Fiscais</span>
+              <span class="mono" style="font-weight:700;color:var(--gold-d);font-size:15px" id="bf-total">€ 0,00</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="ch"><div class="ct">📊 DLRR — Simulação</div><div class="cs">Dedução por Lucros Retidos e Reinvestidos · Art.27 CFI</div></div>
+            <div class="ai in" style="margin-bottom:14px"><div class="a-ico">💡</div><div><div class="a-t">Dedução de 10% dos lucros retidos e reinvestidos</div><div class="a-d">Limite: 25% da coleta de IRC. Mínimo €1.000 investido. Prazo reinvestimento: 3 anos.</div></div></div>
+            <div class="fg"><label class="fl">Lucros retidos aplicados em reinvestimento</label>
+              <input class="fi" type="number" id="dlrr-lucros" value="0" placeholder="0.00" oninput="calcDLRR()"></div>
+            <div class="fg"><label class="fl">Coleta IRC (calculada automaticamente)</label>
+              <input class="fi" type="number" id="dlrr-coleta" value="0" placeholder="0.00" readonly style="background:var(--cream)"></div>
+            <div style="background:var(--cream);border-radius:8px;padding:12px;margin-top:8px">
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+                <span>10% × lucros retidos</span><span class="mono" id="dlrr-calc">€ 0,00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+                <span>Limite (25% coleta)</span><span class="mono" id="dlrr-limite">€ 0,00</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:2px solid var(--gold);font-weight:700">
+                <span style="color:var(--gold-d)">DLRR a deduzir</span>
+                <span class="mono" style="color:var(--gold-d);font-size:16px" id="dlrr-result">€ 0,00</span>
+              </div>
+            </div>
+            <button class="btn btn-g btn-sm" style="margin-top:10px;width:100%" onclick="applyDLRR()">✓ Aplicar ao campo DLRR</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: PAGAMENTOS POR CONTA -->
+      <div id="irc-tab-ppc" class="irc-tab-content" style="display:none">
+        <div class="g2">
+          <div class="card">
+            <div class="ch"><div class="ct">📅 Pagamentos por Conta</div><div class="cs">Art. 107.º CIRC — 3 prestações anuais</div></div>
+            <div class="ai in" style="margin-bottom:14px"><div class="a-ico">📅</div><div><div class="a-t">Calculados com base no IRC do ano anterior</div><div class="a-d">95% do IRC liquidado no ano anterior, em 3 prestações iguais: Julho, Setembro e Dezembro do ano seguinte.</div></div></div>
+            <div class="fg"><label class="fl">IRC Liquidado ano anterior (base de cálculo)</label>
+              <input class="fi" type="number" id="ppc-base" value="0" placeholder="0.00" oninput="calcPPC()"></div>
+            <div class="fg"><label class="fl">Percentagem (normalmente 95%)</label>
+              <input class="fi" type="number" id="ppc-pct" value="95" placeholder="95" oninput="calcPPC()"></div>
+            <div style="background:var(--cream);border-radius:8px;padding:14px;margin-top:6px" id="ppc-calc">
+              <div style="text-align:center;color:#bbb;font-size:12.5px">Introduza o IRC do ano anterior</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="ch"><div class="ct">📅 Pagamento Especial por Conta</div><div class="cs">Art. 106.º CIRC — Janeiro e Março</div></div>
+            <div class="ai wn" style="margin-bottom:14px"><div class="a-ico">⚠️</div><div><div class="a-t">Empresas em 2.º ano ou seguintes</div><div class="a-d">PEC = 1% Volume Negócios − PPC efetuados. Mínimo €850, máximo €70.000 (ou €35.000 se grupo)</div></div></div>
+            <div class="fg"><label class="fl">Volume de Negócios</label>
+              <input class="fi" type="number" id="pec-vn" value="0" placeholder="0.00" oninput="calcPEC()"></div>
+            <div class="fg"><label class="fl">PPC efetuados no ano anterior</label>
+              <input class="fi" type="number" id="pec-ppc" value="0" placeholder="0.00" oninput="calcPEC()"></div>
+            <div style="background:var(--cream);border-radius:8px;padding:14px;margin-top:6px" id="pec-calc">
+              <div style="text-align:center;color:#bbb;font-size:12.5px">Introduza o volume de negócios</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ USERS ══ -->
+    <div id="panel-users" class="panel">
+      <div class="card">
+        <div class="ch">
+          <div><div class="ct">👥 Gestão de Utilizadores</div><div class="cs">Criar, editar e gerir acessos</div></div>
+          <button class="btn btn-p btn-sm" onclick="showUserModal()">+ Novo Utilizador</button>
+        </div>
+        <div id="users-list"><div class="empty"><div class="empty-ico">👥</div><div class="empty-t">A carregar...</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ IVA ══ -->
+    <div id="panel-iva" class="panel">
+      <div class="card">
+        <div class="ch"><div><div class="ct">💰 Apuramento IVA</div><div class="cs">Estimativa baseada no balancete — importar SAF-T para valores exatos</div></div></div>
+        <div class="ai wn"><div class="a-ico">⚠️</div><div><div class="a-t">Apuramento estimado</div><div class="a-d">Para IVA exato, importe o SAF-T com detalhe das faturas. Os valores abaixo são estimativas extraídas do balancete.</div></div></div>
+        <div id="iva-content" style="margin-top:16px">
+          <div class="empty"><div class="empty-ico">💰</div><div class="empty-t">Importe dados para estimar IVA</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CLIENTES ══ -->
+    <div id="panel-clientes" class="panel">
+      <div class="card">
+        <div class="ch"><div class="ct">🏢 Carteira de Clientes</div>
+          <button class="btn btn-p btn-sm" onclick="openModal('mo-new-entity')">+ Novo Cliente</button>
+        </div>
+        <div id="entities-list"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">A carregar...</div></div></div>
+      </div>
+    </div>
+
+    <!-- ══ CONFORMIDADE ══ -->
+    <div id="panel-conformidade" class="panel">
+      <div class="card">
+        <div class="ch"><div><div class="ct">✅ Conformidade Fiscal</div><div class="cs" id="conf-subtitle">Obrigações declarativas e prazos</div></div></div>
+        <div id="conf-content"></div>
+      </div>
+    </div>
+
+    <!-- ══ IMPORTAR ══ -->
+    <div id="panel-importar" class="panel">
+      <div class="g2">
+        <div class="card">
+          <div class="ch"><div class="ct">📊 Importar Balancete Excel</div></div>
+          <div class="dz" id="dz-excel">
+            <input type="file" accept=".xlsx,.xls,.csv" onchange="handleImport(event,'excel')" id="fi-excel">
+            <div class="d-ico">📊</div>
+            <div class="d-t">Arrastar Excel/CSV ou clicar</div>
+            <div class="d-s">.xlsx · .xls · .csv · Deteção automática colunas SNC</div>
+          </div>
+          <div id="status-excel"></div>
+          <div style="margin-top:11px;padding:11px;background:var(--cream);border-radius:7px;font-size:12px;color:#777">
+            <strong>Colunas detetadas automaticamente:</strong> Conta, Descrição, Débito/Crédito Período, Acumulado, Saldos Devedor/Credor
+          </div>
+        </div>
+        <div class="card">
+          <div class="ch"><div class="ct">📄 Importar SAF-T XML</div></div>
+          <div class="dz" id="dz-saft">
+            <input type="file" accept=".xml" onchange="handleImport(event,'saft')" id="fi-saft">
+            <div class="d-ico">📄</div>
+            <div class="d-t">Arrastar SAF-T XML ou clicar</div>
+            <div class="d-s">Schema PT_1.04_01 · Máx. 50MB</div>
+          </div>
+          <div id="status-saft"></div>
+          <div style="margin-top:11px;padding:11px;background:var(--cream);border-radius:7px;font-size:12px;color:#777">
+            <strong>Exportar SAF-T:</strong> Software contabilidade → Ficheiros → SAF-T PT → Contabilidade → Exportar
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="ch"><div class="ct">📁 Ficheiros Importados</div>
+          <button class="btn btn-o btn-sm" onclick="loadFilesList()">↻ Atualizar</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Ficheiro</th><th>Cliente</th><th>Tipo</th><th>Período</th><th>Contas</th><th>Data</th></tr></thead>
+            <tbody id="files-list"><tr><td colspan="6" class="empty">A carregar...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══ CHAT ══ -->
+<div id="chat-wrap">
+  <div class="qqs" id="qqs">
+    <button class="qq" onclick="sendQ(this)">Qual o IRC estimado?</button>
+    <button class="qq" onclick="sendQ(this)">Análise do PMR de clientes</button>
+    <button class="qq" onclick="sendQ(this)">Pagamentos por conta 2026</button>
+    <button class="qq" onclick="sendQ(this)">Risco Art. 35.º CIRE?</button>
+    <button class="qq" onclick="sendQ(this)">Oportunidades de otimização fiscal</button>
+    <button class="qq" onclick="sendQ(this)">Como melhorar a liquidez?</button>
+  </div>
+  <div class="cms" id="cms">
+    <div class="msg a">
+      <div class="af"><div class="adot">CI</div> ContaIntel IA</div>
+      <div class="mb">Olá! Sou o assistente fiscal e contabilístico da ContaIntel, com acesso direto aos dados importados.<br><br>Selecione um cliente e importe o balancete — responderei com base nos <strong>dados reais</strong> da empresa.<br><br>Posso analisar rácios, calcular IRC, interpretar artigos do CIRC/CIVA e muito mais. O que precisa?</div>
+      <div class="mt">agora</div>
+    </div>
+  </div>
+  <div class="cia">
+    <div class="ciw">
+      <textarea id="ci" rows="1" placeholder="Pergunta sobre a empresa atual..." onkeydown="handleChatKey(event)" oninput="autoH(this)"></textarea>
+    </div>
+    <button class="btn btn-p" onclick="sendMsg()" style="padding:10px 16px">↑</button>
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Entity selector -->
+<div class="mo" id="mo-entity" onclick="if(event.target===this)closeModal('mo-entity')">
+  <div class="md">
+    <div class="mh"><div class="mt2">Selecionar Cliente</div><button class="mc" onclick="closeModal('mo-entity')">✕</button></div>
+    <div class="mb2">
+      <div class="fr" style="margin-bottom:14px">
+        <div class="fg"><label class="fl">Ano Fiscal</label>
+          <select class="fi" id="modal-year" onchange="state.year=this.value">
+            <option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option>
+          </select></div>
+        <div class="fg" style="display:flex;align-items:flex-end">
+          <button class="btn btn-p" onclick="openModal('mo-new-entity');closeModal('mo-entity')" style="width:100%">+ Novo Cliente</button>
+        </div>
+      </div>
+      <div id="mo-entity-list"><div class="empty">A carregar...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- New entity -->
+<div class="mo" id="mo-new-entity" onclick="if(event.target===this)closeModal('mo-new-entity')">
+  <div class="md">
+    <div class="mh"><div class="mt2">Novo Cliente</div><button class="mc" onclick="closeModal('mo-new-entity')">✕</button></div>
+    <div class="mb2">
+      <div class="fr">
+        <div class="fg"><label class="fl">Denominação Social</label><input class="fi" id="ne-name" type="text" placeholder="Empresa, Lda"></div>
+        <div class="fg"><label class="fl">NIF</label><input class="fi" id="ne-nif" type="text" placeholder="5XXXXXXXX" maxlength="9"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Forma Jurídica</label>
+          <select class="fi" id="ne-form">
+            <option value="LDA">Lda</option><option value="SA">SA</option><option value="UNI">Unipessoal Lda</option><option value="SCP">SCP</option>
+          </select></div>
+        <div class="fg"><label class="fl">CAE</label><input class="fi" id="ne-cae" type="text" placeholder="ex: 62010"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Regime IRC</label>
+          <select class="fi" id="ne-irc">
+            <option value="geral">Regime Geral</option><option value="simplificado">Simplificado</option>
+          </select></div>
+        <div class="fg"><label class="fl">Regime IVA</label>
+          <select class="fi" id="ne-iva">
+            <option value="geral">Normal Mensal</option><option value="trimestral">Normal Trimestral</option><option value="isento">Isento</option>
+          </select></div>
+      </div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="ne-email" type="email" placeholder="geral@empresa.pt"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-o" onclick="closeModal('mo-new-entity')">Cancelar</button>
+      <button class="btn btn-p" onclick="createEntity()">Criar Cliente</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══ CONFIG ══
+// ══ BACKEND CONFIG ══
+// Alterar para o URL do teu backend após deploy no Railway/Render
+const BACKEND_URL = localStorage.getItem('containtel_backend_url') || '';
+const API = BACKEND_URL ? BACKEND_URL.replace(/\/+$/, '') + '/api' : '';
+
+function isConfigured() { return !!BACKEND_URL; }
+
+// ══ STATE ══
+const state = {
+  entityId: null,
+  entityName: null,
+  entityNIF: null,
+  fiscalYearId: null,
+  year: 2025,
+  financials: null,
+  balanceteData: [],
+};
+
+// ══ NAVIGATION ══
+function nav(p) {
+  const chat = document.getElementById('chat-wrap');
+  const content = document.getElementById('content');
+
+  if (p === 'ai') {
+    chat.classList.add('active');
+    content.style.display = 'none';
+  } else {
+    chat.classList.remove('active');
+    content.style.display = 'block';
+    document.querySelectorAll('.panel').forEach(el => el.classList.remove('active'));
+    const panel = document.getElementById('panel-' + p);
+    if (panel) panel.classList.add('active');
+
+    // Lazy-load panel data
+    if (p === 'balancete') loadBalancete();
+    if (p === 'racios' && state.financials) renderRacios();
+    if (p === 'irc' && state.entityId) { renderViaturas(); renderIRCPanel(); }
+  if (p === 'users') loadUsers();
+    if (p === 'iva' && state.financials) renderIVA();
+    if (p === 'clientes') loadEntities();
+    if (p === 'importar') loadFilesList();
+    if (p === 'conformidade') renderConformidade();
+  }
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event?.currentTarget?.classList.add('active');
+
+  const titles = {dashboard:'Dashboard',balancete:'Balancete',racios:'Rácios Financeiros',irc:'Simulação IRC',users:'Utilizadores',
+    iva:'Apuramento IVA',clientes:'Carteira de Clientes',conformidade:'Conformidade',importar:'Importar Dados',ai:'IA Assistente'};
+  document.getElementById('hdr-title').innerHTML = (titles[p]||p) + ' — <span id="hdr-client">' + (state.entityName || 'Nenhum cliente') + '</span>';
+}
+
+// ══ API HELPERS ══
+async function api(path, opts={}) {
+  try {
+    const r = await fetch(API + path, {headers:{'Content-Type':'application/json'}, ...opts});
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({detail: r.statusText}));
+      throw new Error(err.detail || r.statusText);
+    }
+    return await r.json();
+  } catch(e) {
+    if (e.message.includes('fetch') || e.message.includes('Failed')) {
+      toast('❌ Sem ligação ao servidor. Verifique se o backend está a correr (uvicorn main:app)', 5000);
+    } else {
+      toast('❌ ' + e.message, 4000);
+    }
+    throw e;
+  }
+}
+
+// ══ ENTITIES ══
+async function loadEntities() {
+  const list = document.getElementById('entities-list');
+  try {
+    const entities = await api('/entities');
+    if (!entities.length) {
+      list.innerHTML = '<div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">Nenhum cliente ainda</div><div class="empty-s">Clique em "Novo Cliente" para começar.</div></div>';
+      return;
+    }
+    const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
+    list.innerHTML = entities.map((e, i) => {
+      const initials = e.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      const color = colors[i % colors.length];
+      return `<div class="ec" onclick="selectEntity('${e.id}','${e.name}','${e.nif}');closeModal('mo-entity')">
+        <div class="ec-av" style="background:${color}">${initials}</div>
+        <div style="flex:1"><div class="ec-n">${e.name}</div><div class="ec-nif">${e.nif} · ${e.legal_form} · CAE ${e.cae_code||'—'}</div></div>
+        <button class="btn btn-o btn-sm" onclick="event.stopPropagation();deleteEntity('${e.id}')">🗑</button>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar clientes.</div>'; }
+}
+
+async function loadEntityModal() {
+  const list = document.getElementById('mo-entity-list');
+  try {
+    const entities = await api('/entities');
+    if (!entities.length) {
+      list.innerHTML = '<div class="empty">Nenhum cliente. <a href="#" onclick="openModal(\'mo-new-entity\')">Criar agora →</a></div>';
+      return;
+    }
+    const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085'];
+    list.innerHTML = entities.map((e, i) => {
+      const initials = e.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div class="ec" onclick="selectEntity('${e.id}','${e.name}','${e.nif}');closeModal('mo-entity')">
+        <div class="ec-av" style="background:${colors[i%colors.length]}">${initials}</div>
+        <div><div class="ec-n">${e.name}</div><div class="ec-nif">${e.nif}</div></div>
+      </div>`;
+    }).join('');
+  } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
+}
+
+async function createEntity() {
+  const body = {
+    name: document.getElementById('ne-name').value.trim(),
+    nif: document.getElementById('ne-nif').value.trim(),
+    legal_form: document.getElementById('ne-form').value,
+    cae_code: document.getElementById('ne-cae').value.trim(),
+    regime_irc: document.getElementById('ne-irc').value,
+    regime_iva: document.getElementById('ne-iva').value,
+    email: document.getElementById('ne-email').value.trim(),
+  };
+  if (!body.name || !body.nif) { toast('⚠️ Nome e NIF são obrigatórios'); return; }
+  try {
+    const r = await api('/entities', {method:'POST', body: JSON.stringify(body)});
+    closeModal('mo-new-entity');
+    toast('✓ Cliente criado: ' + body.name);
+    loadEntities();
+  } catch(e) {}
+}
+
+async function deleteEntity(id) {
+  if (!confirm('Desativar este cliente?')) return;
+  await api('/entities/' + id, {method:'DELETE'});
+  toast('Cliente desativado');
+  loadEntities();
+}
+
+// ══ SELECT ENTITY ══
+async function selectEntity(id, name, nif) {
+  state.entityId = id;
+  state.entityName = name;
+  state.entityNIF = nif;
+
+  // Load fiscal years
+  try {
+    const years = await api(`/entities/${id}/fiscal-years`);
+    const fy = years.find(y => y.year == state.year) || years[0];
+    if (fy) {
+      state.fiscalYearId = fy.id;
+      state.year = fy.year;
+    }
+  } catch(e) {}
+
+  // Update sidebar
+  document.getElementById('sb-ename').textContent = name;
+  document.getElementById('sb-enif').textContent = 'NIF: ' + nif;
+  document.getElementById('sb-yr').textContent = state.year;
+  document.getElementById('hdr-client').textContent = name.split(',')[0];
+
+  // Load financials
+  await loadDashboard();
+}
+
+// ══ DASHBOARD ══
+async function loadDashboard() {
+  if (!state.entityId || !state.fiscalYearId) return;
+  document.getElementById('dash-no-data').style.display = 'none';
+  document.getElementById('dash-data').style.display = 'block';
+
+  try {
+    const fin = await api(`/entities/${state.entityId}/financials?fiscal_year_id=${state.fiscalYearId}`);
+    state.financials = fin;
+
+    // KPIs
+    const kpis = [
+      {label:'Rendimentos', value: fmtEur(fin.pnl.total_rendimentos), delta: 'Conta 7 · ' + state.year, cls:'gn'},
+      {label:'Resultado Líquido', value: fmtEur(fin.pnl.resultado_liquido), delta: 'Margem ' + fin.ratios.margem_liquida + '%', cls:'bl'},
+      {label:'IRC Estimado', value: fmtEur(fin.irc_estimate.irc_bruto), delta: 'Taxa ef. ' + fin.irc_estimate.taxa_efetiva_pct + '%', cls:'yl'},
+      {label:'PMR Clientes', value: fin.ratios.pmr_dias + ' dias', delta: fin.ratios.pmr_dias > 90 ? '▼ Acima 90d' : '✓ Normal', cls: fin.ratios.pmr_dias > 90 ? 'rd' : 'gn'},
+    ];
+    document.getElementById('kpi-grid').innerHTML = kpis.map(k =>
+      `<div class="kpi ${k.cls}"><div class="kl">${k.label}</div><div class="kv">${k.value}</div><div class="kd ${k.cls==='rd'?'dn':k.cls==='gn'?'up':'nt'}">${k.delta}</div></div>`
+    ).join('');
+
+    // Alerts
+    const alertIcons = {high:'🔴', critical:'🔴', medium:'🟡', info:'🔵', ok:'🟢'};
+    const alertCls = {high:'cr', critical:'cr', medium:'wn', info:'in', ok:'ok'};
+    document.getElementById('alerts-list').innerHTML = fin.alerts.length
+      ? fin.alerts.map(a => `<div class="ai ${alertCls[a.severity]||'in'}"><div class="a-ico">${alertIcons[a.severity]||'🔵'}</div><div><div class="a-t">${a.title}</div><div class="a-d">${a.desc}</div></div></div>`).join('')
+      : '<div class="ai ok"><div class="a-ico">🟢</div><div><div class="a-t">Sem alertas ativos</div><div class="a-d">A empresa apresenta indicadores dentro dos limites normais.</div></div></div>';
+
+    document.getElementById('alert-count').textContent = fin.alerts.filter(a=>a.severity==='high'||a.severity==='critical').length || '✓';
+    document.getElementById('alert-period').textContent = state.entityName + ' · ' + state.year;
+
+    // Checklist
+    document.getElementById('checklist-list').innerHTML = `
+      <div class="ci"><div class="chk ok">✓</div><span>Balancete importado e analisado</span></div>
+      <div class="ci"><div class="chk pd">!</div><span>SAF-T — verificar submissão AT</span></div>
+      <div class="ci"><div class="chk pd">!</div><span>IES ${state.year-1} — verificar submissão</span></div>
+      <div class="ci"><div class="chk pd">!</div><span>Modelo 22 ${state.year} — prazo 31/05/${state.year+1}</span></div>
+      <div class="ci"><div class="chk pd">!</div><span>Pagamentos por conta — confirmar</span></div>`;
+
+    // P&L
+    const pnl = fin.pnl;
+    const totR = pnl.total_rendimentos;
+    const rows = [
+      ...pnl.rendimentos_detail.map(r => `<tr><td style="padding-left:20px">${r.descricao}</td><td class="mono" style="color:var(--blue-m)">${r.conta}</td><td class="nr mono">${fmtN(r.valor)}</td><td class="nr">${pct(r.valor,totR)}</td></tr>`),
+      `<tr style="background:rgba(26,122,74,.04)"><td class="bld">Total Rendimentos</td><td></td><td class="nr mono bld">${fmtN(totR)}</td><td class="nr bld">100%</td></tr>`,
+      ...pnl.gastos_detail.map(r => `<tr><td style="padding-left:20px">${r.descricao}</td><td class="mono" style="color:var(--red)">${r.conta}</td><td class="nr mono" style="color:var(--red)">${fmtN(r.valor)}</td><td class="nr">${pct(r.valor,totR)}</td></tr>`),
+      `<tr style="background:rgba(192,57,43,.04)"><td class="bld">Total Gastos</td><td></td><td class="nr mono bld" style="color:var(--red)">${fmtN(pnl.total_gastos)}</td><td class="nr bld">${pct(pnl.total_gastos,totR)}</td></tr>`,
+      `<tr style="background:rgba(26,58,92,.06)"><td colspan="2" class="bld" style="font-size:14px">Resultado Líquido</td><td class="nr mono bld" style="color:var(--blue);font-size:15px">${fmtN(pnl.resultado_liquido)}</td><td class="nr bld" style="color:var(--blue)">${pct(pnl.resultado_liquido,totR)}</td></tr>`,
+    ];
+    document.getElementById('pnl-body').innerHTML = rows.join('');
+
+  } catch(e) {
+    document.getElementById('dash-data').style.display = 'none';
+    document.getElementById('dash-no-data').style.display = 'block';
+    document.getElementById('dash-no-data').innerHTML = `<div style="font-size:36px;margin-bottom:12px">📥</div><div style="font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:8px">Sem dados para ${state.year}</div><div style="color:#aaa;margin-bottom:16px">Importe um balancete para este período.</div><button class="btn btn-p" onclick="nav('importar')">📥 Importar agora</button>`;
+  }
+}
+
+// ══ BALANCETE ══
+async function loadBalancete() {
+  if (!state.entityId || !state.fiscalYearId) return;
+  const nivel = document.getElementById('bal-nivel')?.value || 2;
+  const search = document.getElementById('bal-search')?.value || '';
+  document.getElementById('bal-subtitle').textContent = state.entityName + ' · ' + state.year;
+
+  try {
+    const data = await api(`/entities/${state.entityId}/balancete?fiscal_year_id=${state.fiscalYearId}&nivel_max=${nivel}&search=${encodeURIComponent(search)}`);
+    state.balanceteData = data;
+
+    const ncl = {1:'var(--blue)',2:'var(--ink)',3:'#555',4:'#777',5:'#999'};
+    const nfs = {1:'14px',2:'13px',3:'12.5px',4:'12px',5:'11.5px'};
+
+    document.getElementById('bal-body').innerHTML = data.map(r => {
+      const ind = Math.max(0, r.nivel - 2) * 14;
+      const isInt = r.integradora;
+      return `<tr class="${isInt?'row-int':''}">
+        <td class="mono" style="color:${ncl[r.nivel]||'#aaa'};font-size:${nfs[r.nivel]||'11.5px'}">${r.conta}</td>
+        <td style="padding-left:${11+ind}px;font-size:${nfs[r.nivel]||'11.5px'}">${r.descricao}${isInt?'<span style="font-size:10px;color:#ccc;margin-left:5px">[int]</span>':''}</td>
+        <td class="nr mono">${fmtC(r.deb_periodo)}</td>
+        <td class="nr mono">${fmtC(r.cred_periodo)}</td>
+        <td class="nr mono">${fmtC(r.deb_acum)}</td>
+        <td class="nr mono">${fmtC(r.cred_acum)}</td>
+        <td class="nr mono bld" style="${r.devedor?'color:var(--blue-m)':''}">${fmtC(r.devedor)}</td>
+        <td class="nr mono bld" style="${r.credor?'color:var(--red)':''}">${fmtC(r.credor)}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="8" style="text-align:center;padding:24px;color:#aaa">Nenhuma conta encontrada.</td></tr>';
+
+    document.getElementById('bal-footer').textContent = data.length + ' contas';
+  } catch(e) {}
+}
+
+function exportCSV() {
+  if (!state.balanceteData.length) { toast('⚠️ Carregue o balancete primeiro'); return; }
+  const cols = ['conta','descricao','deb_periodo','cred_periodo','deb_acum','cred_acum','devedor','credor'];
+  const csv = ['Conta;Descrição;Déb.Período;Créd.Período;Déb.Acum;Créd.Acum;Devedor;Credor',
+    ...state.balanceteData.map(r => cols.map(c => r[c]??'').join(';'))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `balancete_${state.entityNIF}_${state.year}.csv`;
+  a.click();
+  toast('✓ CSV exportado');
+}
+
+// ══ RÁCIOS ══
+function racioTab(name, btn) {
+  document.querySelectorAll('[id^="racios-tab-"]').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.irc-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('racios-tab-' + name).style.display = '';
+  btn.classList.add('active');
+  renderRacioTab(name);
+}
+
+// ── BENCHMARKS por setor (CAE consultoria/serviços) ──
+const BENCHMARKS = {
+  liquidez_geral:     { bom: 1.5,  medio: 1.0,  ref: 'Setor serviços PT' },
+  liquidez_imediata:  { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
+  solvabilidade:      { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
+  autonomia:          { bom: 0.4,  medio: 0.25, ref: 'BdP 2023' },
+  endividamento:      { bom: 0.6,  medio: 0.75, ref: 'BdP 2023', inverse: true },
+  margem_liquida:     { bom: 10,   medio: 5,    ref: 'Consultoria PT' },
+  margem_ebitda:      { bom: 15,   medio: 8,    ref: 'Consultoria PT' },
+  roe:                { bom: 15,   medio: 8,    ref: 'Avg PME PT' },
+  roa:                { bom: 8,    medio: 4,    ref: 'Avg PME PT' },
+  roce:               { bom: 10,   medio: 5,    ref: 'Avg PME PT' },
+  pmr:                { bom: 60,   medio: 90,   ref: 'Lei 62/2013', inverse: true },
+  pmp:                { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+};
+
+function racioStatus(val, key) {
+  const b = BENCHMARKS[key];
+  if (!b) return { cls: 'b-bl', label: '—', color: '#888' };
+  const inv = b.inverse;
+  if (inv) {
+    if (val <= b.bom) return { cls: 'b-gn', label: 'Excelente', color: 'var(--green)' };
+    if (val <= b.medio) return { cls: 'b-yl', label: 'Atenção', color: 'var(--gold-d)' };
+    return { cls: 'b-rd', label: 'Crítico', color: 'var(--red)' };
+  } else {
+    if (val >= b.bom) return { cls: 'b-gn', label: 'Excelente', color: 'var(--green)' };
+    if (val >= b.medio) return { cls: 'b-yl', label: 'Atenção', color: 'var(--gold-d)' };
+    return { cls: 'b-rd', label: 'Crítico', color: 'var(--red)' };
+  }
+}
+
+// ── SVG GAUGE ──
+function gauge(val, min, max, key, unit='', size=90) {
+  const b = BENCHMARKS[key];
+  const inv = b?.inverse;
+  const pct = Math.min(1, Math.max(0, (val - min) / (max - min)));
+  const angle = -135 + pct * 270;
+  const status = racioStatus(val, key);
+  const color = status.color;
+  // Arc path
+  const r = size * 0.38;
+  const cx = size/2, cy = size/2 + 5;
+  const toRad = a => a * Math.PI / 180;
+  const px = (a) => cx + r * Math.cos(toRad(a));
+  const py = (a) => cy + r * Math.sin(toRad(a));
+  const startA = -225, endA = 45;
+  const needleA = -225 + pct * 270;
+  const nx = cx + (r-8) * Math.cos(toRad(needleA));
+  const ny = cy + (r-8) * Math.sin(toRad(needleA));
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <path d="M${px(startA)},${py(startA)} A${r},${r} 0 1,1 ${px(endA)},${py(endA)}" 
+      fill="none" stroke="#e8e4dc" stroke-width="7" stroke-linecap="round"/>
+    <path d="M${px(startA)},${py(startA)} A${r},${r} 0 ${pct>.5?1:0},1 ${px(needleA)},${py(needleA)}" 
+      fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
+    <line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${cx}" cy="${cy}" r="3.5" fill="${color}"/>
+    <text x="${cx}" y="${cy+18}" text-anchor="middle" font-size="11" font-weight="700" fill="${color}" font-family="DM Mono,monospace">${val}${unit}</text>
+  </svg>`;
+}
+
+// ── SPARKLINE ──
+function sparkline(data, color='var(--blue)', w=120, h=36) {
+  if (!data || data.length < 2) return `<svg width="${w}" height="${h}"><text x="5" y="20" font-size="10" fill="#ccc">Sem dados</text></svg>`;
+  const vals = data.map(d => d.v);
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const pts = data.map((d,i) => {
+    const x = (i / (data.length-1)) * (w-10) + 5;
+    const y = h - 5 - ((d.v - mn) / range) * (h-10);
+    return `${x},${y}`;
+  }).join(' ');
+  const lastPt = pts.split(' ').pop().split(',');
+  return `<svg width="${w}" height="${h}" style="overflow:visible">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${lastPt[0]}" cy="${lastPt[1]}" r="3" fill="${color}"/>
+  </svg>`;
+}
+
+// ── BENCHMARK BAR ──
+function benchBar(val, key, unit='') {
+  const b = BENCHMARKS[key];
+  if (!b) return '';
+  const status = racioStatus(val, key);
+  const max = b.bom * 2;
+  const pctVal = Math.min(100, (val / max) * 100);
+  const pctBom = Math.min(100, (b.bom / max) * 100);
+  const pctMed = Math.min(100, (b.medio / max) * 100);
+  return `<div style="margin-top:10px">
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;color:#aaa;margin-bottom:4px">
+      <span>Benchmark: <strong>${b.ref}</strong></span>
+      <span>Bom: ≥${b.bom}${unit}</span>
+    </div>
+    <div style="height:8px;background:var(--cream);border-radius:4px;position:relative;overflow:visible">
+      <div style="height:100%;width:${pctVal}%;background:${status.color};border-radius:4px;transition:.4s"></div>
+      <div style="position:absolute;top:-4px;left:${pctBom}%;width:2px;height:16px;background:var(--green);opacity:.5"></div>
+      <div style="position:absolute;top:-4px;left:${pctMed}%;width:2px;height:16px;background:var(--gold);opacity:.5"></div>
+    </div>
+  </div>`;
+}
+
+// ── RACIO CARD ──
+function racioCard(titulo, val, key, formula, unit='', descricao='', gaugeMin=0, gaugeMax=2) {
+  const status = racioStatus(val, key);
+  const hist = getHistorico(key);
+  return `<div class="card" style="position:relative">
+    <div style="display:flex;align-items:flex-start;gap:14px">
+      <div style="flex:1">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${titulo}</div>
+        <div style="font-size:28px;font-weight:700;color:${status.color};font-family:'DM Mono',monospace">${val}${unit}</div>
+        <div style="font-size:11px;color:#bbb;margin-top:2px">${formula}</div>
+        <span class="badge ${status.cls}" style="margin-top:6px;display:inline-block">${status.label}</span>
+      </div>
+      <div style="flex-shrink:0">${gauge(val, gaugeMin, gaugeMax, key, unit)}</div>
+    </div>
+    ${benchBar(val, key, unit)}
+    ${descricao ? `<div style="margin-top:10px;padding:9px 11px;background:var(--cream);border-radius:7px;font-size:12px;color:#555;line-height:1.5">${descricao}</div>` : ''}
+    ${hist.length > 1 ? `<div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:10.5px;color:#bbb">Evolução</span>
+      ${sparkline(hist, status.color)}
+      <span style="font-size:10.5px;color:#bbb">${hist[hist.length-1]?.y}</span>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── HISTÓRICO ──
+// Simulated multi-year data storage
+function saveRacioSnapshot(year, ratios) {
+  const key = `containtel_racios_${state.entityId}`;
+  let history = JSON.parse(localStorage.getItem(key) || '{}');
+  history[year] = ratios;
+  localStorage.setItem(key, JSON.stringify(history));
+}
+
+function getRacioHistory() {
+  const key = `containtel_racios_${state.entityId}`;
+  return JSON.parse(localStorage.getItem(key) || '{}');
+}
+
+function getHistorico(racioKey) {
+  const hist = getRacioHistory();
+  return Object.entries(hist)
+    .sort(([a],[b]) => a-b)
+    .map(([year, r]) => ({ y: year, v: r[racioKey] || 0 }));
+}
+
+function renderRacios() {
+  if (!state.financials) return;
+  const r = state.financials.ratios;
+  const year = state.year || new Date().getFullYear();
+  // Save snapshot for history
+  saveRacioSnapshot(year, {
+    liquidez_geral: r.liquidez_geral,
+    liquidez_imediata: r.liquidez_imediata,
+    solvabilidade: r.solvabilidade,
+    autonomia: r.autonomia_financeira,
+    endividamento: r.endividamento,
+    margem_liquida: r.margem_liquida,
+    margem_ebitda: r.margem_ebitda,
+    roe: r.roe,
+    roa: r.roa,
+    pmr: r.pmr_dias,
+    pmp: r.pmp_dias,
+  });
+  renderRacioTab('overview');
+}
+
+function renderRacioTab(name) {
+  if (!state.financials) return;
+  const f = state.financials;
+  const r = f.ratios;
+  const b = f.balanco;
+  const p = f.pnl;
+
+  // ── Calculated extras ──
+  const capInvestido = b.capital_proprio + (b.passivo_nao_corrente || 0);
+  const ebit = p.ebitda - p.depreciacao;
+  const roce = capInvestido > 0 ? Math.round(ebit / capInvestido * 1000) / 10 : 0;
+  const roi = b.ativo_total > 0 ? Math.round(p.resultado_liquido / b.ativo_total * 1000) / 10 : 0;
+  const ebitdaMargin = p.total_rendimentos > 0 ? Math.round(p.ebitda / p.total_rendimentos * 1000) / 10 : 0;
+  // FM
+  const fm = b.ativo_corrente - b.passivo_corrente;
+  const nfm = b.clientes - (b.passivo_corrente - (f.balanco.financiamentos_cp || 0));
+  const tesouraria = fm - nfm;
+
+  const el = document.getElementById('racios-' + name + '-content');
+  if (!el) return;
+
+  if (name === 'overview') {
+    // Score card
+    const scores = [
+      { k:'liquidez_geral', v: r.liquidez_geral, label:'Liquidez' },
+      { k:'solvabilidade', v: r.solvabilidade, label:'Solvabilidade' },
+      { k:'margem_liquida', v: r.margem_liquida, label:'Margem Líq.' },
+      { k:'roe', v: r.roe, label:'ROE' },
+      { k:'pmr', v: r.pmr_dias, label:'PMR' },
+      { k:'autonomia', v: r.autonomia_financeira, label:'Autonomia' },
+    ];
+    const goodCount = scores.filter(s => racioStatus(s.v, s.k).cls === 'b-gn').length;
+    const warnCount = scores.filter(s => racioStatus(s.v, s.k).cls === 'b-yl').length;
+    const badCount  = scores.filter(s => racioStatus(s.v, s.k).cls === 'b-rd').length;
+    const score = Math.round((goodCount * 100 + warnCount * 50) / (scores.length * 100) * 100);
+
+    el.innerHTML = `
+      <!-- SCORE -->
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="text-align:center;min-width:100px">
+            <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Score Global</div>
+            <div style="font-size:52px;font-weight:700;font-family:'DM Mono',monospace;color:${score>=70?'var(--green)':score>=40?'var(--gold-d)':'var(--red)'};line-height:1">${score}</div>
+            <div style="font-size:11px;color:#bbb">/100</div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+              <div style="background:rgba(26,122,74,.08);border-radius:8px;padding:8px 14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:var(--green)">${goodCount}</div>
+                <div style="font-size:10.5px;color:var(--green)">Excelente</div>
+              </div>
+              <div style="background:rgba(201,168,76,.08);border-radius:8px;padding:8px 14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:var(--gold-d)">${warnCount}</div>
+                <div style="font-size:10.5px;color:var(--gold-d)">Atenção</div>
+              </div>
+              <div style="background:rgba(192,57,43,.08);border-radius:8px;padding:8px 14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:var(--red)">${badCount}</div>
+                <div style="font-size:10.5px;color:var(--red)">Crítico</div>
+              </div>
+            </div>
+            <!-- Mini gauges -->
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${scores.map(s => {
+                const st = racioStatus(s.v, s.k);
+                const unit = s.k==='pmr'||s.k==='pmp'?'d':'';
+                const isPercent = ['margem_liquida','roe','margem_ebitda'].includes(s.k);
+                return `<div style="text-align:center;background:var(--cream);border-radius:8px;padding:6px 10px;min-width:70px">
+                  ${gauge(s.v, 0, BENCHMARKS[s.k]?.bom*2||2, s.k, isPercent?'%':unit, 64)}
+                  <div style="font-size:10px;color:#888;margin-top:2px">${s.label}</div>
+                  <span class="badge ${st.cls}" style="font-size:9px;padding:1px 5px">${st.label}</span>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+          <!-- Alertas -->
+          <div style="min-width:220px;max-width:280px">
+            <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Alertas & Recomendações</div>
+            ${(f.alerts||[]).map(a => `
+              <div class="ai ${a.severity==='critical'?'er':a.severity==='high'?'wn':a.severity==='info'?'in':'gn'}" style="margin-bottom:6px">
+                <div style="font-size:12px;font-weight:600">${a.title}</div>
+                <div style="font-size:11px;opacity:.8;margin-top:2px">${a.desc}</div>
+              </div>`).join('') || '<div style="font-size:12px;color:#aaa">✅ Sem alertas críticos</div>'}
+          </div>
+        </div>
+      </div>
+      <!-- QUICK TABLE -->
+      <div class="card">
+        <div class="ch"><div class="ct">📋 Todos os Rácios</div><div class="cs">Clique nos separadores para análise detalhada</div></div>
+        <table>
+          <thead><tr><th>Rácio</th><th>Valor</th><th>Benchmark</th><th>Estado</th><th>Tendência</th></tr></thead>
+          <tbody>
+            ${[
+              ['Liquidez Geral', r.liquidez_geral, 'liquidez_geral', '≥ 1.5', ''],
+              ['Liquidez Imediata', r.liquidez_imediata, 'liquidez_imediata', '≥ 0.5', ''],
+              ['Solvabilidade', r.solvabilidade, 'solvabilidade', '≥ 0.5', ''],
+              ['Autonomia Financeira', r.autonomia_financeira+'', 'autonomia', '≥ 0.4', ''],
+              ['Margem EBITDA', ebitdaMargin+'%', 'margem_ebitda', '≥ 15%', '%'],
+              ['Margem Líquida', r.margem_liquida+'%', 'margem_liquida', '≥ 10%', '%'],
+              ['ROE', r.roe+'%', 'roe', '≥ 15%', '%'],
+              ['ROA', r.roa+'%', 'roa', '≥ 8%', '%'],
+              ['ROCE', roce+'%', 'roce', '≥ 10%', '%'],
+              ['PMR', r.pmr_dias+'d', 'pmr', '≤ 60d', 'd'],
+              ['PMP', r.pmp_dias+'d', 'pmp', '≤ 30d', 'd'],
+            ].map(([nome, val, key, bench]) => {
+              const v = parseFloat(val);
+              const st = racioStatus(v, key);
+              const hist = getHistorico(key);
+              const trend = hist.length >= 2 ? (hist[hist.length-1].v > hist[hist.length-2].v ? '↑' : '↓') : '—';
+              const trendColor = key==='pmr'||key==='pmp'||key==='endividamento' 
+                ? (trend==='↑'?'var(--red)':'var(--green)') 
+                : (trend==='↑'?'var(--green)':'var(--red)');
+              return `<tr>
+                <td>${nome}</td>
+                <td class="mono" style="font-weight:600;color:${st.color}">${val}</td>
+                <td style="font-size:11.5px;color:#aaa">${bench}</td>
+                <td><span class="badge ${st.cls}">${st.label}</span></td>
+                <td style="color:${trendColor};font-weight:700;font-size:15px">${trend}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  else if (name === 'liquidez') {
+    el.innerHTML = `<div class="g2">
+      ${racioCard('Liquidez Geral', r.liquidez_geral, 'liquidez_geral',
+        `AC €${fmtN(b.ativo_corrente)} ÷ PC €${fmtN(b.passivo_corrente)}`, '',
+        r.liquidez_geral >= 1.5 ? '✅ Excelente cobertura do passivo corrente. A empresa tem folga financeira de curto prazo.' :
+        r.liquidez_geral >= 1 ? '⚠️ Liquidez aceitável. Monitorizar evolução trimestral.' :
+        '🔴 Risco de liquidez. A empresa pode não cobrir obrigações de curto prazo. Renegociar prazos com fornecedores.', 0, 3)}
+      ${racioCard('Liquidez Imediata', r.liquidez_imediata, 'liquidez_imediata',
+        `Disponib. €${fmtN(b.disponibilidades)} ÷ PC €${fmtN(b.passivo_corrente)}`, '',
+        r.liquidez_imediata >= 0.5 ? '✅ Boa posição de caixa. Capacidade imediata de pagamento.' :
+        r.liquidez_imediata >= 0.2 ? '⚠️ Posição de caixa moderada. Gerir recebimentos ativamente.' :
+        '🔴 Caixa insuficiente face ao passivo corrente. Risco de incumprimento imediato.', 0, 1.5)}
+      <div class="card">
+        <div class="ch"><div class="ct">⏱️ Prazos de Atividade</div></div>
+        ${racioCardRow('PMR — Prazo Médio Recebimento', r.pmr_dias+'d', 'pmr',
+          `Clientes €${fmtN(b.clientes)} × 365 ÷ Rend. €${fmtN(p.total_rendimentos)}`,
+          r.pmr_dias > 90 ? '🔴 PMR crítico. Implementar política de cobrança: envio de avisos automáticos, desconto pronto pagamento, factoring.' :
+          r.pmr_dias > 60 ? '⚠️ PMR acima do recomendável. Renegociar prazos com clientes.' : '✅ Prazo de recebimento saudável.')}
+        ${racioCardRow('PMP — Prazo Médio Pagamento', r.pmp_dias+'d', 'pmp',
+          `Fornec. × 365 ÷ FSE`,
+          r.pmp_dias > 60 ? '🔴 Limite legal (Lei 62/2013). PMP > 60 dias sujeito a penalidades.' :
+          '✅ Dentro do limite legal de 60 dias (Lei 62/2013).')}
+        ${racioCardRow('Ciclo de Caixa', r.ciclo_caixa_dias+'d', 'pmr',
+          `PMR − PMP = ${r.pmr_dias}d − ${r.pmp_dias}d`,
+          `Tempo médio que a empresa financia o ciclo operacional. ${r.ciclo_caixa_dias > 90 ? 'Alto: empresa financia clientes por muito tempo.' : 'Dentro do normal.'}`)}
+      </div>
+    </div>`;
+  }
+
+  else if (name === 'rentabilidade') {
+    el.innerHTML = `<div class="g2">
+      ${racioCard('Margem Líquida', r.margem_liquida, 'margem_liquida',
+        `RL €${fmtN(p.resultado_liquido)} ÷ Rend. €${fmtN(p.total_rendimentos)}`, '%',
+        `Por cada €100 de rendimentos, a empresa gera €${r.margem_liquida} de lucro líquido.`, 0, 25)}
+      ${racioCard('Margem EBITDA', ebitdaMargin, 'margem_ebitda',
+        `EBITDA €${fmtN(p.ebitda)} ÷ Rend. €${fmtN(p.total_rendimentos)}`, '%',
+        `Capacidade operacional antes de financiamento e impostos. Indicador de eficiência operacional pura.`, 0, 30)}
+      ${racioCard('ROE — Return on Equity', r.roe, 'roe',
+        `RL €${fmtN(p.resultado_liquido)} ÷ CP €${fmtN(b.capital_proprio)}`, '%',
+        `Rendibilidade do capital dos sócios. ${r.roe >= 15 ? 'Excelente — supera custo de capital típico (8-12%).' : r.roe >= 8 ? 'Aceitável. Sócios obtêm retorno adequado.' : 'Abaixo do custo de capital. Avaliar alocação de recursos.'}`, 0, 30)}
+      ${racioCard('ROA — Return on Assets', r.roa, 'roa',
+        `EBIT ÷ AT €${fmtN(b.ativo_total)}`, '%',
+        `Eficiência na utilização dos ativos para gerar resultados.`, 0, 20)}
+      ${racioCard('ROCE — Return on Capital Employed', roce, 'roce',
+        `EBIT €${fmtN(ebit)} ÷ Cap. Invest. €${fmtN(capInvestido)}`, '%',
+        `Rendibilidade do capital total investido (CP + Passivo L/P). Mede eficiência do capital estrutural.`, 0, 20)}
+      <div class="card">
+        <div class="ch"><div class="ct">📊 Decomposição DuPont</div><div class="cs">ROE = Margem × Rotação × Alavancagem</div></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
+          ${[
+            ['Margem Líquida', r.margem_liquida+'%'],
+            ['×', ''],
+            ['Rotação Ativo', (p.total_rendimentos&&b.ativo_total ? Math.round(p.total_rendimentos/b.ativo_total*100)/100 : 0)+'x'],
+            ['×', ''],
+            ['Alavancagem', (b.capital_proprio ? Math.round(b.ativo_total/b.capital_proprio*100)/100 : 0)+'x'],
+            ['=', ''],
+            ['ROE', r.roe+'%'],
+          ].map(([l,v]) => l==='×'||l==='='
+            ? `<div style="font-size:20px;font-weight:300;color:#ccc">${l}</div>`
+            : `<div style="background:var(--cream);border-radius:9px;padding:10px 14px;text-align:center;min-width:90px">
+                <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${v}</div>
+                <div style="font-size:10px;color:#aaa;margin-top:2px">${l}</div>
+              </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  else if (name === 'estrutura') {
+    el.innerHTML = `<div class="g2">
+      ${racioCard('Solvabilidade', r.solvabilidade, 'solvabilidade',
+        `CP €${fmtN(b.capital_proprio)} ÷ Passivo €${fmtN(b.passivo_total)}`, '',
+        r.solvabilidade < 0.2 ? '🔴 Risco Art.35.º CIRE — Capital próprio inferior a metade do capital social. Obrigação de comunicar à AG.' :
+        r.solvabilidade < 0.3 ? '⚠️ Solvabilidade baixa. Monitorizar estrutura de capitais.' :
+        '✅ Estrutura financeira sólida. Capital próprio cobre adequadamente o passivo.', 0, 1.5)}
+      ${racioCard('Autonomia Financeira', r.autonomia_financeira, 'autonomia',
+        `CP €${fmtN(b.capital_proprio)} ÷ AT €${fmtN(b.ativo_total)}`, '',
+        `${Math.round(r.autonomia_financeira*100)}% dos ativos são financiados por capitais próprios. ${r.autonomia_financeira >= 0.4 ? 'Boa independência financeira.' : 'Elevada dependência de capitais alheios.'}`, 0, 1)}
+      ${racioCard('Endividamento', r.endividamento, 'endividamento',
+        `Passivo €${fmtN(b.passivo_total)} ÷ AT €${fmtN(b.ativo_total)}`, '',
+        `${Math.round(r.endividamento*100)}% dos ativos financiados por dívida.`, 0, 1)}
+      <div class="card">
+        <div class="ch"><div class="ct">🏗️ Estrutura do Balanço</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+          <div>
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">ATIVO</div>
+            ${balancoBar('Ativo Corrente', b.ativo_corrente, b.ativo_total, 'var(--blue-l)')}
+            ${balancoBar('Ativo Não Corrente', b.ativo_nao_corrente, b.ativo_total, 'var(--blue)')}
+          </div>
+          <div>
+            <div style="font-size:10.5px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">CAPITAL & PASSIVO</div>
+            ${balancoBar('Capital Próprio', b.capital_proprio, b.ativo_total, 'var(--green)')}
+            ${balancoBar('Passivo Corrente', b.passivo_corrente, b.ativo_total, 'var(--gold-d)')}
+            ${balancoBar('Passivo Não Corrente', b.passivo_nao_corrente, b.ativo_total, 'var(--red)')}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  else if (name === 'cashflow') {
+    const fcfProxy = p.ebitda - p.depreciacao; // simplified
+    el.innerHTML = `<div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">💰 Análise EBITDA</div><div class="cs">Earnings Before Interest, Taxes, Depreciation & Amortization</div></div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          ${cfRow('Rendimentos Totais', p.total_rendimentos, true)}
+          ${cfRow('Gastos Operacionais', -(p.total_gastos - p.depreciacao - p.gastos_financiamento), false)}
+          ${cfRow('EBITDA', p.ebitda, true, true)}
+          ${cfRow('Depreciações & Amortizações', -p.depreciacao, false)}
+          ${cfRow('EBIT (Resultado Operacional)', ebit, true)}
+          ${cfRow('Gastos Financiamento', -p.gastos_financiamento, false)}
+          ${cfRow('Resultado Líquido (Estimado)', p.resultado_liquido, true, true)}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div style="background:var(--cream);border-radius:9px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Margem EBITDA</div>
+            <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:${ebitdaMargin>=15?'var(--green)':ebitdaMargin>=8?'var(--gold-d)':'var(--red)'}">${ebitdaMargin}%</div>
+          </div>
+          <div style="background:var(--cream);border-radius:9px;padding:12px;text-align:center">
+            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">EBITDA / Juros</div>
+            <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${p.gastos_financiamento > 0 ? Math.round(p.ebitda/p.gastos_financiamento*10)/10 : '∞'}x</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🔄 Cash Flow Proxy</div><div class="cs">Estimativa baseada no balancete (sem demonstração fluxos)</div></div>
+        <div class="ai wn" style="margin-bottom:12px"><div class="a-ico">ℹ️</div><div><div class="a-t">Importar SAF-T para cash flow exato</div><div class="a-d">Os valores abaixo são estimativas. Para análise precisa, importe o ficheiro SAF-T.</div></div></div>
+        ${cfRow('Cash Flow Operacional (proxy)', p.ebitda, true)}
+        ${cfRow('Investimento (CAPEX proxy)', -(p.depreciacao * 1.2), false)}
+        ${cfRow('Free Cash Flow (estimado)', fcfProxy, true, true)}
+        <div style="margin-top:14px;background:var(--cream);border-radius:9px;padding:12px">
+          <div style="font-size:11px;color:#888;margin-bottom:6px">Cobertura do Serviço da Dívida</div>
+          <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">
+            ${p.gastos_financiamento > 0 ? Math.round(p.ebitda/p.gastos_financiamento*10)/10 + 'x' : 'N/A'}
+          </div>
+          <div style="font-size:11px;color:#bbb;margin-top:3px">EBITDA / Serviço da dívida (≥ 1.25x recomendado)</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  else if (name === 'fm') {
+    const fmStatus = fm > 0 ? 'var(--green)' : 'var(--red)';
+    el.innerHTML = `<div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">⚖️ Fundo de Maneio</div><div class="cs">Capacidade de financiar o ciclo operacional</div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--cream);border-radius:9px">
+            <div>
+              <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Fundo de Maneio Líquido</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">Ativo Corrente − Passivo Corrente</div>
+            </div>
+            <div class="mono" style="font-size:24px;font-weight:700;color:${fmStatus}">€ ${fmtN(fm)}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--cream);border-radius:9px">
+            <div>
+              <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Necessidades de FM</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">Clientes + Stocks − Fornecedores</div>
+            </div>
+            <div class="mono" style="font-size:24px;font-weight:700;color:var(--blue)">€ ${fmtN(nfm)}</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px;background:var(--cream);border-radius:9px">
+            <div>
+              <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Tesouraria Líquida</div>
+              <div style="font-size:11px;color:#888;margin-top:2px">FML − NFM</div>
+            </div>
+            <div class="mono" style="font-size:24px;font-weight:700;color:${tesouraria >= 0 ? 'var(--green)':'var(--red)'}">€ ${fmtN(tesouraria)}</div>
+          </div>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:${fm>0?'rgba(26,122,74,.05)':'rgba(192,57,43,.05)'};border-radius:9px;font-size:12.5px;color:#555;line-height:1.6">
+          ${fm > 0 
+            ? `✅ <strong>Fundo de maneio positivo de €${fmtN(fm)}</strong> — a empresa tem ativos correntes suficientes para cobrir o passivo corrente.<br>NFM de €${fmtN(nfm)} indica ${nfm > 0 ? 'necessidade de financiamento do ciclo operacional' : 'ciclo operacional auto-financiado'}.`
+            : `🔴 <strong>Fundo de maneio negativo de €${fmtN(Math.abs(fm))}</strong> — passivo corrente supera os ativos correntes. Risco de incumprimento de curto prazo. Considerar financiamento de médio prazo para reequilibrar.`}
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">📊 Componentes do FM</div></div>
+        <table style="margin-top:8px">
+          <thead><tr><th>Componente</th><th>Valor</th><th>% AT</th></tr></thead>
+          <tbody>
+            ${[
+              ['Disponibilidades', b.disponibilidades, true],
+              ['Clientes', b.clientes, true],
+              ['Existências', b.existencias||0, true],
+              ['─────', null],
+              ['Ativo Corrente', b.ativo_corrente, true, true],
+              ['Fornecedores', b.passivo_corrente - (f.balanco.financiamentos_cp||0), false],
+              ['─────', null],
+              ['Passivo Corrente', b.passivo_corrente, false, true],
+            ].map(([name, val, isAtivo, isBold]) => val === null
+              ? `<tr><td colspan="3" style="color:#ddd;padding:4px 0">────────────────</td></tr>`
+              : `<tr style="${isBold?'font-weight:700;border-top:1px solid var(--cream)':''}">
+                  <td>${name}</td>
+                  <td class="mono" style="color:${isAtivo?'var(--blue)':'var(--red)'}">${isAtivo?'':'-'}€ ${fmtN(val)}</td>
+                  <td style="color:#aaa;font-size:12px">${b.ativo_total ? Math.round(Math.abs(val)/b.ativo_total*100)+'%' : '—'}</td>
+                </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  else if (name === 'historico') {
+    const hist = getRacioHistory();
+    const years = Object.keys(hist).sort();
+    if (years.length < 2) {
+      el.innerHTML = `<div class="card"><div class="empty">
+        <div class="empty-ico">📅</div>
+        <div class="empty-t">Importe balancetes de múltiplos anos</div>
+        <div class="empty-s">Cada vez que importar um balancete de um novo ano, os rácios ficam guardados automaticamente para comparação.</div>
+      </div></div>`;
+      return;
+    }
+    const keys = ['liquidez_geral','solvabilidade','margem_liquida','roe','roa','pmr','pmp'];
+    const labels = ['Liquidez Geral','Solvabilidade','Margem Líq. %','ROE %','ROA %','PMR dias','PMP dias'];
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:16px">
+        <div class="ch"><div class="ct">📅 Evolução Histórica</div><div class="cs">${years.join(' → ')}</div></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Rácio</th>
+                ${years.map(y => `<th>${y}</th>`).join('')}
+                <th>Tendência</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${keys.map((key,i) => {
+                const vals = years.map(y => hist[y]?.[key] ?? '—');
+                const numVals = vals.filter(v => v !== '—').map(Number);
+                const trend = numVals.length >= 2 
+                  ? numVals[numVals.length-1] - numVals[numVals.length-2]
+                  : 0;
+                const isInv = key==='pmr'||key==='pmp'||key==='endividamento';
+                const trendGood = isInv ? trend < 0 : trend > 0;
+                return `<tr>
+                  <td style="font-weight:600">${labels[i]}</td>
+                  ${vals.map((v, vi) => {
+                    if (v === '—') return '<td style="color:#ddd">—</td>';
+                    const st = racioStatus(Number(v), key);
+                    return `<td class="mono" style="color:${st.color};font-weight:600">${v}</td>`;
+                  }).join('')}
+                  <td style="font-size:18px;font-weight:700;color:${trendGood?'var(--green)':'var(--red)'}">
+                    ${trend > 0.01 ? '↑' : trend < -0.01 ? '↓' : '→'}
+                    <span style="font-size:11px;font-weight:400">${Math.abs(trend).toFixed(1)}</span>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">💡 Análise de Tendências</div></div>
+        ${keys.map((key, i) => {
+          const vals = years.map(y => hist[y]?.[key]).filter(v => v != null);
+          if (vals.length < 2) return '';
+          const delta = vals[vals.length-1] - vals[vals.length-2];
+          const isInv = key==='pmr'||key==='pmp';
+          const good = isInv ? delta < 0 : delta > 0;
+          const st = racioStatus(vals[vals.length-1], key);
+          return `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--cream)">
+            <div style="font-size:18px">${good ? '📈' : '📉'}</div>
+            <div style="flex:1">
+              <span style="font-weight:600">${labels[i]}</span>
+              <span style="font-size:12px;color:#888;margin-left:8px">${vals[vals.length-2]} → ${vals[vals.length-1]}</span>
+            </div>
+            <span class="badge ${good?'b-gn':'b-rd'}">${good ? (isInv?'Melhorou':'Melhorou') : (isInv?'Piorou':'Piorou')} ${Math.abs(delta).toFixed(2)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+}
+
+// ── HELPERS ──
+function racioCardRow(titulo, val, key, formula, descricao) {
+  const v = parseFloat(val);
+  const st = racioStatus(v, key);
+  return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--cream)">
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:600">${titulo}</div>
+      <div style="font-size:11px;color:#bbb;margin-top:1px">${formula}</div>
+      ${descricao ? `<div style="font-size:11.5px;color:#666;margin-top:4px">${descricao}</div>` : ''}
+    </div>
+    <div style="text-align:right;margin-left:12px">
+      <div class="mono" style="font-size:18px;font-weight:700;color:${st.color}">${val}</div>
+      <span class="badge ${st.cls}" style="font-size:9.5px">${st.label}</span>
+    </div>
+  </div>`;
+}
+
+function balancoBar(label, val, total, color) {
+  const pct = total > 0 ? Math.min(100, Math.round(val/total*100)) : 0;
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+      <span>${label}</span>
+      <span class="mono" style="color:${color};font-weight:600">€ ${fmtN(val)} <span style="color:#bbb;font-weight:400">${pct}%</span></span>
+    </div>
+    <div style="height:7px;background:var(--cream);border-radius:4px">
+      <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;transition:.5s"></div>
+    </div>
+  </div>`;
+}
+
+function cfRow(label, val, isPositive, isBold=false) {
+  const color = val >= 0 ? 'var(--green)' : 'var(--red)';
+  return `<div style="display:flex;justify-content:space-between;align-items:center;padding:${isBold?'10':'7'}px 0;${isBold?'border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);':'border-bottom:1px solid var(--cream);'}">
+    <span style="${isBold?'font-weight:700':''}font-size:13px">${label}</span>
+    <span class="mono" style="font-weight:${isBold?700:500};color:${isBold?color:'var(--ink)'}">
+      ${val >= 0 ? '' : '− '}€ ${fmtN(Math.abs(val))}
+    </span>
+  </div>`;
+}
+
+
+// ══ IRC ══
+function ircTab(name, btn) {
+  document.querySelectorAll('.irc-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.irc-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('irc-tab-' + name).style.display = '';
+  btn.classList.add('active');
+}
+
+function renderIRCPanel() {
+  const sub = document.getElementById('irc-subtitle');
+  if (!state.financials) { if(sub) sub.textContent = 'Importe um balancete primeiro'; return; }
+  const rl = state.financials.pnl?.resultado_liquido || 0;
+  if (sub) sub.textContent = 'RL: ' + fmtEur(rl);
+  // Pre-fill RL
+  const rlInput = document.getElementById('irc-rl');
+  if (rlInput) { rlInput.value = rl.toFixed(2); }
+  // Pre-fill VN for PEC
+  const vn = state.financials.pnl?.total_rendimentos || 0;
+  const pecVn = document.getElementById('pec-vn');
+  if (pecVn) pecVn.value = vn.toFixed(2);
+  calcQ07(); calcTA(); calcBF(); calcPPC(); calcPEC();
+}
+
+function fmtN(v) {
+  return new Intl.NumberFormat('pt-PT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v||0);
+}
+
+function getVal(id) { return parseFloat(document.getElementById(id)?.value||0)||0; }
+function setTxt(id, v) { const el=document.getElementById(id); if(el) el.textContent = '€ '+fmtN(v); }
+
+// ── QUADRO 07 ──
+function calcQ07() {
+  const ac = ['ac-multas','ac-irc-contab','ac-ta','ac-dep','ac-prov','ac-impar','ac-rep','ac-fin','ac-outros']
+    .reduce((s,id) => s + getVal(id), 0);
+  const ded = ['ded-rev-prov','ded-rev-impar','ded-mv','ded-dte','ded-dif-temp','ded-outros']
+    .reduce((s,id) => s + getVal(id), 0);
+  const prejuizos = getVal('ded-prejuizos');
+  const rl = getVal('irc-rl');
+  const lbcont = rl + ac - ded;
+  // Limite prejuízos: 70% do LB
+  const limPrej = Math.max(0, lbcont * 0.70);
+  const prejUsado = Math.min(prejuizos, limPrej);
+  const mc = Math.max(0, lbcont - prejUsado);
+
+  setTxt('total-acrescimos', ac);
+  setTxt('total-deducoes', ded + prejUsado);
+  setTxt('q07-rl', rl);
+  const acEl = document.getElementById('q07-ac');
+  if(acEl) acEl.textContent = '+ € ' + fmtN(ac);
+  const dedEl = document.getElementById('q07-ded');
+  if(dedEl) dedEl.textContent = '− € ' + fmtN(ded + prejUsado);
+  setTxt('q07-mc', mc);
+  // Update DLRR coleta
+  calcColetaFromMC(mc);
+  return { ac, ded: ded+prejUsado, mc, lbcont };
+}
+
+function calcColetaFromMC(mc) {
+  const regime = document.getElementById('irc-regime')?.value || 'pme';
+  let coleta = 0;
+  if (regime === 'pme') coleta = Math.min(mc, 50000)*0.17 + Math.max(0, mc-50000)*0.21;
+  else if (regime === 'geral') coleta = mc * 0.21;
+  else if (regime === 'reduzido') coleta = mc * 0.125;
+  const el = document.getElementById('dlrr-coleta');
+  if(el) el.value = coleta.toFixed(2);
+  calcDLRR();
+  return coleta;
+}
+
+// ── TRIBUTAÇÃO AUTÓNOMA ──
+let viaturas = [];
+
+function addViatura() {
+  viaturas.push({ custo: 0, encargos: 0 });
+  renderViaturas();
+}
+
+function removeViatura(i) {
+  viaturas.splice(i, 1);
+  renderViaturas();
+  calcTA();
+}
+
+function renderViaturas() {
+  const tbody = document.getElementById('ta-viaturas');
+  if (!tbody) return;
+  tbody.innerHTML = viaturas.map((v,i) => {
+    const taxa = v.custo < 27500 ? 10 : v.custo < 35000 ? 27.5 : 35;
+    const ta = v.encargos * taxa / 100;
+    return `<tr>
+      <td><select class="fi" style="width:150px;font-size:11.5px" onchange="viaturas[${i}].custo=parseFloat(this.value);renderViaturas();calcTA()">
+        <option value="0" ${v.custo<27500?'selected':''}>< €27.500 (10%)</option>
+        <option value="27500" ${v.custo>=27500&&v.custo<35000?'selected':''}>€27.500-€35.000 (27,5%)</option>
+        <option value="35000" ${v.custo>=35000?'selected':''}>≥ €35.000 (35%)</option>
+      </select></td>
+      <td style="color:var(--red);font-weight:600">${taxa}%</td>
+      <td><input class="fi irc-input" type="number" value="${v.encargos}" placeholder="0" style="width:110px"
+        oninput="viaturas[${i}].encargos=parseFloat(this.value)||0;calcTA()"></td>
+      <td class="mono" style="color:var(--red);font-weight:600">€ ${fmtN(ta)}</td>
+      <td><button class="btn btn-o btn-sm" style="padding:2px 7px;font-size:11px" onclick="removeViatura(${i})">✕</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:#bbb;font-size:12px;padding:10px">Sem viaturas — clique em Adicionar</td></tr>';
+}
+
+function calcTA() {
+  // Viaturas
+  const taViaturas = viaturas.reduce((s,v) => {
+    const taxa = v.custo < 27500 ? 0.10 : v.custo < 35000 ? 0.275 : 0.35;
+    return s + v.encargos * taxa;
+  }, 0);
+  // Representação
+  const taRep = getVal('ta-rep-val') * getVal('ta-rep-taxa');
+  setTxt('ta-rep-result', taRep);
+  // Ajudas
+  const taAjudas = getVal('ta-ajudas-val') * getVal('ta-ajudas-taxa');
+  setTxt('ta-ajudas-result', taAjudas);
+  // Lucros
+  const taLucros = getVal('ta-lucros-val') * getVal('ta-lucros-taxa');
+  setTxt('ta-lucros-result', taLucros);
+  // Não doc
+  const taNaoDoc = getVal('ta-naodoc-val') * getVal('ta-naodoc-taxa');
+
+  let total = taViaturas + taRep + taAjudas + taLucros + taNaoDoc;
+
+  // Agravamento por prejuízo
+  if (document.getElementById('ta-prejuizo')?.value === '1') {
+    total = total * 1.10; // +10pp aplicado como +10% do total (simplificado)
+  }
+
+  setTxt('ta-total', total);
+  const badge = document.getElementById('ta-total-badge');
+  if(badge) badge.textContent = '€ ' + fmtN(total);
+
+  // Auto-fill ac-ta field
+  const acTa = document.getElementById('ac-ta');
+  if(acTa) { acTa.value = total.toFixed(2); calcQ07(); }
+  return total;
+}
+
+// ── BENEFÍCIOS FISCAIS ──
+function calcBF() {
+  const total = ['bf-rfai','bf-dlrr','bf-sifide','bf-mecenato','bf-emprego','bf-zfm','bf-outros']
+    .reduce((s,id) => s + getVal(id), 0);
+  setTxt('bf-total', total);
+  return total;
+}
+
+function calcDLRR() {
+  const lucros = getVal('dlrr-lucros');
+  const coleta = getVal('dlrr-coleta');
+  const calc = lucros * 0.10;
+  const limite = coleta * 0.25;
+  const result = Math.min(calc, limite);
+  setTxt('dlrr-calc', calc);
+  setTxt('dlrr-limite', limite);
+  setTxt('dlrr-result', result);
+  return result;
+}
+
+function applyDLRR() {
+  const result = calcDLRR();
+  const el = document.getElementById('bf-dlrr');
+  if(el) { el.value = result.toFixed(2); calcBF(); }
+  toast('✓ DLRR aplicado: € ' + fmtN(result));
+}
+
+// ── PAGAMENTOS POR CONTA ──
+function calcPPC() {
+  const base = getVal('ppc-base');
+  const pct = getVal('ppc-pct') / 100;
+  const total = base * pct;
+  const prestacao = total / 3;
+  const el = document.getElementById('ppc-calc');
+  if(!el) return;
+  if(!base) { el.innerHTML='<div style="text-align:center;color:#bbb;font-size:12.5px">Introduza o IRC do ano anterior</div>'; return; }
+  el.innerHTML = `
+    <div style="font-weight:700;margin-bottom:10px;color:var(--blue)">PPC para ${new Date().getFullYear()+1}</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12.5px">
+      <span>Total PPC (${(pct*100).toFixed(0)}% × € ${fmtN(base)})</span>
+      <span class="mono" style="font-weight:600">€ ${fmtN(total)}</span>
+    </div>
+    <div style="border-top:1px solid var(--cream);margin:8px 0"></div>
+    ${['Julho','Setembro','Dezembro'].map(m => `
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px">
+      <span>📅 ${m} ${new Date().getFullYear()+1}</span>
+      <span class="mono" style="color:var(--blue);font-weight:600">€ ${fmtN(prestacao)}</span>
+    </div>`).join('')}
+    <div style="background:rgba(26,58,92,.07);border-radius:7px;padding:9px;margin-top:8px;display:flex;justify-content:space-between">
+      <span style="font-weight:600">Total a pagar</span>
+      <span class="mono" style="font-weight:700;color:var(--blue);font-size:15px">€ ${fmtN(total)}</span>
+    </div>`;
+}
+
+function calcPEC() {
+  const vn = getVal('pec-vn');
+  const ppcAnt = getVal('pec-ppc');
+  const el = document.getElementById('pec-calc');
+  if(!el) return;
+  if(!vn) { el.innerHTML='<div style="text-align:center;color:#bbb;font-size:12.5px">Introduza o volume de negócios</div>'; return; }
+  const pecBruto = vn * 0.01;
+  const pecLiquido = Math.max(850, Math.min(70000, pecBruto - ppcAnt));
+  const prestacao = pecLiquido / 2;
+  el.innerHTML = `
+    <div style="font-weight:700;margin-bottom:10px;color:var(--gold-d)">PEC ${new Date().getFullYear()}</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+      <span>1% × VN</span><span class="mono">€ ${fmtN(pecBruto)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+      <span>− PPC efetuados</span><span class="mono" style="color:var(--red)">− € ${fmtN(ppcAnt)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:12.5px">
+      <span>Mínimo/Máximo aplicado</span><span class="mono">€850 / €70.000</span>
+    </div>
+    <div style="border-top:1px solid var(--cream);margin:8px 0"></div>
+    ${['Janeiro','Março'].map(m => `
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:12.5px">
+      <span>📅 ${m} ${new Date().getFullYear()+1}</span>
+      <span class="mono" style="color:var(--gold-d);font-weight:600">€ ${fmtN(prestacao)}</span>
+    </div>`).join('')}
+    <div style="background:rgba(201,168,76,.10);border-radius:7px;padding:9px;margin-top:8px;display:flex;justify-content:space-between">
+      <span style="font-weight:600">Total PEC</span>
+      <span class="mono" style="font-weight:700;color:var(--gold-d);font-size:15px">€ ${fmtN(pecLiquido)}</span>
+    </div>`;
+}
+
+// ── CALCULAR TUDO ──
+async function runIRCFull() {
+  const q07 = calcQ07();
+  const ta = calcTA();
+  const bf = calcBF();
+  const retencoes = getVal('irc-retencoes');
+  const ppc = getVal('irc-ppc');
+  const regime = document.getElementById('irc-regime')?.value || 'pme';
+  const mc = q07.mc;
+  let coleta = 0;
+  if (regime === 'pme') coleta = Math.min(mc, 50000)*0.17 + Math.max(0, mc-50000)*0.21;
+  else if (regime === 'geral') coleta = mc * 0.21;
+  else if (regime === 'reduzido') coleta = mc * 0.125;
+  const coletaAposBF = Math.max(0, coleta - bf);
+  const ircLiquido = coletaAposBF + ta;
+  const acrerto = ircLiquido - retencoes - ppc;
+  const card = document.getElementById('irc-result-card');
+  if (!card) return;
+  const statusColor = acrerto > 0 ? 'var(--red)' : 'var(--green)';
+  const statusLabel = acrerto > 0 ? '⚠️ A pagar' : '✅ A reembolsar';
+  card.innerHTML = `
+    <div class="ch"><div class="ct">💶 Resultado IRC Final</div></div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:#888">Matéria Coletável</span>
+        <span class="mono">€ ${fmtN(mc)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:#888">Coleta IRC (${regime==='pme'?'17%/21%':regime==='geral'?'21%':'12,5%'})</span>
+        <span class="mono">€ ${fmtN(coleta)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:var(--gold-d)">− Benefícios Fiscais</span>
+        <span class="mono" style="color:var(--gold-d)">− € ${fmtN(bf)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:var(--red)">+ Tributação Autónoma</span>
+        <span class="mono" style="color:var(--red)">+ € ${fmtN(ta)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:2px solid var(--ink);font-weight:700">
+        <span>IRC Liquidado</span>
+        <span class="mono">€ ${fmtN(ircLiquido)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:#888">− Retenções na Fonte</span>
+        <span class="mono" style="color:var(--green)">− € ${fmtN(retencoes)}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--cream)">
+        <span style="color:#888">− Pagamentos por Conta</span>
+        <span class="mono" style="color:var(--green)">− € ${fmtN(ppc)}</span>
+      </div>
+      <div style="background:rgba(15,17,23,.04);border-radius:10px;padding:14px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:12px;color:#888;margin-bottom:3px">${statusLabel}</div>
+          <div style="font-size:10.5px;color:#bbb">Taxa efetiva: ${mc>0?(ircLiquido/mc*100).toFixed(1):0}%</div>
+        </div>
+        <div class="mono" style="font-size:26px;font-weight:700;color:${statusColor}">
+          € ${fmtN(Math.abs(acrerto))}
+        </div>
+      </div>
+      ${acrerto > 0 ? `
+      <div style="background:rgba(26,58,92,.05);border-radius:8px;padding:12px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">PPC Próximo Ano</div>
+        ${['Julho','Setembro','Dezembro'].map(m => `
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0">
+          <span>📅 ${m}</span>
+          <span class="mono" style="color:var(--blue)">€ ${fmtN(ircLiquido*0.95/3)}</span>
+        </div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  toast('✓ IRC calculado com sucesso');
+}
+
+// Keep old runIRC as alias
+async function runIRC() { runIRCFull(); }
+
+
+// ══ IVA ══
+function renderIVA() {
+  if (!state.financials) return;
+  const f = state.financials.pnl;
+  const totR = f.total_rendimentos;
+  const fseBase = state.financials.pnl.gastos_detail.find(g => g.conta.startsWith('62'))?.valor || 0;
+
+  const liqBase = totR;
+  const liqIVA = liqBase * 0.23;
+  const dedBase = fseBase;
+  const dedIVA = dedBase * 0.23;
+  const apuramento = liqIVA - dedIVA;
+
+  document.getElementById('iva-content').innerHTML = `
+    <div class="g2" style="margin-bottom:16px">
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#555;margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--cream)">IVA LIQUIDADO (estimativa)</div>
+        <table><thead><tr><th>Rubrica</th><th class="nr">Base</th><th class="nr">IVA (23%)</th></tr></thead><tbody>
+          <tr><td>Prestações de Serviços</td><td class="nr mono">${fmtN(totR)}</td><td class="nr mono" style="color:var(--red)">${fmtN(liqIVA)}</td></tr>
+          <tr style="background:rgba(192,57,43,.04)"><td class="bld">Total</td><td class="nr mono bld">${fmtN(liqBase)}</td><td class="nr mono bld" style="color:var(--red)">${fmtN(liqIVA)}</td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#555;margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--cream)">IVA DEDUTÍVEL (estimativa)</div>
+        <table><thead><tr><th>Rubrica</th><th class="nr">Base</th><th class="nr">IVA Ded.</th></tr></thead><tbody>
+          <tr><td>FSE (conta 62)</td><td class="nr mono">${fmtN(fseBase)}</td><td class="nr mono" style="color:var(--green)">${fmtN(dedIVA)}</td></tr>
+          <tr style="background:rgba(26,122,74,.04)"><td class="bld">Total</td><td class="nr mono bld">${fmtN(dedBase)}</td><td class="nr mono bld" style="color:var(--green)">${fmtN(dedIVA)}</td></tr>
+        </tbody></table>
+      </div>
+    </div>
+    <div style="display:flex;gap:13px;align-items:center;padding:16px;background:rgba(192,57,43,.05);border-radius:10px;border:1px solid rgba(192,57,43,.12)">
+      <div style="font-size:32px">📤</div>
+      <div>
+        <div style="font-size:12.5px;color:#888">IVA Apurado Estimado (${state.year})</div>
+        <div style="font-family:'DM Mono',monospace;font-size:26px;color:var(--red);font-weight:500">${fmtEur(apuramento)}</div>
+        <div style="font-size:12px;color:#aaa;margin-top:2px">= ${fmtN(liqIVA)} liquidado − ${fmtN(dedIVA)} dedutível · Importar SAF-T para valores exatos</div>
+      </div>
+    </div>`;
+}
+
+// ══ CONFORMIDADE ══
+function renderConformidade() {
+  const s = state;
+  document.getElementById('conf-subtitle').textContent = (s.entityName||'—') + ' · ' + s.year;
+  document.getElementById('conf-content').innerHTML = `
+    <div class="ai ok"><div class="a-ico">🟢</div><div><div class="a-t">Balancete importado</div><div class="a-d">Dados de ${s.year} disponíveis e analisados.</div></div></div>
+    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">SAF-T Contabilidade</div><div class="a-d">Verificar submissão mensal no Portal AT (https://www.portaldasfinancas.gov.pt)</div></div></div>
+    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">IES ${s.year-1} — Prazo 15 Julho ${s.year}</div><div class="a-d">Informação Empresarial Simplificada. Verificar estado de submissão.</div></div></div>
+    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">Modelo 22 ${s.year} — Prazo 31 Maio ${s.year+1}</div><div class="a-d">${s.financials?'IRC estimado: '+fmtEur(s.financials.irc_estimate.irc_bruto):'Calcule o IRC primeiro.'}</div></div></div>
+    <div class="ai in"><div class="a-ico">🔵</div><div><div class="a-t">Pagamentos por Conta ${s.year+1}</div><div class="a-d">${s.financials?'Estimativa: '+fmtEur(s.financials.irc_estimate.irc_bruto*0.95)+' (Jul/Set/Dez '+String(parseInt(s.year)+1)+')':'Calcule o IRC para estimar.'}</div></div></div>`;
+}
+
+// ══ IMPORT ══
+async function handleImport(evt, tipo) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  if (!state.entityId || !state.fiscalYearId) { toast('⚠️ Selecione um cliente antes de importar'); return; }
+
+  const statusEl = document.getElementById('status-' + tipo);
+  statusEl.innerHTML = `<div class="prog"><div class="prog-f" id="prog-${tipo}" style="width:5%"></div></div><div class="log" id="log-${tipo}">A enviar ficheiro...</div>`;
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('entity_id', state.entityId);
+  fd.append('fiscal_year_id', state.fiscalYearId);
+
+  const logEl = document.getElementById('log-' + tipo);
+  const progEl = document.getElementById('prog-' + tipo);
+
+  // Animated log steps while waiting
+  let step = 0;
+  const steps = tipo === 'excel'
+    ? ['📤 A enviar ficheiro...', '🔍 A detetar colunas...', '📊 A mapear contas SNC...', '✓ A validar aritmética...', '💾 A guardar na BD...']
+    : ['📤 A enviar ficheiro...', '🔍 A validar schema XSD...', '✓ NIF empresa...', '📊 A processar lançamentos...', '💾 A guardar...'];
+
+  const stepTimer = setInterval(() => {
+    if (step < steps.length - 1) {
+      step++;
+      logEl.innerHTML = steps.slice(0, step+1).join('<br>');
+      progEl.style.width = Math.round(((step+1)/steps.length)*80) + '%';
+    }
+  }, 600);
+
+  try {
+    const r = await fetch(API + '/import/excel', {method:'POST', body: fd});
+    clearInterval(stepTimer);
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({detail:'Erro desconhecido'}));
+      throw new Error(err.detail);
+    }
+    const data = await r.json();
+    progEl.style.width = '100%';
+    logEl.innerHTML = steps.join('<br>') + `<br>✅ ${data.message}`;
+    toast(`✓ ${data.total_accounts} contas importadas!`);
+
+    // Refresh financials & dashboard
+    state.financials = data.financials;
+    await loadDashboard();
+    loadFilesList();
+
+  } catch(e) {
+    clearInterval(stepTimer);
+    logEl.innerHTML += `<br>❌ Erro: ${e.message}`;
+    toast('❌ ' + e.message, 4000);
+  }
+}
+
+async function loadFilesList() {
+  const tbody = document.getElementById('files-list');
+  try {
+    const files = await api('/files' + (state.entityId ? '?entity_id=' + state.entityId : ''));
+    if (!files.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum ficheiro importado ainda.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = files.map(f =>
+      `<tr><td>${f.file_name}</td><td>${f.entity_name}</td><td><span class="badge b-bl">${f.source.toUpperCase()}</span></td><td class="mono">${f.period_start||'—'}</td><td class="mono">${f.total_accounts||'—'}</td><td class="mono">${f.imported_at?.slice(0,16)||'—'}</td></tr>`
+    ).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar.</td></tr>'; }
+}
+
+// ══ AI CHAT ══
+async function sendMsg() {
+  const inp = document.getElementById('ci');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  addMsg(msg, 'u');
+  inp.value = ''; inp.style.height = 'auto';
+
+  showTyping();
+  try {
+    const body = {
+      question: msg,
+      entity_id: state.entityId,
+      fiscal_year_id: state.fiscalYearId,
+    };
+    const r = await fetch(API + '/ai/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    removeTyping();
+    if (!r.ok) {
+      const err = await r.json().catch(()=>({detail:'Erro'}));
+      // Fallback to local AI if backend fails
+      addMsg(localAI(msg), 'a');
+      return;
+    }
+    const data = await r.json();
+    addMsg(data.answer, 'a');
+  } catch(e) {
+    removeTyping();
+    // Fallback: use local knowledge base
+    addMsg(localAI(msg), 'a');
+  }
+}
+
+function localAI(q) {
+  const ql = q.toLowerCase();
+  const f = state.financials;
+  const name = state.entityName || 'esta empresa';
+
+  if ((ql.includes('irc') || ql.includes('imposto')) && f) {
+    return `**IRC estimado ${state.year} — ${name}**\n\nResultado Líquido: €${fmtN(f.pnl.resultado_liquido)}\nMatéria Coletável: €${fmtN(f.irc_estimate.materia_coletavel)}\n\nCálculo (PME ${state.year}):\n• 17% × €${fmtN(Math.min(f.irc_estimate.materia_coletavel,50000))} = €${fmtN(Math.min(f.irc_estimate.materia_coletavel,50000)*0.17)}\n\n**IRC Estimado: €${fmtN(f.irc_estimate.irc_bruto)}** (taxa ef. ${f.irc_estimate.taxa_efetiva_pct}%)\n\n*Referência: Art. 87.º n.º 2 CIRC*\n⚠️ Esta análise é informativa. Valide com o processo declarativo oficial.`;
+  }
+  if ((ql.includes('pmr') || ql.includes('receb') || ql.includes('clientes')) && f) {
+    return `**Análise PMR — ${name}**\n\nClientes (c21): €${fmtN(f.balanco.clientes)}\nVolume Negócios: €${fmtN(f.pnl.total_rendimentos)}\n**PMR = ${f.ratios.pmr_dias} dias**\n\n${f.ratios.pmr_dias > 90 ? '🔴 **Acima do limite recomendado de 90 dias.**\n\nImpacto: ciclo de caixa de '+f.ratios.ciclo_caixa_dias+' dias consome capital de trabalho.\n\nAções recomendadas:\n1. Descontos de pronto pagamento\n2. Faturação mais frequente\n3. Verificar imparidades em clientes >120 dias (NCRF 27)' : '✅ PMR dentro dos limites normais.'}\n\n⚠️ Esta análise é informativa. Valide com o processo declarativo oficial.`;
+  }
+  if (ql.includes('pagament') && ql.includes('conta') && f) {
+    const ppc = (f.irc_estimate.irc_bruto * 0.95);
+    return `**Pagamentos por Conta ${parseInt(state.year)+1} — ${name}**\n\nBase: IRC ${state.year} estimado = €${fmtN(f.irc_estimate.irc_bruto)}\nTotal (95%): **€${fmtN(ppc)}**\n\n📅 3 prestações:\n• Julho: €${fmtN(ppc/3)}\n• Setembro: €${fmtN(ppc/3)}\n• Dezembro: €${fmtN(ppc/3)}\n\n*Referência: Art. 107.º CIRC*\n⚠️ Esta análise é informativa. Valide com o processo declarativo oficial.`;
+  }
+  if (ql.includes('cire') || ql.includes('insolvên') || ql.includes('solvab')) {
+    if (f) return `**Art. 35.º CIRE — ${name}**\n\nSolvabilidade: **${f.ratios.solvabilidade}**\nAutonomia: **${f.ratios.autonomia_financeira}**\nCP/AT: ${(f.ratios.autonomia_financeira*100).toFixed(0)}%\n\n${f.ratios.solvabilidade >= 0.2 ? '✅ **Sem risco ao abrigo do Art. 35.º CIRE.** Capitais próprios positivos e robustos.' : '🔴 **Risco CIRE detetado.** Considere medidas de reestruturação urgentes.'}\n\n⚠️ Esta análise é informativa. Valide com o processo declarativo oficial.`;
+    return 'O Art. 35.º CIRE estabelece presunção de insolvência quando o passivo supera claramente o ativo ou o CP é negativo. Selecione um cliente com dados importados para análise específica.\n\n⚠️ Esta análise é informativa.';
+  }
+  return `Recebi a sua questão. ${f ? `Com base nos dados de **${name}** (${state.year}): rendimentos €${fmtN(f.pnl.total_rendimentos)}, resultado €${fmtN(f.pnl.resultado_liquido)}.` : 'Selecione um cliente e importe o balancete para obter análise com dados reais.'}\n\nPara respostas mais detalhadas com IA real, configure a variável ANTHROPIC_API_KEY no servidor.\n\n⚠️ Esta análise é informativa. Consulte um TOC para decisões com consequências legais ou fiscais.`;
+}
+
+function addMsg(text, role) {
+  const c = document.getElementById('cms');
+  const t = new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+  const html = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = (role==='a' ? '<div class="af"><div class="adot">CI</div> ContaIntel IA</div>' : '') +
+    `<div class="mb">${html}</div><div class="mt">${t}</div>`;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+
+let typEl = null;
+function showTyping() {
+  const c = document.getElementById('cms');
+  typEl = document.createElement('div');
+  typEl.className = 'msg a';
+  typEl.innerHTML = '<div class="af"><div class="adot">CI</div> ContaIntel IA</div><div class="mb"><div class="dots"><span></span><span></span><span></span></div></div>';
+  c.appendChild(typEl); c.scrollTop = c.scrollHeight;
+}
+function removeTyping() { if(typEl) { typEl.remove(); typEl = null; } }
+function sendQ(btn) { document.getElementById('ci').value = btn.textContent; sendMsg(); }
+function handleChatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function autoH(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,90)+'px'; }
+
+// ══ MODALS ══
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'mo-entity') loadEntityModal();
+  if (id === 'mo-new-entity') {}
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ══ FORMAT HELPERS ══
+function fmtEur(v) {
+  if (v == null || isNaN(v)) return '—';
+  return '€' + Math.round(v).toLocaleString('pt-PT');
+}
+function fmtN(v) {
+  if (v == null || isNaN(v) || v === 0) return '—';
+  return Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtC(v) { return (!v || v === 0) ? '—' : Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function pct(v, total) { return total ? (v/total*100).toFixed(1)+'%' : '—'; }
+
+
+// ══ SETUP SCREEN ══
+function showSetupScreen() {
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;height:calc(100vh - var(--hh));padding:20px">
+      <div style="max-width:480px;width:100%;text-align:center">
+        <div style="font-size:52px;margin-bottom:16px">🔧</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:10px">Configurar ContaIntel</div>
+        <div style="color:#aaa;font-size:14px;margin-bottom:28px;line-height:1.6">
+          Para usar a plataforma, introduz o URL do backend.<br>
+          Obtém-lo após o deploy no Railway ou Render.
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:var(--sh);text-align:left">
+          <div class="fg">
+            <label class="fl">URL do Backend</label>
+            <input class="fi" id="setup-url" type="url" placeholder="https://containtel-xxx.railway.app"
+              style="font-size:14px" value="${localStorage.getItem('containtel_backend_url')||''}">
+            <div style="font-size:11.5px;color:#bbb;margin-top:5px">Exemplo: https://containtel-production.up.railway.app</div>
+          </div>
+          <div class="fg">
+            <label class="fl">Chave API Anthropic (opcional — para IA real)</label>
+            <input class="fi" id="setup-apikey" type="password" placeholder="sk-ant-..."
+              value="${localStorage.getItem('containtel_api_key')||''}">
+            <div style="font-size:11.5px;color:#bbb;margin-top:5px">Sem esta chave a IA usa respostas locais</div>
+          </div>
+          <button class="btn btn-p" style="width:100%;padding:12px;font-size:14px;margin-top:4px" onclick="saveConfig()">
+            Guardar e Ligar →
+          </button>
+        </div>
+        <div style="margin-top:20px;padding:16px;background:#fff;border-radius:10px;box-shadow:var(--sh);text-align:left">
+          <div style="font-size:12px;font-weight:700;color:var(--gold-d);margin-bottom:10px">📋 COMO FAZER O DEPLOY</div>
+          <div style="font-size:12.5px;color:#555;line-height:2">
+            <strong>Railway (gratuito):</strong><br>
+            1. Vai a <a href="https://railway.app" target="_blank" style="color:var(--blue)">railway.app</a> → Login com GitHub<br>
+            2. New Project → Deploy from GitHub repo<br>
+            3. Faz upload do ZIP do projeto<br>
+            4. Adiciona variável: <code style="background:var(--cream);padding:1px 5px;border-radius:3px">ANTHROPIC_API_KEY</code><br>
+            5. Copia o URL gerado e cola acima<br><br>
+            <strong>Render (gratuito):</strong><br>
+            1. Vai a <a href="https://render.com" target="_blank" style="color:var(--blue)">render.com</a> → New Web Service<br>
+            2. Faz upload ou liga ao GitHub<br>
+            3. Build: <code style="background:var(--cream);padding:1px 5px;border-radius:3px">pip install -r requirements.txt</code><br>
+            4. Start: <code style="background:var(--cream);padding:1px 5px;border-radius:3px">uvicorn backend.main:app --host 0.0.0.0 --port $PORT</code>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function saveConfig() {
+  const url = document.getElementById('setup-url').value.trim();
+  const apikey = document.getElementById('setup-apikey').value.trim();
+  if (!url) { toast('⚠️ Introduz o URL do backend'); return; }
+  
+  // Test connection
+  const btn = event.currentTarget;
+  btn.textContent = 'A testar ligação...';
+  btn.disabled = true;
+  
+  try {
+    const r = await fetch(url.replace(/\/+$/, '') + '/api/health');
+    if (!r.ok) throw new Error('Servidor não respondeu corretamente');
+    const data = await r.json();
+    
+    localStorage.setItem('containtel_backend_url', url);
+    if (apikey) localStorage.setItem('containtel_api_key', apikey);
+    
+    toast('✓ Ligado com sucesso! A carregar...');
+    setTimeout(() => location.reload(), 1000);
+  } catch(e) {
+    btn.textContent = 'Guardar e Ligar →';
+    btn.disabled = false;
+    toast('❌ Não foi possível ligar: ' + e.message, 5000);
+  }
+}
+
+function resetConfig() {
+  localStorage.removeItem('containtel_backend_url');
+  localStorage.removeItem('containtel_api_key');
+  location.reload();
+}
+
+
+// ══ AUTH ══
+function showLoginScreen() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app')?.style && (document.getElementById('app').style.display = 'none');
+  setTimeout(() => document.getElementById('login-email')?.focus(), 100);
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  const app = document.getElementById('app');
+  if (app) { app.style.display = ''; app.style.removeProperty('display'); }
+  // Show/hide admin features
+  if (state.user?.role === 'admin') {
+    document.getElementById('nav-users').style.display = '';
+  }
+  // Update user display in sidebar
+  const nameEl = document.querySelector('.sb-uname');
+  const roleEl = document.querySelector('.sb-urole');
+  const avaEl = document.querySelector('.ava');
+  if (nameEl) nameEl.textContent = state.user?.name || 'Utilizador';
+  if (roleEl) roleEl.textContent = state.user?.role === 'admin' ? 'Administrador' : state.user?.role === 'gestor' ? 'Gestor' : 'Cliente';
+  if (avaEl) avaEl.textContent = (state.user?.name || 'U').charAt(0).toUpperCase();
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-pwd').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-err');
+  if (!email || !pwd) { err.style.display=''; err.textContent='Preencha email e password'; return; }
+  btn.textContent = 'A entrar...'; btn.disabled = true; err.style.display = 'none';
+  try {
+    const r = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, password: pwd})
+    });
+    if (!r.ok) { const d=await r.json(); throw new Error(d.detail||'Erro'); }
+    const data = await r.json();
+    state.token = data.token;
+    state.user = data.user;
+    localStorage.setItem('containtel_token', data.token);
+    localStorage.setItem('containtel_user', JSON.stringify(data.user));
+    showApp();
+    // Load entities filtered by user access
+    loadEntityModal();
+  } catch(e) {
+    err.style.display = ''; err.textContent = e.message;
+  } finally {
+    btn.textContent = 'Entrar →'; btn.disabled = false;
+  }
+}
+
+function logout() {
+  state.token = null; state.user = null; state.entityId = null;
+  localStorage.removeItem('containtel_token');
+  localStorage.removeItem('containtel_user');
+  showLoginScreen();
+}
+
+// ══ USER MANAGEMENT ══
+async function loadUsers() {
+  const list = document.getElementById('users-list');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:#bbb">A carregar...</div>';
+  try {
+    const [users, entities] = await Promise.all([
+      api('/users'),
+      api('/entities')
+    ]);
+    if (!users) return;
+    const entMap = Object.fromEntries((entities||[]).map(e => [e.id, e.name]));
+    list.innerHTML = `
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Nome</th><th>Email</th><th>Role</th><th>Empresas</th><th>Último login</th><th>Estado</th><th></th></tr></thead>
+          <tbody>
+            ${users.map(u => `
+            <tr style="${!u.is_active?'opacity:.5':''}">
+              <td style="font-weight:600">${u.name}</td>
+              <td style="color:#888;font-size:12px">${u.email}</td>
+              <td><span class="role-badge role-${u.role}">${u.role}</span></td>
+              <td style="font-size:11.5px;color:#666;max-width:160px">
+                ${u.role==='admin' ? '<span style="color:var(--gold-d);font-weight:600">Todas</span>' :
+                  (u.entity_ids||[]).map(id => entMap[id]||id).join(', ') || '—'}
+              </td>
+              <td style="font-size:11px;color:#aaa">${u.last_login ? new Date(u.last_login).toLocaleDateString('pt-PT') : '—'}</td>
+              <td><span class="badge ${u.is_active?'b-gn':'b-gy'}">${u.is_active?'Ativo':'Inativo'}</span></td>
+              <td style="white-space:nowrap">
+                <button class="btn btn-o btn-sm" onclick="editUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️</button>
+                ${u.id!=='admin-001'?`<button class="btn btn-o btn-sm" style="color:var(--red)" onclick="toggleUser('${u.id}',${u.is_active})">${u.is_active?'🚫':'✓'}</button>`:''}
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    list.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-t">Erro ao carregar utilizadores</div></div>';
+  }
+}
+
+let _editingUser = null;
+let _allEntities = [];
+
+async function showUserModal(user=null) {
+  _editingUser = user;
+  _allEntities = await api('/entities') || [];
+  const isEdit = !!user;
+  const modal = document.getElementById('modal');
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <h3 style="font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:18px">${isEdit?'Editar':'Novo'} Utilizador</h3>
+    <div class="fr">
+      <div class="fg"><label class="fl">Nome *</label>
+        <input class="fi" id="u-name" value="${user?.name||''}" placeholder="Nome completo"></div>
+      <div class="fg"><label class="fl">Role *</label>
+        <select class="fi" id="u-role" onchange="toggleEntitySelect()">
+          <option value="gestor" ${user?.role==='gestor'?'selected':''}>Gestor (equipa)</option>
+          <option value="cliente" ${user?.role==='cliente'?'selected':''}>Cliente (portal)</option>
+          <option value="admin" ${user?.role==='admin'?'selected':''}>Administrador</option>
+        </select></div>
+    </div>
+    <div class="fg"><label class="fl">Email *</label>
+      <input class="fi" id="u-email" type="email" value="${user?.email||''}" placeholder="email@empresa.pt"></div>
+    <div class="fg"><label class="fl">${isEdit?'Nova password (deixar vazio para manter)':'Password *'}</label>
+      <input class="fi" id="u-pwd" type="password" placeholder="${isEdit?'Nova password...':'Mínimo 6 caracteres'}"></div>
+    <div class="fg" id="entity-select-wrap">
+      <label class="fl">Empresas com acesso</label>
+      <div style="border:1px solid var(--cream);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+        ${_allEntities.map(e => `
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" value="${e.id}" ${(user?.entity_ids||[]).includes(e.id)?'checked':''}
+            style="width:14px;height:14px">
+          ${e.name} <span style="color:#bbb;font-size:11px">${e.nif}</span>
+        </label>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn btn-p" style="flex:1;padding:11px" onclick="saveUser()">
+        ${isEdit?'💾 Guardar':'✓ Criar Utilizador'}
+      </button>
+      <button class="btn btn-o" style="padding:11px 18px" onclick="closeModal()">Cancelar</button>
+    </div>`;
+  toggleEntitySelect();
+  openModal();
+}
+
+function toggleEntitySelect() {
+  const role = document.getElementById('u-role')?.value;
+  const wrap = document.getElementById('entity-select-wrap');
+  if (wrap) wrap.style.display = role === 'admin' ? 'none' : '';
+}
+
+async function saveUser() {
+  const name = document.getElementById('u-name').value.trim();
+  const email = document.getElementById('u-email').value.trim();
+  const pwd = document.getElementById('u-pwd').value;
+  const role = document.getElementById('u-role').value;
+  const entityIds = [...document.querySelectorAll('#entity-select-wrap input[type=checkbox]:checked')].map(el => el.value);
+  if (!name || !email) { toast('⚠️ Nome e email são obrigatórios'); return; }
+  if (!_editingUser && !pwd) { toast('⚠️ Password obrigatória para novo utilizador'); return; }
+  const body = { name, email, role, entity_ids: entityIds };
+  if (pwd) body.password = pwd;
+  try {
+    if (_editingUser) {
+      await api('/users/' + _editingUser.id, {method:'PUT', body:JSON.stringify(body)});
+      toast('✓ Utilizador atualizado');
+    } else {
+      await api('/users', {method:'POST', body:JSON.stringify(body)});
+      toast('✓ Utilizador criado');
+    }
+    closeModal();
+    loadUsers();
+  } catch(e) { toast('❌ ' + (e.message||'Erro')); }
+}
+
+async function toggleUser(uid, isActive) {
+  await api('/users/' + uid, {method:'PUT', body:JSON.stringify({is_active: !isActive})});
+  toast(isActive ? '🚫 Utilizador desativado' : '✓ Utilizador ativado');
+  loadUsers();
+}
+
+function editUser(user) {
+  showUserModal(user);
+}
+
+
+// ══ TOAST ══
+function toast(msg, duration=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.display = 'none', duration);
+}
+
+// ══ DRAG & DROP ══
+['dz-excel','dz-saft'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag'));
+  el.addEventListener('drop', e => { e.preventDefault(); el.classList.remove('drag'); });
+});
+
+// ══ INIT ══
+document.getElementById('chat-wrap').style.display = 'none';
+
+// Show setup screen if backend not configured
+if (!isConfigured()) {
+  showSetupScreen();
+} else {
+  // Check for saved token
+  const savedToken = localStorage.getItem('containtel_token');
+  const savedUser = localStorage.getItem('containtel_user');
+  if (savedToken && savedUser) {
+    state.token = savedToken;
+    state.user = JSON.parse(savedUser);
+    showApp();
+    loadEntityModal();
+  } else {
+    // Hide app, show login
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.style.display = 'none';
+    showLoginScreen();
+  }
+  // Auto-select demo entity if available
+  (async () => {
+    try {
+      const entities = await api('/entities');
+    if (entities.length > 0) {
+      const e = entities[0];
+      const years = await api(`/entities/${e.id}/fiscal-years`);
+      const fy = years[0];
+      if (fy) {
+        state.fiscalYearId = fy.id;
+        state.year = fy.year;
+      }
+      selectEntity(e.id, e.name, e.nif);
+    }
+  } catch(e) {}
+})();
+}
+</script>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">ContaIntel</div>
+    <div class="login-sub">Inteligência Contabilística</div>
+    <div class="login-err" id="login-err">Email ou password incorretos</div>
+    <div class="fg"><label class="fl">Email</label>
+      <input class="fi" type="email" id="login-email" placeholder="utilizador@empresa.pt"
+        onkeydown="if(event.key==='Enter') doLogin()"></div>
+    <div class="fg"><label class="fl">Password</label>
+      <input class="fi" type="password" id="login-pwd" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter') doLogin()"></div>
+    <button class="btn btn-p" style="width:100%;padding:12px;font-size:14px;margin-top:8px" onclick="doLogin()" id="login-btn">
+      Entrar →
+    </button>
+    <div style="margin-top:16px;text-align:center;font-size:11.5px;color:#bbb">
+      Problema de acesso? Contacte o administrador.
+    </div>
+  </div>
+</div>
+
+<!-- ══ USERS PANEL (in main app) ══ -->
+
+</body>
+</html>
