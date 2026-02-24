@@ -841,6 +841,12 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+<div class="mo" id="mo-user" onclick="if(event.target===this)closeModal('mo-user')">
+  <div class="mo-box" style="max-width:520px">
+    <div id="modal-body"><!-- filled by JS --></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -2482,10 +2488,10 @@ async function showUserModal(user=null) {
       <button class="btn btn-p" style="flex:1;padding:11px" onclick="saveUser()">
         ${isEdit?'💾 Guardar':'✓ Criar Utilizador'}
       </button>
-      <button class="btn btn-o" style="padding:11px 18px" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-o" style="padding:11px 18px" onclick="closeModal('mo-user')">Cancelar</button>
     </div>`;
   toggleEntitySelect();
-  openModal();
+  openModal('mo-user');
 }
 
 function toggleEntitySelect() {
@@ -2512,7 +2518,7 @@ async function saveUser() {
       await api('/users', {method:'POST', body:JSON.stringify(body)});
       toast('✓ Utilizador criado');
     }
-    closeModal();
+    closeModal('mo-user');
     loadUsers();
   } catch(e) { toast('❌ ' + (e.message||'Erro')); }
 }
