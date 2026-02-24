@@ -175,6 +175,23 @@ def init_db():
         calculated_at TEXT DEFAULT (datetime('now')),
         FOREIGN KEY(entity_id) REFERENCES entities(id)
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'gestor',
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now')),
+        last_login TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS user_entities (
+        user_id TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        PRIMARY KEY (user_id, entity_id)
+    );
     """)
 
     # Seed demo entity
