@@ -26,25 +26,25 @@
 body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);display:flex;height:100vh;overflow:hidden;font-size:14px}
 
 /* ── SIDEBAR ── */
-#sb{width:var(--sbw);background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow:hidden}
+#sb{width:var(--sbw);background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow-x:hidden;overflow-y:auto}#sb::-webkit-scrollbar{width:4px}#sb::-webkit-scrollbar-track{background:transparent}#sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
 #sb::before{content:'';position:absolute;top:-50px;left:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(232,55,27,.12) 0,transparent 70%);pointer-events:none}
 .sb-logo{padding:18px 17px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
 .logo-mark{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:2px}
 .logo-sub{font-size:9.5px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.35);margin-top:1px}
-.sb-entity{margin:11px 13px 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:10px 12px;cursor:pointer;transition:var(--tr)}
+.sb-entity{margin:8px 13px 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:8px 12px;cursor:pointer;transition:var(--tr)}
 .sb-entity:hover{background:rgba(255,255,255,.11)}
 .sb-ename{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-enif{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,238,245,.38);margin-top:2px}
 .sb-ebadges{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 .sb-yr{background:var(--gold);color:var(--ink);font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px}
 .sb-tag{background:rgba(255,255,255,.1);color:rgba(232,238,245,.6);font-size:9.5px;padding:2px 7px;border-radius:20px}
-.sb-sec{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.25);padding:14px 17px 4px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 17px;cursor:pointer;font-size:13px;font-weight:400;color:rgba(232,238,245,.62);border-left:3px solid transparent;transition:var(--tr)}
+.sb-sec{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.25);padding:9px 17px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-weight:400;color:rgba(232,238,245,.62);border-left:3px solid transparent;transition:var(--tr)}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(201,168,76,.11);color:var(--gold-l);border-left-color:var(--gold);font-weight:500}
 .nav-ico{font-size:14px;width:17px;text-align:center}
 .nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:auto}
-.sb-foot{margin-top:auto;padding:13px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px}
+.sb-foot{position:sticky;bottom:0;padding:12px 13px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px;background:var(--blue);z-index:10}
 .ava{width:30px;height:30px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--blue);flex-shrink:0}
 .sb-uname{font-size:12px;font-weight:600;color:#fff}
 .sb-urole{font-size:10px;color:rgba(232,238,245,.36)}
@@ -1202,17 +1202,18 @@ function nav(p) {
     if (p === 'balancete') loadBalancete();
     if (p === 'racios' && state.financials) renderRacios();
     if (p === 'irc' && state.entityId) { renderViaturas(); renderIRCPanel(); }
-  if (p === 'users') loadUsers();
-  if (p === 'perfil') loadPerfil();
-  if (p === 'multi') loadMultiEmpresa();
-  if (p === 'df') { renderDF(); }
-  if (p === 'prazos') loadPrazos();
-  if (p === 'orcamento') loadOrcamento();
-  if (p === 'cenarios') loadCenarios();
+    if (p === 'users') loadUsers();
+    if (p === 'perfil') loadPerfil();
+    if (p === 'multi') loadMultiEmpresa();
+    if (p === 'df') { renderDF(); }
+    if (p === 'prazos') loadPrazos();
+    if (p === 'orcamento') loadOrcamento();
+    if (p === 'cenarios') loadCenarios();
     if (p === 'iva' && state.financials) renderIVA();
     if (p === 'clientes') loadEntities();
     if (p === 'importar') loadFilesList();
     if (p === 'conformidade') renderConformidade();
+    if (p === 'irs') {}
   }
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -2145,7 +2146,7 @@ async function loadMultiEmpresa() {
 
   grid.innerHTML = cards.map(({entity: e, fin, year}) => {
     if (!fin) return `
-      <div class="card" style="cursor:pointer" onclick="selectEntity('${e.id}')">
+      <div class="card" style="cursor:pointer" onclick="selectEntity('${e.id}','${e.name}','${e.nif}')">
         <div class="ch"><div><div class="ct">${e.name}</div><div class="cs">NIF ${e.nif}</div></div></div>
         <div style="text-align:center;padding:20px;color:#bbb;font-size:12px">Sem dados importados</div>
         <button class="btn btn-o btn-sm" style="width:100%;margin-top:8px" onclick="event.stopPropagation();selectEntity('${e.id}');nav('importar')">📥 Importar Balancete</button>
@@ -2168,7 +2169,7 @@ async function loadMultiEmpresa() {
       <div class="card" style="cursor:pointer;transition:.2s;border:2px solid transparent" 
            onmouseover="this.style.borderColor='var(--blue-l)'" 
            onmouseout="this.style.borderColor='transparent'"
-           onclick="selectEntity('${e.id}')">
+           onclick="selectEntity('${e.id}','${e.name}','${e.nif}')">
         <div class="ch">
           <div>
             <div class="ct">${e.name}</div>
@@ -2195,27 +2196,14 @@ async function loadMultiEmpresa() {
           </div>
         </div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-p btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}');nav('dashboard')">📊 Dashboard</button>
-          <button class="btn btn-o btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}');nav('racios')">📈 Rácios</button>
+          <button class="btn btn-p btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}','${e.name}','${e.nif}');nav('dashboard')">📊 Dashboard</button>
+          <button class="btn btn-o btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}','${e.name}','${e.nif}');nav('racios')">📈 Rácios</button>
         </div>
       </div>`;
   }).join('');
 }
 
-async function selectEntity(entityId) {
-  state.entityId = entityId;
-  localStorage.setItem('containtel_entity', entityId);
-  // Load entity data
-  const entities = state.entities || [];
-  const entity = entities.find(e => e.id === entityId);
-  if (entity) {
-    document.getElementById('sel-entity-name').textContent = entity.name;
-    document.getElementById('hdr-client').textContent = entity.name;
-  }
-  // Load fiscal years
-  await loadFiscalYears();
-  nav('dashboard');
-}
+// selectEntity handled above
 
 
 // ══════════════════════════════════════
@@ -3441,7 +3429,7 @@ function renderCenTab(name) {
                   <label style="font-size:12.5px;font-weight:600">${f.label}</label>
                   <span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)" id="${f.id}-val">${f.suf==='€'?'€ '+fmtN(f.val):f.val+f.suf}</span>
                 </div>
-                <input type="range" id="${f.id}" min="${f.min??0}" max="${f.max??f.val*3||1000000}" step="${f.step}" value="${f.val}"
+                <input type="range" id="${f.id}" min="${f.min!=null?f.min:0}" max="${f.max!=null?f.max:(f.val*3||1000000)}" step="${f.step}" value="${f.val}"
                   style="width:100%;accent-color:var(--red)"
                   oninput="cenUpdateVal('${f.id}','${f.suf}',this.value);cenCalc()">
                 <input type="number" value="${f.val}" step="${f.step}"
@@ -4146,10 +4134,7 @@ function fmtEur(v) {
   if (v == null || isNaN(v)) return '—';
   return '€' + Math.round(v).toLocaleString('pt-PT');
 }
-function fmtN(v) {
-  if (v == null || isNaN(v) || v === 0) return '—';
-  return Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2});
-}
+// fmtN handled above
 function fmtC(v) { return (!v || v === 0) ? '—' : Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function pct(v, total) { return total ? (v/total*100).toFixed(1)+'%' : '—'; }
 
