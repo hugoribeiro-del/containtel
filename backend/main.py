@@ -194,16 +194,17 @@ def init_db():
     );
     """)
 
-    # Seed demo entity
-    c.execute("SELECT COUNT(*) FROM entities")
-    if c.fetchone()[0] == 0:
-        c.execute("""INSERT OR IGNORE INTO entities (id, name, nif, legal_form, cae_code, email)
-                     VALUES (?, ?, ?, ?, ?, ?)""",
-                  ("demo-1", "HVR Business Consulting, Unipessoal, Lda",
-                   "513847200", "UNI", "70220", "geral@hvr.pt"))
-        c.execute("""INSERT OR IGNORE INTO fiscal_years (id, entity_id, year, status)
-                     VALUES (?, ?, ?, ?)""",
-                  ("fy-demo-2025", "demo-1", 2025, "open"))
+    # Seed demo entity — sempre garantido no arranque
+    c.execute("""INSERT OR IGNORE INTO entities (id, name, nif, legal_form, cae_code, email, is_active)
+                 VALUES (?, ?, ?, ?, ?, ?, 1)""",
+              ("demo-1", "HVR Business Consulting, Unipessoal, Lda",
+               "513847200", "UNI", "70220", "geral@hvr.pt"))
+    c.execute("""INSERT OR IGNORE INTO fiscal_years (id, entity_id, year, status)
+                 VALUES (?, ?, ?, ?)""",
+              ("fy-demo-2025", "demo-1", 2025, "open"))
+    c.execute("""INSERT OR IGNORE INTO fiscal_years (id, entity_id, year, status)
+                 VALUES (?, ?, ?, ?)""",
+              ("fy-demo-2024", "demo-1", 2024, "closed"))
 
 
     # Seed admin user (password: admin123 — change immediately!)
@@ -515,6 +516,50 @@ def calculate_financials(entries: list) -> dict:
     rendimentos_detail = [r for r in rendimentos_detail if r["valor"] > 0]
     gastos_detail = [g for g in gastos_detail if g["valor"] > 0]
 
+    # ── DEMONSTRAÇÃO DE RESULTADOS COMPLETA (NCRF) ──
+    vn = prestacoes + get_val("71", "credor")  # 71=Vendas, 72=PS
+    vn_total = vn + prestacoes if vn > 0 else prestacoes
+    cmvmc = get_val("61", "devedor")            # 61=CMVMC
+    mg_bruta = vn_total - cmvmc
+    var_prod = get_val("73", "credor") - get_val("73", "devedor")  # 73=Variação prod
+    outros_rend_exp = get_val("74", "credor") + get_val("75", "credor") + get_val("76", "credor") + get_val("78", "credor")
+    rbe = mg_bruta + var_prod + outros_rend_exp - fse - gastos_pessoal
+    impar_inv = get_val("65", "devedor")        # 65=Imparidades
+    prov = get_val("67", "devedor")             # 67=Provisões
+    outros_gastos_op = get_val("68", "devedor")
+    ebit = rbe - dep_val - impar_inv - prov - outros_gastos_op
+    rend_fin = get_val("79", "credor")          # 79=Rendimentos financeiros
+    rai_val = ebit + rend_fin - fin_val
+    irc_contab = get_val("8122", "devedor") or get_val("812", "devedor")
+    resultado_liquido_dr = rai_val - irc_contab
+
+    # ── BALANÇO DETALHADO (NCRF) ──
+    inventarios = get_val("32", "devedor") + get_val("33", "devedor") + get_val("34", "devedor") + get_val("35", "devedor")
+    estado_dev = get_val("24", "devedor")       # Estado devedor (IVA a recuperar)
+    acionistas = get_val("26", "devedor")       # Acionistas
+    outras_crp_dev = get_val("27", "devedor")
+    inv_prop = get_val("42", "devedor")         # 42=Prop. investimento
+    ativo_intang = get_val("44", "devedor") + get_val("45", "devedor")  # 44=Ativos intangíveis
+    partic_rel = get_val("41", "devedor")
+    outros_anc = get_val("46", "devedor") + get_val("47", "devedor")
+    # Passivo detalhado
+    financ_cp = get_val("25", "credor") if financiamentos_val == 0 else 0  # já em PNC
+    outras_cp_pass = get_val("26", "credor") + get_val("28", "credor")
+    # Capital próprio detalhado
+    res_liquido_ant = get_val("56", "credor")
+    acoes_proprias = get_val("52", "devedor")
+    outras_reservas = get_val("53", "credor") + get_val("54", "credor") + get_val("55", "credor")
+    excedentes = get_val("58", "credor")
+
+    # Recalculate with full detail
+    ac_full = disp + clientes_val + inventarios + estado_dev + outras_crp_dev + diferimentos
+    anc_full = ativo_tang + ativo_intang + inv_prop + partic_rel + inv_fin + outros_anc
+    at_full = ac_full + anc_full
+    if at_full == 0: at_full = at_total  # fallback
+
+    cp_full = capital_val - acoes_proprias + outras_reservas + excedentes + res_trans + resultado_liquido
+    if cp_full == 0: cp_full = cp
+
     return {
         "pnl": {
             "total_rendimentos": round(total_rendimentos, 2),
@@ -526,18 +571,53 @@ def calculate_financials(entries: list) -> dict:
             "resultado_liquido": round(resultado_liquido, 2),
             "rendimentos_detail": rendimentos_detail,
             "gastos_detail": gastos_detail,
+            # Full DR (NCRF)
+            "vn": round(vn_total, 2),
+            "cmvmc": round(cmvmc, 2),
+            "margem_bruta": round(mg_bruta, 2),
+            "fse": round(fse, 2),
+            "gastos_pessoal": round(gastos_pessoal, 2),
+            "rbe": round(rbe, 2),
+            "imparidades": round(impar_inv, 2),
+            "provisoes": round(prov, 2),
+            "ebit": round(ebit, 2),
+            "rendimentos_financeiros": round(rend_fin, 2),
+            "rai": round(rai_val, 2),
+            "irc_contabilistico": round(irc_contab, 2),
+            "resultado_liquido_dr": round(resultado_liquido_dr if resultado_liquido_dr else resultado_liquido, 2),
+            "outros_rendimentos": round(outros_rend_exp, 2),
+            "outros_gastos": round(outros_gastos_op, 2),
         },
         "balanco": {
-            "ativo_corrente": round(ac, 2),
-            "ativo_nao_corrente": round(anc, 2),
-            "ativo_total": round(at_total, 2),
+            "ativo_corrente": round(ac_full, 2),
+            "ativo_nao_corrente": round(anc_full, 2),
+            "ativo_total": round(at_full, 2),
             "passivo_corrente": round(pc, 2),
             "passivo_nao_corrente": round(pnc, 2),
             "passivo_total": round(passivo, 2),
-            "capital_proprio": round(cp, 2),
+            "capital_proprio": round(cp_full, 2),
             "disponibilidades": round(disp, 2),
             "clientes": round(clientes_val, 2),
-            "existencias": 0,
+            "existencias": round(inventarios, 2),
+            # Detalhe ativo
+            "inventarios": round(inventarios, 2),
+            "estado_devedor": round(estado_dev, 2),
+            "ativo_tangivel": round(ativo_tang, 2),
+            "ativo_intangivel": round(ativo_intang, 2),
+            "inv_propriedades": round(inv_prop, 2),
+            "participacoes": round(partic_rel, 2),
+            # Detalhe passivo
+            "financiamentos_cp": round(financ_cp, 2),
+            "fornecedores": round(fornec_val, 2),
+            "estado_credor": round(estado_val, 2),
+            "pessoal_passivo": round(pessoal_pass, 2),
+            "financiamentos_mlp": round(financiamentos_val, 2),
+            # Detalhe capital próprio
+            "capital_social": round(capital_val, 2),
+            "reservas": round(outras_reservas, 2),
+            "resultados_transitados": round(res_trans, 2),
+            "excedentes_revalorizacao": round(excedentes, 2),
+            "passivo_nao_corrente": round(pnc, 2),
         },
         "ratios": {
             "liquidez_geral": round(liq_geral, 2),
@@ -1178,6 +1258,41 @@ INSTRUÇÕES:
 # ──────────────────────────────────────────
 # ROUTES — HEALTH & METADATA
 # ──────────────────────────────────────────
+@app.get("/api/prazos-fiscais")
+def get_prazos_fiscais():
+    """Return fiscal deadlines for the current year."""
+    import datetime
+    now = datetime.datetime.now()
+    year = now.year
+    prazos = [
+        {"id":"irs-ret",    "titulo":"IRS — Retenções na Fonte",         "data":f"{year}-01-20","tipo":"mensal",  "descricao":"Entrega declaração e pagamento retenções IRS/IRC mês anterior","regulamento":"Art. 98º CIRS"},
+        {"id":"iva-m",      "titulo":"IVA — Declaração Mensal",          "data":f"{year}-02-10","tipo":"mensal",  "descricao":"Declaração periódica IVA (regime mensal)","regulamento":"Art. 41º CIVA"},
+        {"id":"iva-t1",     "titulo":"IVA — Declaração 1º Trimestre",    "data":f"{year}-05-15","tipo":"trimestral","descricao":"Declaração periódica IVA (regime trimestral)","regulamento":"Art. 41º CIVA"},
+        {"id":"iva-t2",     "titulo":"IVA — Declaração 2º Trimestre",    "data":f"{year}-08-15","tipo":"trimestral","descricao":"Declaração periódica IVA (regime trimestral)","regulamento":"Art. 41º CIVA"},
+        {"id":"iva-t3",     "titulo":"IVA — Declaração 3º Trimestre",    "data":f"{year}-11-15","tipo":"trimestral","descricao":"Declaração periódica IVA (regime trimestral)","regulamento":"Art. 41º CIVA"},
+        {"id":"mod22",      "titulo":"Modelo 22 — IRC",                  "data":f"{year}-07-31","tipo":"anual",   "descricao":"Declaração periódica de rendimentos IRC","regulamento":"Art. 120º CIRC"},
+        {"id":"ppc-jul",    "titulo":"Pagamento por Conta — Julho",      "data":f"{year}-07-31","tipo":"anual",   "descricao":"1ª prestação pagamento por conta IRC","regulamento":"Art. 107º CIRC"},
+        {"id":"ppc-set",    "titulo":"Pagamento por Conta — Setembro",   "data":f"{year}-09-30","tipo":"anual",   "descricao":"2ª prestação pagamento por conta IRC","regulamento":"Art. 107º CIRC"},
+        {"id":"ppc-dez",    "titulo":"Pagamento por Conta — Dezembro",   "data":f"{year}-12-15","tipo":"anual",   "descricao":"3ª prestação pagamento por conta IRC","regulamento":"Art. 107º CIRC"},
+        {"id":"ies",        "titulo":"IES — Informação Empresarial",     "data":f"{year}-07-15","tipo":"anual",   "descricao":"Informação Empresarial Simplificada (Mod. Q)","regulamento":"Dec. Lei 8/2007"},
+        {"id":"dmr",        "titulo":"DMR — Remunerações",               "data":f"{year}-01-10","tipo":"mensal",  "descricao":"Declaração Mensal de Remunerações AT","regulamento":"Art. 119º CIRS"},
+        {"id":"ss-dri",     "titulo":"Seg. Social — DRI",                "data":f"{year}-01-10","tipo":"mensal",  "descricao":"Declaração de Remunerações Seg. Social","regulamento":"Cód. Contributivo"},
+        {"id":"pec",        "titulo":"PEC — Pagamento Especial Conta",   "data":f"{year}-03-31","tipo":"anual",   "descricao":"Pagamento especial por conta (1ª prestação)","regulamento":"Art. 106º CIRC"},
+        {"id":"rel-gest",   "titulo":"Relatório de Gestão + Contas",     "data":f"{year}-03-31","tipo":"anual",   "descricao":"Aprovação contas anuais em AG","regulamento":"Art. 65º CSC"},
+        {"id":"toc-ata",    "titulo":"Depósito de Atas + Balanço",       "data":f"{year}-07-15","tipo":"anual",   "descricao":"Registo Comercial — depósito de contas","regulamento":"Art. 70º CSC"},
+    ]
+    # Calculate days until each deadline
+    for p in prazos:
+        try:
+            deadline = datetime.datetime.strptime(p["data"], "%Y-%m-%d")
+            delta = (deadline - now).days
+            p["dias_restantes"] = delta
+            p["status"] = "vencido" if delta < 0 else "urgente" if delta <= 15 else "proximo" if delta <= 45 else "ok"
+        except:
+            p["dias_restantes"] = None
+            p["status"] = "ok"
+    return sorted(prazos, key=lambda x: x["data"])
+
 @app.get("/api/health")
 def health():
     return {"status": "ok", "version": "1.0.0", "timestamp": datetime.now().isoformat()}
