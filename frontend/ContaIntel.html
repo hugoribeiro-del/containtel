@@ -489,6 +489,25 @@ tr:last-child td{border-bottom:none}
             <div class="ch"><div class="ct">💶 Resultado Final</div></div>
             <div class="empty"><div class="empty-ico">🧮</div><div class="empty-t">Preencha os campos e clique "Calcular Tudo"</div></div>
           </div>
+
+          <!-- Botões Gravar / Exportar -->
+          <div id="irc-result-actions" style="display:none;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button class="btn btn-p btn-sm" onclick="saveIRCCalc()" style="gap:6px">
+              💾 Gravar Cálculo
+            </button>
+            <button class="btn btn-o btn-sm" onclick="exportIRCPDF()" style="gap:6px">
+              📄 Exportar PDF
+            </button>
+            <button class="btn btn-o btn-sm" onclick="exportIRCExcel()" style="gap:6px">
+              📊 Exportar Excel
+            </button>
+            <button class="btn btn-sm" style="background:#f5f5f5;color:#666;font-size:12px" onclick="loadIRCSaved()">
+              🕐 Ver Histórico
+            </button>
+          </div>
+
+          <!-- Historial gravados -->
+          <div id="irc-saved-list" style="display:none;margin-top:14px"></div>
         </div>
       </div>
 
@@ -1163,7 +1182,7 @@ tr:last-child td{border-bottom:none}
         </div>
         <div class="tw">
           <table>
-            <thead><tr><th>Ficheiro</th><th>Cliente</th><th>Tipo</th><th>Período</th><th>Contas</th><th>Data</th></tr></thead>
+            <thead><tr><th>Ficheiro</th><th>Cliente</th><th>Tipo</th><th>Período</th><th>Contas</th><th>Data</th><th style="width:90px">Ações</th></tr></thead>
             <tbody id="files-list"><tr><td colspan="6" class="empty">A carregar...</td></tr></tbody>
           </table>
         </div>
@@ -5290,6 +5309,14 @@ function renderIRCPanel() {
   const pecVn = document.getElementById('pec-vn');
   if (pecVn) pecVn.value = vn.toFixed(2);
   calcQ07(); calcTA(); calcBF(); calcPPC(); calcPEC();
+
+  // Mostrar botões de acção se já houver cálculo guardado em sessão
+  const actionsDiv = document.getElementById('irc-result-actions');
+  if (actionsDiv && state.lastIRCCalc) {
+    actionsDiv.style.display = 'flex';
+  }
+  // Carregar histórico
+  if (state.entityId) loadIRCSaved();
 }
 
 function fmtN(v) {
@@ -5612,10 +5639,230 @@ async function runIRCFull() {
       </div>` : ''}
     </div>`;
   toast('✓ IRC calculado com sucesso');
+
+  // Adicionar botões de ação ao card
+  const actionsDiv = document.getElementById('irc-result-actions');
+  if (actionsDiv) {
+    actionsDiv.style.display = 'flex';
+    // Guardar dados do cálculo em estado para gravar/exportar
+    state.lastIRCCalc = {
+      regime, mc, coleta, ta, derrMun, derrEstadual, ircLiquido,
+      retencoes, ppc, pec, acerto,
+      q07: { rl: getVal('irc-rl'), acrescimos: q07.ac, deducoes: q07.ded, mc_antes: q07.mc },
+      calculadoEm: new Date().toISOString(),
+      empresa: state.entityName, ano: state.year
+    };
+  }
 }
 
 // Keep old runIRC as alias
 async function runIRC() { runIRCFull(); }
+
+// ── GRAVAR CÁLCULO IRC NA BD ──
+async function saveIRCCalc() {
+  if (!state.lastIRCCalc) { toast('⚠️ Calcule o IRC primeiro'); return; }
+  if (!state.entityId || !state.fiscalYearId) { toast('⚠️ Selecione um cliente'); return; }
+  try {
+    const payload = {
+      entity_id: state.entityId,
+      fiscal_year_id: state.fiscalYearId,
+      acrescimos: state.lastIRCCalc.q07?.acrescimos || 0,
+      deducoes: state.lastIRCCalc.q07?.deducoes || 0,
+      prejuizos_anteriores: 0,
+      retencoes_na_fonte: state.lastIRCCalc.retencoes || 0,
+      pagamentos_conta: state.lastIRCCalc.ppc || 0,
+    };
+    const r = await api('/irc/simulate', { method: 'POST', body: JSON.stringify(payload) });
+    if (r) {
+      toast('✓ Cálculo IRC gravado com sucesso');
+      loadIRCSaved();
+    }
+  } catch(e) {
+    toast('❌ Erro ao gravar: ' + e.message, 4000);
+  }
+}
+
+// ── CARREGAR HISTÓRICO DE CÁLCULOS GRAVADOS ──
+async function loadIRCSaved() {
+  const listEl = document.getElementById('irc-saved-list');
+  if (!listEl) return;
+  if (!state.entityId) { listEl.style.display = 'none'; return; }
+
+  listEl.style.display = 'block';
+  listEl.innerHTML = '<div style="text-align:center;color:#aaa;font-size:12px;padding:8px">A carregar...</div>';
+
+  try {
+    const saved = await api('/irc/saved?entity_id=' + state.entityId + (state.fiscalYearId ? '&fiscal_year_id=' + state.fiscalYearId : ''));
+    if (!saved || !saved.length) {
+      listEl.innerHTML = '<div style="font-size:12px;color:#aaa;padding:8px 0">Sem cálculos gravados ainda.</div>';
+      return;
+    }
+    listEl.innerHTML = `
+      <div style="font-size:12px;font-weight:700;color:#666;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--cream)">
+        🕐 Histórico de Cálculos IRC Gravados
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${saved.map(s => {
+          const res = s.result_parsed || {};
+          const calc = res.calculation || {};
+          const pay = res.payments || {};
+          const mc = calc.mc_final || 0;
+          const irc = calc.irc_bruto || 0;
+          const acerto = pay.saldo_acerto || 0;
+          const dt = s.calculated_at?.slice(0,16) || '—';
+          return `
+          <div style="background:var(--cream);border-radius:7px;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:12.5px;font-weight:600">${dt}</div>
+              <div style="font-size:11px;color:#888">MC: €${fmtN(mc)} · IRC: €${fmtN(irc)}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:13px;font-weight:700;color:${acerto > 0 ? 'var(--red)' : 'var(--green)'}">
+                ${acerto > 0 ? '⚠️ A pagar' : '✅ Reembolso'} €${fmtN(Math.abs(acerto))}
+              </span>
+              <button class="btn btn-sm" style="font-size:11px;background:#f5f5f5;color:#555;padding:3px 8px"
+                onclick="exportIRCSavedPDF(${JSON.stringify(s).replace(/"/g,'&quot;')})">📄</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--red)">Erro ao carregar histórico.</div>';
+  }
+}
+
+// ── EXPORTAR IRC PARA PDF (janela de impressão) ──
+function exportIRCPDF() {
+  if (!state.lastIRCCalc) { toast('⚠️ Calcule o IRC primeiro'); return; }
+  const c = state.lastIRCCalc;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <meta charset="utf-8">
+    <title>Cálculo IRC — ${c.empresa} — ${c.ano}</title>
+    <style>
+      body { font-family: Arial, sans-serif; font-size: 13px; color: #222; margin: 32px; }
+      h1 { font-size: 20px; border-bottom: 3px solid #c0392b; padding-bottom: 8px; }
+      h2 { font-size: 14px; margin-top: 20px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      td, th { padding: 6px 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+      th { text-align: left; font-weight: 600; background: #f8f8f8; }
+      .nr { text-align: right; font-family: monospace; }
+      .total { font-weight: 700; border-top: 2px solid #222; }
+      .pos { color: #c0392b; }
+      .neg { color: #1a7a4a; }
+      .badge { background: #eef3ff; color: #1a4dc0; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+      .footer { margin-top: 32px; font-size: 11px; color: #aaa; border-top: 1px solid #eee; padding-top: 8px; }
+      @media print { body { margin: 16px; } }
+    </style>
+  </head><body>
+    <h1>💶 Simulação IRC — ${c.empresa}</h1>
+    <p style="color:#888;font-size:12px">Exercício: <strong>${c.ano}</strong> &nbsp;·&nbsp; Calculado em: ${c.calculadoEm?.slice(0,16).replace('T',' ')} &nbsp;·&nbsp; Regime: <span class="badge">${c.regime?.toUpperCase() || 'PME'}</span></p>
+
+    <h2>📋 Quadro 07 — Apuramento da Matéria Coletável</h2>
+    <table>
+      <tr><th>Descrição</th><th class="nr">Valor (€)</th></tr>
+      <tr><td>Resultado Líquido (antes IRC)</td><td class="nr">${fmtN(c.q07?.rl || 0)}</td></tr>
+      <tr><td>+ Acréscimos (Art. 21.º–45.º CIRC)</td><td class="nr pos">+ ${fmtN(c.q07?.acrescimos || 0)}</td></tr>
+      <tr><td>− Deduções (Art. 46.º–72.º CIRC)</td><td class="nr neg">− ${fmtN(c.q07?.deducoes || 0)}</td></tr>
+      <tr class="total"><td>Matéria Coletável</td><td class="nr">${fmtN(c.mc || 0)}</td></tr>
+    </table>
+
+    <h2>💶 Liquidação IRC</h2>
+    <table>
+      <tr><th>Descrição</th><th class="nr">Valor (€)</th></tr>
+      <tr><td>Coleta IRC (${c.regime === 'pme' ? '17%/21%' : c.regime === 'interior' ? '12,5%/21%' : '21%'})</td><td class="nr">${fmtN(c.coleta || 0)}</td></tr>
+      <tr><td>+ Tributações Autónomas</td><td class="nr pos">+ ${fmtN(c.ta || 0)}</td></tr>
+      <tr><td>+ Derrama Municipal</td><td class="nr pos">+ ${fmtN(c.derrMun || 0)}</td></tr>
+      <tr><td>+ Derrama Estadual</td><td class="nr pos">+ ${fmtN(c.derrEstadual || 0)}</td></tr>
+      <tr class="total"><td>IRC Liquidado</td><td class="nr">${fmtN(c.ircLiquido || 0)}</td></tr>
+      <tr><td>− Retenções na Fonte</td><td class="nr neg">− ${fmtN(c.retencoes || 0)}</td></tr>
+      <tr><td>− Pagamentos por Conta</td><td class="nr neg">− ${fmtN(c.ppc || 0)}</td></tr>
+      <tr><td>− PEC Pago</td><td class="nr neg">− ${fmtN(c.pec || 0)}</td></tr>
+      <tr class="total"><td style="font-size:14px">${c.acerto > 0 ? '⚠️ IRC a Pagar' : '✅ IRC a Reembolsar'}</td>
+        <td class="nr" style="font-size:15px;color:${c.acerto > 0 ? '#c0392b' : '#1a7a4a'}">${fmtN(Math.abs(c.acerto || 0))}</td></tr>
+    </table>
+
+    <div class="footer">
+      ⚠️ Esta simulação é de caráter informativo. Valide com o processo declarativo oficial (Modelo 22).<br>
+      Gerado por ContaIntel — HVR Business Analytics
+    </div>
+    <script>window.onload = () => { window.print(); }</script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ── EXPORTAR IRC SAVED PARA PDF ──
+function exportIRCSavedPDF(s) {
+  const res = s.result_parsed || {};
+  const calc = res.calculation || {};
+  const pay = res.payments || {};
+  const inp = res.input || {};
+  const fake = {
+    empresa: state.entityName, ano: state.year,
+    calculadoEm: s.calculated_at,
+    regime: 'pme',
+    mc: calc.mc_final || 0,
+    coleta: calc.irc_bruto || 0,
+    ta: 0, derrMun: 0, derrEstadual: 0,
+    ircLiquido: calc.irc_bruto || 0,
+    retencoes: inp.retencoes_na_fonte || 0,
+    ppc: inp.pagamentos_conta || 0,
+    pec: 0,
+    acerto: pay.saldo_acerto || 0,
+    q07: { rl: inp.rai || 0, acrescimos: inp.acrescimos || 0, deducoes: inp.deducoes || 0 }
+  };
+  state.lastIRCCalc = fake;
+  exportIRCPDF();
+}
+
+// ── EXPORTAR IRC PARA EXCEL (CSV download) ──
+function exportIRCExcel() {
+  if (!state.lastIRCCalc) { toast('⚠️ Calcule o IRC primeiro'); return; }
+  const c = state.lastIRCCalc;
+  const rows = [
+    ['SIMULAÇÃO IRC', c.empresa, c.ano],
+    ['Calculado em', c.calculadoEm?.slice(0,16).replace('T',' ')],
+    ['Regime', c.regime?.toUpperCase() || 'PME'],
+    [],
+    ['QUADRO 07 — MATÉRIA COLETÁVEL'],
+    ['Resultado Líquido', c.q07?.rl || 0],
+    ['Acréscimos', c.q07?.acrescimos || 0],
+    ['Deduções', -(c.q07?.deducoes || 0)],
+    ['Matéria Coletável', c.mc || 0],
+    [],
+    ['LIQUIDAÇÃO IRC'],
+    ['Coleta IRC', c.coleta || 0],
+    ['Tributações Autónomas', c.ta || 0],
+    ['Derrama Municipal', c.derrMun || 0],
+    ['Derrama Estadual', c.derrEstadual || 0],
+    ['IRC Liquidado (Total)', c.ircLiquido || 0],
+    [],
+    ['DEDUÇÕES E PAGAMENTOS'],
+    ['Retenções na Fonte', -(c.retencoes || 0)],
+    ['Pagamentos por Conta', -(c.ppc || 0)],
+    ['PEC Pago', -(c.pec || 0)],
+    [],
+    [c.acerto > 0 ? 'IRC A PAGAR' : 'IRC A REEMBOLSAR', Math.abs(c.acerto || 0)],
+    [],
+    ['⚠️ Simulação informativa. Valide com Modelo 22 oficial.'],
+  ];
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('
+') ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(';')).join('
+');
+
+  const BOM = '﻿'; // UTF-8 BOM para Excel PT
+  const blob = new Blob([BOM + csv], {type: 'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `IRC_${c.empresa?.replace(/[^a-z0-9]/gi,'_') || 'calculo'}_${c.ano}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✓ Ficheiro CSV exportado');
+}
 
 
 // ══ IVA ══
@@ -5680,7 +5927,38 @@ function renderConformidade() {
 async function handleImport(evt, tipo) {
   const file = evt.target.files[0];
   if (!file) return;
-  if (!state.entityId || !state.fiscalYearId) { toast('⚠️ Selecione um cliente antes de importar'); return; }
+
+  // ── Validações locais antes de enviar ──
+  if (!state.entityId || !state.fiscalYearId) {
+    toast('⚠️ Selecione um cliente antes de importar');
+    evt.target.value = '';
+    return;
+  }
+
+  // Validar extensão
+  const ext = file.name.split('.').pop().toLowerCase();
+  const validExts = tipo === 'excel' ? ['xlsx','xls','csv'] : ['xml'];
+  if (!validExts.includes(ext)) {
+    toast(`❌ Formato inválido: .${ext}. Use ${validExts.map(e=>'.'+e).join(', ')}`);
+    evt.target.value = '';
+    return;
+  }
+
+  // Validar tamanho (máx 50MB)
+  const maxMB = 50;
+  if (file.size > maxMB * 1024 * 1024) {
+    toast(`❌ Ficheiro demasiado grande (${(file.size/1024/1024).toFixed(1)}MB). Máx ${maxMB}MB`);
+    evt.target.value = '';
+    return;
+  }
+
+  // Aviso se ficheiro muito pequeno (possível template vazio)
+  if (tipo === 'excel' && file.size < 1024) {
+    if (!confirm(`O ficheiro parece muito pequeno (${file.size} bytes). Continuar?`)) {
+      evt.target.value = '';
+      return;
+    }
+  }
 
   const statusEl = document.getElementById('status-' + tipo);
   statusEl.innerHTML = `<div class="prog"><div class="prog-f" id="prog-${tipo}" style="width:5%"></div></div><div class="log" id="log-${tipo}">A enviar ficheiro...</div>`;
@@ -5708,41 +5986,119 @@ async function handleImport(evt, tipo) {
   }, 600);
 
   try {
-    const r = await fetch(API + '/import/excel', {method:'POST', headers: state.token ? {'Authorization':'Bearer '+state.token} : {}, body: fd});
+    const endpoint = tipo === 'excel' ? '/import/excel' : '/import/excel'; // SAF-T via same endpoint
+    const r = await fetch(API + endpoint, {
+      method: 'POST',
+      headers: state.token ? {'Authorization': 'Bearer ' + state.token} : {},
+      body: fd
+    });
     clearInterval(stepTimer);
+
     if (!r.ok) {
-      const err = await r.json().catch(()=>({detail:'Erro desconhecido'}));
-      throw new Error(err.detail);
+      const err = await r.json().catch(()=>({detail:'Erro de servidor ('+r.status+')'}));
+      const detail = err.detail || 'Erro desconhecido';
+      // Mensagens de erro mais claras
+      let friendly = detail;
+      if (detail.includes('cabeçalho')) friendly = '❌ Cabeçalho não detetado — verifique se o ficheiro tem colunas "Conta" e "Débito"';
+      else if (detail.includes('conta')) friendly = '❌ Nenhuma conta encontrada — o ficheiro pode estar vazio ou num formato inesperado';
+      else if (detail.includes('422')) friendly = '❌ Ficheiro inválido — verifique o formato e tente novamente';
+      else if (detail.includes('401')) friendly = '❌ Sessão expirada — faça login novamente';
+      logEl.innerHTML += `<br><br><div style="background:#fee;border:1px solid #fcc;border-radius:6px;padding:10px;margin-top:6px;font-size:12px">
+        ❌ <strong>Erro:</strong> ${friendly}<br>
+        <span style="color:#aaa;font-size:11px">Detalhes: ${detail}</span>
+      </div>`;
+      progEl.style.width = '0%';
+      progEl.style.background = 'var(--red)';
+      toast('❌ ' + friendly, 5000);
+      evt.target.value = '';
+      return;
     }
+
     const data = await r.json();
     progEl.style.width = '100%';
-    logEl.innerHTML = steps.join('<br>') + `<br>✅ ${data.message}`;
-    toast(`✓ ${data.total_accounts} contas importadas!`);
+
+    // Avisos se poucas contas
+    let warnings = '';
+    if (data.total_accounts < 10) {
+      warnings = `<div style="background:#fff9e6;border:1px solid #ffe083;border-radius:6px;padding:8px;margin-top:6px;font-size:12px">
+        ⚠️ Apenas ${data.total_accounts} contas importadas — verifique se o balancete está completo.
+      </div>`;
+    }
+    if (data.meta?.nif && state.entityNIF && data.meta.nif !== state.entityNIF) {
+      warnings += `<div style="background:#fff9e6;border:1px solid #ffe083;border-radius:6px;padding:8px;margin-top:6px;font-size:12px">
+        ⚠️ NIF do ficheiro (${data.meta.nif}) não coincide com o cliente selecionado (${state.entityNIF}).
+      </div>`;
+    }
+
+    logEl.innerHTML = steps.join('<br>') + `<br>✅ ${data.message}${warnings}`;
+    toast(`✓ ${data.total_accounts} contas importadas com sucesso!`);
 
     // Refresh financials & dashboard
     state.financials = data.financials;
     await loadDashboard();
     loadFilesList();
+    evt.target.value = '';
 
   } catch(e) {
     clearInterval(stepTimer);
-    logEl.innerHTML += `<br>❌ Erro: ${e.message}`;
-    toast('❌ ' + e.message, 4000);
+    progEl.style.width = '0%';
+    progEl.style.background = 'var(--red)';
+    let msg = e.message || 'Erro de ligação';
+    if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+      msg = 'Sem ligação ao servidor — verifique se o backend está em execução';
+    }
+    logEl.innerHTML += `<br><br><div style="background:#fee;border:1px solid #fcc;border-radius:6px;padding:10px;margin-top:6px;font-size:12px">
+      ❌ ${msg}
+    </div>`;
+    toast('❌ ' + msg, 5000);
+    evt.target.value = '';
   }
 }
 
 async function loadFilesList() {
   const tbody = document.getElementById('files-list');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="empty">A carregar...</td></tr>';
   try {
     const files = await api('/files' + (state.entityId ? '?entity_id=' + state.entityId : ''));
-    if (!files.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty">Nenhum ficheiro importado ainda.</td></tr>';
+    if (!files || !files.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">Nenhum ficheiro importado ainda.</td></tr>';
       return;
     }
-    tbody.innerHTML = files.map(f =>
-      `<tr><td>${f.file_name}</td><td>${f.entity_name}</td><td><span class="badge b-bl">${f.source.toUpperCase()}</span></td><td class="mono">${f.period_start||'—'}</td><td class="mono">${f.total_accounts||'—'}</td><td class="mono">${f.imported_at?.slice(0,16)||'—'}</td></tr>`
-    ).join('');
-  } catch(e) { tbody.innerHTML = '<tr><td colspan="6" class="empty">Erro ao carregar.</td></tr>'; }
+    tbody.innerHTML = files.map(f => `
+      <tr>
+        <td>${escHtml(f.file_name)}</td>
+        <td>${escHtml(f.entity_name)}</td>
+        <td><span class="badge b-bl">${f.source.toUpperCase()}</span></td>
+        <td class="mono">${f.period_start||'—'}</td>
+        <td class="mono">${f.total_accounts||'—'}</td>
+        <td class="mono">${f.imported_at?.slice(0,16)||'—'}</td>
+        <td>
+          <button class="btn btn-sm" style="background:#fee;color:var(--red);border:1px solid #fcc;font-size:11px;padding:3px 8px"
+            onclick="deleteFile('${f.id}','${escHtml(f.file_name)}')">🗑 Eliminar</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar.</td></tr>'; }
+}
+
+async function deleteFile(fileId, fileName) {
+  if (!confirm(`Eliminar "${fileName}"?\n\nEsta ação remove permanentemente o ficheiro e todos os lançamentos importados. Os dados do dashboard serão afetados.`)) return;
+  try {
+    const r = await fetch(API + '/files/' + fileId, {
+      method: 'DELETE',
+      headers: state.token ? {'Authorization': 'Bearer ' + state.token} : {}
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({detail:'Erro'})); throw new Error(e.detail); }
+    toast('✓ Ficheiro eliminado com sucesso');
+    loadFilesList();
+    // Se o ficheiro eliminado é o activo, limpar financials
+    if (state.financials) {
+      state.financials = null;
+      await loadDashboard();
+    }
+  } catch(e) {
+    toast('❌ Erro ao eliminar: ' + e.message, 4000);
+  }
 }
 
 // ══ AI CHAT ══

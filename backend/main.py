@@ -1343,6 +1343,48 @@ def list_files(entity_id: str = None, db=Depends(get_db), user=Depends(get_curre
     rows = db.execute(query, params).fetchall()
     return [dict(r) for r in rows]
 
+@app.delete("/api/files/{file_id}")
+def delete_file(file_id: str, db=Depends(get_db), user=Depends(get_current_user)):
+    """Delete a trial balance file and all its entries."""
+    row = db.execute("SELECT * FROM trial_balance_files WHERE id=?", (file_id,)).fetchone()
+    if not row:
+        raise HTTPException(404, "Ficheiro não encontrado")
+    # Check entity access
+    if not can_access_entity(row["entity_id"], user):
+        raise HTTPException(403, "Acesso negado")
+    db.execute("DELETE FROM trial_balance_entries WHERE file_id=?", (file_id,))
+    db.execute("DELETE FROM trial_balance_files WHERE id=?", (file_id,))
+    db.commit()
+    # Remove from disk if exists
+    try:
+        for p in UPLOADS_DIR.glob(f"{file_id}_*"):
+            p.unlink(missing_ok=True)
+    except Exception:
+        pass
+    return {"status": "deleted", "file_id": file_id}
+
+@app.get("/api/irc/saved")
+def list_irc_saved(entity_id: str, fiscal_year_id: str = None, db=Depends(get_db), user=Depends(get_current_user)):
+    """List saved IRC calculations for an entity."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+    q = "SELECT * FROM tax_calculations WHERE entity_id=? AND calc_type='irc'"
+    params = [entity_id]
+    if fiscal_year_id:
+        q += " AND fiscal_year_id=?"
+        params.append(fiscal_year_id)
+    q += " ORDER BY calculated_at DESC LIMIT 20"
+    rows = db.execute(q, params).fetchall()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["result_parsed"] = json.loads(d["result"] or "{}")
+        except Exception:
+            d["result_parsed"] = {}
+        result.append(d)
+    return result
+
 @app.get("/")
 def root():
     # Try ContaIntel.html first, then index.html
