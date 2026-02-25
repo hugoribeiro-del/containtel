@@ -3,19 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HVR Business Analytics</title>
+<title>ContaIntel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* ── HVR Business Consulting brand ── */
   --ink:#0f1117; --paper:#f5f2ed; --cream:#ede9e1;
   --gold:#c9a84c; --gold-d:#8a6d2f; --gold-l:#e8d5a3;
-  /* Sidebar & primary: HVR dark slate */
-  --blue:#3D4F5C; --blue-m:#2f3d49; --blue-l:#eef2f5;
-  /* Accent: HVR red */
-  --red:#E8371B; --red-d:#C42E14; --red-l:#fdecea;
-  --green:#1a7a4a; --green-l:#27ae60;
+  --blue:#1a3a5c; --blue-m:#2d5a8e; --blue-l:#4a7db5;
+  --red:#c0392b; --green:#1a7a4a; --green-l:#27ae60;
   --orange:#d35400;
   --sbw:258px; --hh:60px; --r:12px;
   --sh:0 4px 20px rgba(15,17,23,.08);
@@ -26,26 +22,26 @@
 body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);display:flex;height:100vh;overflow:hidden;font-size:14px}
 
 /* ── SIDEBAR ── */
-#sb{width:var(--sbw);background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow-x:hidden;overflow-y:auto}#sb::-webkit-scrollbar{width:4px}#sb::-webkit-scrollbar-track{background:transparent}#sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
-#sb::before{content:'';position:absolute;top:-50px;left:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(232,55,27,.12) 0,transparent 70%);pointer-events:none}
+#sb{width:var(--sbw);background:var(--blue);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow:hidden}
+#sb::before{content:'';position:absolute;top:-50px;left:-50px;width:200px;height:200px;background:radial-gradient(circle,rgba(201,168,76,.14) 0,transparent 70%);pointer-events:none}
 .sb-logo{padding:18px 17px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo-mark{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;color:#fff;letter-spacing:2px}
+.logo-mark{font-family:'DM Serif Display',serif;font-size:23px;color:var(--gold);letter-spacing:-.5px}
 .logo-sub{font-size:9.5px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.35);margin-top:1px}
-.sb-entity{margin:8px 13px 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:8px 12px;cursor:pointer;transition:var(--tr)}
+.sb-entity{margin:11px 13px 0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);border-radius:9px;padding:10px 12px;cursor:pointer;transition:var(--tr)}
 .sb-entity:hover{background:rgba(255,255,255,.11)}
 .sb-ename{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-enif{font-family:'DM Mono',monospace;font-size:10px;color:rgba(232,238,245,.38);margin-top:2px}
 .sb-ebadges{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
 .sb-yr{background:var(--gold);color:var(--ink);font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px}
 .sb-tag{background:rgba(255,255,255,.1);color:rgba(232,238,245,.6);font-size:9.5px;padding:2px 7px;border-radius:20px}
-.sb-sec{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.25);padding:9px 17px 3px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:7px 14px;cursor:pointer;font-size:12.5px;font-weight:400;color:rgba(232,238,245,.62);border-left:3px solid transparent;transition:var(--tr)}
+.sb-sec{font-size:9.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(232,238,245,.25);padding:14px 17px 4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 17px;cursor:pointer;font-size:13px;font-weight:400;color:rgba(232,238,245,.62);border-left:3px solid transparent;transition:var(--tr)}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
 .nav-item.active{background:rgba(201,168,76,.11);color:var(--gold-l);border-left-color:var(--gold);font-weight:500}
 .nav-ico{font-size:14px;width:17px;text-align:center}
 .nav-badge{background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px;margin-left:auto}
-.sb-foot{position:sticky;bottom:0;padding:12px 13px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px;background:var(--blue);z-index:10}
-.ava{width:30px;height:30px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--blue);flex-shrink:0}
+.sb-foot{margin-top:auto;padding:13px;border-top:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:9px}
+.ava{width:30px;height:30px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--blue);flex-shrink:0}
 .sb-uname{font-size:12px;font-weight:600;color:#fff}
 .sb-urole{font-size:10px;color:rgba(232,238,245,.36)}
 
@@ -55,7 +51,7 @@ body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);di
 .hdr-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--ink);flex:1}
 .hdr-title span{color:var(--blue-m)}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;border:none;transition:var(--tr);font-family:inherit}
-.btn-p{background:var(--red);color:#fff}.btn-p:hover{background:var(--red-d)}
+.btn-p{background:var(--blue);color:#fff}.btn-p:hover{background:var(--blue-m)}
 .btn-g{background:var(--gold);color:var(--ink);font-weight:600}.btn-g:hover{background:var(--gold-d);color:#fff}
 .btn-o{background:transparent;color:var(--ink);border:1px solid rgba(15,17,23,.13)}.btn-o:hover{background:var(--cream)}
 .btn-r{background:var(--red);color:#fff}.btn-r:hover{opacity:.88}
@@ -88,7 +84,7 @@ body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);di
 /* BADGES */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
 .b-gn{background:rgba(26,122,74,.1);color:var(--green)}.b-yl{background:rgba(201,168,76,.14);color:var(--gold-d)}
-.b-rd{background:rgba(192,57,43,.1);color:var(--red)}.b-bl{background:rgba(61,79,92,.1);color:var(--blue)}
+.b-rd{background:rgba(192,57,43,.1);color:var(--red)}.b-bl{background:rgba(26,58,92,.1);color:var(--blue)}
 .b-gy{background:var(--cream);color:#777}.b-or{background:rgba(211,84,0,.1);color:var(--orange)}
 
 /* TABLE */
@@ -132,7 +128,7 @@ tr:last-child td{border-bottom:none}
 
 /* IRC TABS */
 .irc-tab{background:transparent;border:none;padding:7px 14px;border-radius:7px;font-size:12.5px;font-weight:500;cursor:pointer;color:#888;transition:var(--tr)}
-.irc-tab.active{background:var(--red);color:#fff}
+.irc-tab.active{background:var(--blue);color:#fff}
 .irc-tab:hover:not(.active){background:var(--cream)}
 .irc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream);gap:12px}
 .irc-label{font-size:12.5px;color:var(--ink);flex:1;line-height:1.4}
@@ -216,7 +212,7 @@ tr:last-child td{border-bottom:none}
 /* ── LOGIN ── */
 #login-screen{position:fixed;inset:0;background:var(--blue);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
 .login-box{background:#fff;border-radius:18px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
-.login-logo{font-family:'Outfit',sans-serif;font-size:42px;font-weight:800;color:var(--red);letter-spacing:3px;margin-bottom:4px}
+.login-logo{font-family:'DM Serif Display',serif;font-size:32px;color:var(--blue);margin-bottom:4px}
 .login-sub{font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-bottom:32px}
 .login-err{background:rgba(192,57,43,.08);color:var(--red);font-size:12.5px;padding:9px 12px;border-radius:8px;margin-bottom:14px;display:none}
 /* USER MGMT */
@@ -232,8 +228,8 @@ tr:last-child td{border-bottom:none}
 <!-- ══ SIDEBAR ══ -->
 <nav id="sb">
   <div class="sb-logo">
-    <div class="logo-mark" style="color:#fff;font-family:'Outfit',sans-serif;font-weight:800;letter-spacing:2px;font-size:22px">HVR</div>
-    <div class="logo-sub" style="color:var(--red);letter-spacing:1.5px">Business Analytics</div>
+    <div class="logo-mark">ContaIntel</div>
+    <div class="logo-sub">Inteligência Contabilística</div>
   </div>
 
   <div class="sb-entity" onclick="openModal('mo-entity')">
@@ -247,38 +243,26 @@ tr:last-child td{border-bottom:none}
 
   <div class="sb-sec">Análise</div>
   <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-ico">📊</span>Dashboard</div>
-  <div class="nav-item" id="nav-multi" onclick="nav('multi')"><span class="nav-ico">🏢</span>Multi-Empresa</div>
   <div class="nav-item" onclick="nav('balancete')"><span class="nav-ico">📋</span>Balancete</div>
   <div class="nav-item" onclick="nav('racios')"><span class="nav-ico">📈</span>Rácios Financeiros</div>
-  <div class="nav-item" onclick="nav('df')"><span class="nav-ico">📑</span>Dem. Financeiras</div>
 
   <div class="sb-sec">Fiscal</div>
   <div class="nav-item" onclick="nav('irc')"><span class="nav-ico">🧮</span>Simulação IRC</div>
-  <div class="nav-item" onclick="nav('irs')"><span class="nav-ico">👤</span>Simulação IRS</div>
   <div class="nav-item" onclick="nav('iva')"><span class="nav-ico">💰</span>Apuramento IVA</div>
-  <div class="nav-item" onclick="nav('prazos')"><span class="nav-ico">🗓️</span>Prazos Fiscais</div>
-  <div class="nav-item" onclick="nav('conformidade')"><span class="nav-ico">✅</span>Conformidade<span class="nav-badge" id="alert-count">—</span></div>
 
-  <div class="sb-sec">Planeamento</div>
-  <div class="nav-item" onclick="nav('orcamento')"><span class="nav-ico">🎯</span>Orçamento</div>
-  <div class="nav-item" onclick="nav('cenarios')"><span class="nav-ico">🔭</span>Cenários</div>
-
-  <div class="sb-sec">Dados</div>
+  <div class="sb-sec">Gestão</div>
   <div class="nav-item" onclick="nav('clientes')"><span class="nav-ico">🏢</span>Clientes</div>
-  <div class="nav-item" onclick="nav('importar')"><span class="nav-ico">📥</span>Importar</div>
+  <div class="nav-item" id="nav-users" style="display:none" onclick="nav('users')"><span class="nav-ico">👥</span>Utilizadores</div>
+  <div class="nav-item" onclick="nav('conformidade')"><span class="nav-ico">✅</span>Conformidade<span class="nav-badge" id="alert-count">—</span></div>
+  <div class="nav-item" onclick="nav('importar')"><span class="nav-ico">📥</span>Importar Dados</div>
   <div class="nav-item" onclick="nav('ai')"><span class="nav-ico">🤖</span>IA Assistente</div>
 
-  <div class="sb-sec">Configuração</div>
-  <div class="nav-item" id="nav-users" style="display:none" onclick="nav('users')"><span class="nav-ico">👥</span>Utilizadores</div>
-  <div class="nav-item" onclick="nav('perfil')"><span class="nav-ico">⚙️</span>Perfil & Conta</div>
-
-  <div class="sb-foot" onclick="nav('perfil')" style="cursor:pointer" title="Ver perfil">
-    <div class="ava" id="sb-ava">?</div>
-    <div style="flex:1;min-width:0">
-      <div class="sb-uname" id="sb-uname">—</div>
-      <div class="sb-urole" id="sb-urole">—</div>
+  <div class="sb-foot">
+    <div class="ava">MP</div>
+    <div>
+      <div class="sb-uname">Miguel Pereira</div>
+      <div class="sb-urole">TOC · Uso Interno</div>
     </div>
-    <span style="font-size:10px;color:rgba(255,255,255,.25)">⚙️</span>
   </div>
 </nav>
 
@@ -700,304 +684,6 @@ tr:last-child td{border-bottom:none}
       </div>
     </div>
 
-    <!-- ══ PERFIL ══ -->
-    <div id="panel-perfil" class="panel">
-      <div class="g2">
-        <div class="card">
-          <div class="ch"><div class="ct">👤 O Meu Perfil</div></div>
-          <div style="display:flex;align-items:center;gap:18px;margin-bottom:20px;padding:16px;background:var(--cream);border-radius:12px">
-            <div id="perfil-ava" style="width:56px;height:56px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;flex-shrink:0">?</div>
-            <div>
-              <div id="perfil-nome" style="font-size:18px;font-weight:700"></div>
-              <div id="perfil-email" style="font-size:12px;color:#888;margin-top:2px"></div>
-              <span id="perfil-role-badge" class="badge b-bl" style="margin-top:5px;display:inline-block"></span>
-            </div>
-          </div>
-          <div id="perfil-empresas" style="margin-bottom:16px"></div>
-          <div style="border-top:1px solid var(--cream);padding-top:16px">
-            <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Último acesso</div>
-            <div id="perfil-last-login" style="font-size:13px;color:#666"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">🔐 Alterar Password</div></div>
-          <div class="ai in" style="margin-bottom:14px"><div class="a-ico">ℹ️</div><div><div class="a-t">A password deve ter pelo menos 6 caracteres</div></div></div>
-          <div class="fg"><label class="fl">Password Atual</label>
-            <input class="fi" type="password" id="pwd-atual" placeholder="••••••••"></div>
-          <div class="fg"><label class="fl">Nova Password</label>
-            <input class="fi" type="password" id="pwd-nova" placeholder="Mínimo 6 caracteres"></div>
-          <div class="fg"><label class="fl">Confirmar Nova Password</label>
-            <input class="fi" type="password" id="pwd-conf" placeholder="Repetir nova password"></div>
-          <button class="btn btn-p" style="width:100%;padding:11px;margin-top:4px" onclick="alterarPassword()">
-            🔐 Alterar Password
-          </button>
-          <div id="pwd-msg" style="margin-top:10px;font-size:12.5px;text-align:center"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ MULTI-EMPRESA ══ -->
-    <div id="panel-multi" class="panel">
-      <div class="card" style="margin-bottom:16px">
-        <div class="ch">
-          <div><div class="ct">🏢 Dashboard Multi-Empresa</div><div class="cs">Visão consolidada de todos os clientes</div></div>
-          <button class="btn btn-p btn-sm" onclick="loadMultiEmpresa()">🔄 Atualizar</button>
-        </div>
-      </div>
-      <div id="multi-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
-        <div class="empty card"><div class="empty-ico">🏢</div><div class="empty-t">A carregar empresas...</div></div>
-      </div>
-    </div>
-
-    <!-- ══ DEMONSTRAÇÕES FINANCEIRAS ══ -->
-    <div id="panel-df" class="panel">
-      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
-        <button class="irc-tab active" onclick="dfTab('dr',this)">📊 Dem. Resultados</button>
-        <button class="irc-tab" onclick="dfTab('balanco',this)">⚖️ Balanço</button>
-        <button class="irc-tab" onclick="dfTab('reporting',this)">📋 Reporting</button>
-        <button class="irc-tab" onclick="dfTab('anexo',this)">📎 Anexo</button>
-      </div>
-      <div id="df-tab-dr"></div>
-      <div id="df-tab-balanco" style="display:none"></div>
-      <div id="df-tab-reporting" style="display:none"></div>
-      <div id="df-tab-anexo" style="display:none"></div>
-    </div>
-
-    <!-- ══ PRAZOS FISCAIS ══ -->
-    <div id="panel-prazos" class="panel">
-      <div class="card" style="margin-bottom:16px">
-        <div class="ch">
-          <div><div class="ct">🗓️ Prazos Fiscais</div><div class="cs">Calendário fiscal obrigatório — <span id="prazos-ano"></span></div></div>
-          <div style="display:flex;gap:6px">
-            <button class="irc-tab active" id="prazos-btn-todos" onclick="filterPrazos('todos',this)">Todos</button>
-            <button class="irc-tab" onclick="filterPrazos('urgente',this)">⚠️ Urgentes</button>
-            <button class="irc-tab" onclick="filterPrazos('anual',this)">📅 Anuais</button>
-            <button class="irc-tab" onclick="filterPrazos('mensal',this)">🔄 Mensais</button>
-          </div>
-        </div>
-      </div>
-      <div id="prazos-grid"></div>
-    </div>
-
-    <!-- ══ IRS ══ -->
-    <div id="panel-irs" class="panel">
-      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
-        <button class="irc-tab active" onclick="irsTab('rendimentos',this)">💼 Rendimentos</button>
-        <button class="irc-tab" onclick="irsTab('deducoes',this)">🏠 Deduções</button>
-        <button class="irc-tab" onclick="irsTab('coleta',this)">⭐ Dedução à Coleta</button>
-        <button class="irc-tab" onclick="irsTab('resultado',this)">💶 Resultado</button>
-        <button class="irc-tab" onclick="irsTab('comparativo',this)">⚖️ Comparativo</button>
-      </div>
-
-      <!-- RENDIMENTOS -->
-      <div id="irs-tab-rendimentos" class="irc-tab-content">
-        <div class="g2">
-          <div class="card">
-            <div class="ch"><div class="ct">👤 Identificação</div><div class="cs">Situação fiscal do contribuinte</div></div>
-            <div class="fr">
-              <div class="fg"><label class="fl">Estado Civil</label>
-                <select class="fi" id="irs-estado-civil" onchange="irsUpdateUI()">
-                  <option value="solteiro">Solteiro / Divorciado / Viúvo</option>
-                  <option value="casado-conjunto">Casado — Tributação Conjunta</option>
-                  <option value="casado-separado">Casado — Tributação Separada</option>
-                  <option value="monoparental">Monoparental</option>
-                </select>
-              </div>
-              <div class="fg"><label class="fl">Ano Fiscal</label>
-                <select class="fi" id="irs-ano">
-                  <option value="2024">2024</option>
-                  <option value="2023">2023</option>
-                </select>
-              </div>
-            </div>
-            <div class="fr">
-              <div class="fg"><label class="fl">N.º Dependentes</label>
-                <input class="fi" type="number" id="irs-dependentes" value="0" min="0" max="10" oninput="irsCalc()"></div>
-              <div class="fg"><label class="fl">Dependentes c/ deficiência</label>
-                <input class="fi" type="number" id="irs-dep-def" value="0" min="0" oninput="irsCalc()"></div>
-            </div>
-            <div class="fr">
-              <div class="fg"><label class="fl">Ascendentes a cargo</label>
-                <input class="fi" type="number" id="irs-ascendentes" value="0" min="0" oninput="irsCalc()"></div>
-              <div class="fg"><label class="fl">Deficiência do titular (%)</label>
-                <select class="fi" id="irs-def-titular" onchange="irsCalc()">
-                  <option value="0">Sem deficiência</option>
-                  <option value="60">Grau ≥ 60% (dedução 2.5x)</option>
-                  <option value="80">Grau ≥ 80% (dedução 4x)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">💼 Categoria A — Trabalho Dependente</div><div class="cs">Art. 2.º CIRS</div></div>
-            <div class="irc-row"><span class="irc-label">Rendimento Bruto Cat. A <span class="irc-ref">Art. 2.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-a-bruto" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Retenções na Fonte Cat. A <span class="irc-ref">Art. 99.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-a-retencoes" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Contrib. Seg. Social <span class="irc-ref">11% sobre bruto</span></span>
-              <input class="fi irc-input" type="number" id="irs-a-ss" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--cream);margin-top:6px">
-              <span style="font-size:12px;color:#888">Dedução específica Cat. A (Art.25.º)</span>
-              <span class="mono" style="font-size:12px;color:var(--blue)" id="irs-a-ded-esp">€ 0</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0">
-              <span style="font-size:12px;font-weight:600">Rendimento líquido Cat. A</span>
-              <span class="mono" style="font-weight:700;color:var(--blue)" id="irs-a-liquido">€ 0</span>
-            </div>
-          </div>
-        </div>
-        <div class="g2" style="margin-top:16px">
-          <div class="card">
-            <div class="ch"><div class="ct">🏢 Categoria B — Empresarial / Liberal</div><div class="cs">Art. 3.º CIRS</div></div>
-            <div class="fg"><label class="fl">Regime</label>
-              <select class="fi" id="irs-b-regime" onchange="irsUpdateBRegime()">
-                <option value="simplificado">Regime Simplificado</option>
-                <option value="organizada">Contabilidade Organizada</option>
-                <option value="nao">Não aplicável</option>
-              </select>
-            </div>
-            <div id="irs-b-simplificado">
-              <div class="irc-row"><span class="irc-label">Volume de negócios / Serviços <span class="irc-ref">Coef. 0.35</span></span>
-                <input class="fi irc-input" type="number" id="irs-b-servicos" value="0" placeholder="0" oninput="irsCalc()"></div>
-              <div class="irc-row"><span class="irc-label">Vendas / Produtos <span class="irc-ref">Coef. 0.15</span></span>
-                <input class="fi irc-input" type="number" id="irs-b-vendas" value="0" placeholder="0" oninput="irsCalc()"></div>
-              <div class="irc-row"><span class="irc-label">Outros rendimentos Cat. B <span class="irc-ref">Coef. 0.95</span></span>
-                <input class="fi irc-input" type="number" id="irs-b-outros" value="0" placeholder="0" oninput="irsCalc()"></div>
-            </div>
-            <div id="irs-b-organizada" style="display:none">
-              <div class="irc-row"><span class="irc-label">Resultado contabilístico Cat. B <span class="irc-ref">Art. 32.º</span></span>
-                <input class="fi irc-input" type="number" id="irs-b-resultado" value="0" placeholder="0" oninput="irsCalc()"></div>
-            </div>
-            <div class="irc-row"><span class="irc-label">Retenções na Fonte Cat. B <span class="irc-ref">Art. 101.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-b-retencoes" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--cream);margin-top:6px">
-              <span style="font-size:12px;font-weight:600">Rendimento líquido Cat. B</span>
-              <span class="mono" style="font-weight:700;color:var(--blue)" id="irs-b-liquido">€ 0</span>
-            </div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">🏦 Outras Categorias</div><div class="cs">E, F, G, H</div></div>
-            <div class="irc-row"><span class="irc-label">Cat. E — Capitais (juros, dividendos) <span class="irc-ref">Art. 5.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-e" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Cat. F — Prediais (rendas) <span class="irc-ref">Art. 8.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-f" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Cat. G — Mais-valias <span class="irc-ref">Art. 10.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-g" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Cat. H — Pensões <span class="irc-ref">Art. 11.º</span></span>
-              <input class="fi irc-input" type="number" id="irs-h" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Retenções outras categorias</span>
-              <input class="fi irc-input" type="number" id="irs-outras-ret" value="0" placeholder="0" oninput="irsCalc()"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- DEDUÇÕES -->
-      <div id="irs-tab-deducoes" class="irc-tab-content" style="display:none">
-        <div class="g2">
-          <div class="card">
-            <div class="ch"><div class="ct">🏠 Deduções à Coleta — Despesas Gerais</div><div class="cs">Art. 78.º-B CIRS — limite €250</div></div>
-            <div class="irc-row"><span class="irc-label">Despesas gerais familiares <span class="irc-ref">35% (máx €250)</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-gerais" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="ch" style="margin-top:12px"><div class="ct">🏥 Saúde</div><div class="cs">Art. 78.º-C — 15%, máx €1.000</div></div>
-            <div class="irc-row"><span class="irc-label">Despesas de saúde <span class="irc-ref">15%</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-saude" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="ch" style="margin-top:12px"><div class="ct">🎓 Educação</div><div class="cs">Art. 78.º-D — 30%, máx €800</div></div>
-            <div class="irc-row"><span class="irc-label">Despesas de educação <span class="irc-ref">30%</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-educacao" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="ch" style="margin-top:12px"><div class="ct">🏡 Habitação</div><div class="cs">Art. 78.º-E — juros habitação própria</div></div>
-            <div class="irc-row"><span class="irc-label">Juros habitação própria <span class="irc-ref">15%, máx €296</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-habitacao" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Rendas habitação própria <span class="irc-ref">15%, máx €502</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-rendas" value="0" placeholder="0" oninput="irsCalc()"></div>
-          </div>
-          <div class="card">
-            <div class="ch"><div class="ct">👶 Dependentes & Família</div><div class="cs">Art. 78.º-A CIRS</div></div>
-            <div class="ai in" style="margin-bottom:12px"><div class="a-ico">ℹ️</div><div><div class="a-t">Calculado automaticamente</div><div class="a-d">Com base nos dependentes indicados no separador Rendimentos</div></div></div>
-            <div class="irc-row"><span class="irc-label">Dedução por dependente <span class="irc-ref">€600 / €726 (3+)</span></span>
-              <span class="fi irc-input" id="irs-ded-dep-val" style="background:var(--cream);display:flex;align-items:center;justify-content:flex-end">€ 0</span></div>
-            <div class="irc-row"><span class="irc-label">Dependentes c/ deficiência <span class="irc-ref">+€1.900 / dep.</span></span>
-              <span class="fi irc-input" id="irs-ded-dep-def-val" style="background:var(--cream);display:flex;align-items:center;justify-content:flex-end">€ 0</span></div>
-            <div class="irc-row"><span class="irc-label">Ascendentes a cargo <span class="irc-ref">€525 / ascend.</span></span>
-              <span class="fi irc-input" id="irs-ded-asc-val" style="background:var(--cream);display:flex;align-items:center;justify-content:flex-end">€ 0</span></div>
-            <div class="ch" style="margin-top:16px"><div class="ct">🤲 Benefícios Fiscais</div><div class="cs">EBF e legislação especial</div></div>
-            <div class="irc-row"><span class="irc-label">PPR / Planos poupança <span class="irc-ref">20%, máx €400</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-ppr" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">IRS Jovem (extra dedução) <span class="irc-ref">Art. 12.º-B</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-jovem" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Mecenato / Donativos <span class="irc-ref">25% dos donativos</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-mecenato" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">Regressos emigrantes <span class="irc-ref">Art. 12.º-A</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-regresso" value="0" placeholder="0" oninput="irsCalc()"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- COLETA -->
-      <div id="irs-tab-coleta" class="irc-tab-content" style="display:none">
-        <div class="card">
-          <div class="ch"><div class="ct">⭐ Cálculo da Coleta</div><div class="cs">Taxas gerais 2024 — Art. 68.º CIRS</div></div>
-          <div id="irs-tabela-taxas" style="margin-bottom:16px">
-            <table>
-              <thead><tr><th>Escalão</th><th>Até</th><th>Taxa</th><th>Taxa Média</th></tr></thead>
-              <tbody>
-                ${[
-                  ['1.º','€ 7.703','13,25%','13,25%'],
-                  ['2.º','€ 11.623','18,00%','15,00%'],
-                  ['3.º','€ 16.472','23,00%','17,37%'],
-                  ['4.º','€ 21.321','26,00%','19,45%'],
-                  ['5.º','€ 27.146','32,75%','22,36%'],
-                  ['6.º','€ 39.791','37,00%','27,23%'],
-                  ['7.º','€ 51.997','43,50%','30,72%'],
-                  ['8.º','€ 81.199','45,00%','35,52%'],
-                  ['9.º','Ilimitado','48,00%','—'],
-                ].map(([e,ate,t,tm]) => `<tr><td>${e}</td><td class="mono">${ate}</td><td style="font-weight:600;color:var(--red)">${t}</td><td style="color:#888">${tm}</td></tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-          <div id="irs-coleta-detail"></div>
-        </div>
-      </div>
-
-      <!-- RESULTADO -->
-      <div id="irs-tab-resultado" class="irc-tab-content" style="display:none">
-        <div id="irs-resultado-card">
-          <div class="card"><div class="empty"><div class="empty-ico">💶</div><div class="empty-t">Preencha os rendimentos e clique em Calcular</div></div></div>
-        </div>
-        <button class="btn btn-p" style="margin-top:12px;padding:12px 24px;width:100%;font-size:15px" onclick="irsCalcFull()">⚡ Calcular IRS Completo</button>
-      </div>
-
-      <!-- COMPARATIVO -->
-      <div id="irs-tab-comparativo" class="irc-tab-content" style="display:none">
-        <div id="irs-comparativo-card">
-          <div class="card"><div class="empty"><div class="empty-ico">⚖️</div><div class="empty-t">Calcule primeiro para ver o comparativo</div></div></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ ORÇAMENTO ══ -->
-    <div id="panel-orcamento" class="panel">
-      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
-        <button class="irc-tab active" id="orc-btn-previsional" onclick="orcTab('previsional',this)">🎯 Previsional</button>
-        <button class="irc-tab" onclick="orcTab('acompanhamento',this)">📊 Real vs Orçamento</button>
-        <button class="irc-tab" onclick="orcTab('desvios',this)">⚠️ Análise Desvios</button>
-      </div>
-      <div id="orc-tab-previsional"></div>
-      <div id="orc-tab-acompanhamento" style="display:none"></div>
-      <div id="orc-tab-desvios" style="display:none"></div>
-    </div>
-
-    <!-- ══ CENÁRIOS ══ -->
-    <div id="panel-cenarios" class="panel">
-      <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
-        <button class="irc-tab active" id="cen-btn-whatif" onclick="cenTab('whatif',this)">🔭 What-If</button>
-        <button class="irc-tab" onclick="cenTab('comparativo',this)">⚖️ Comparativo</button>
-        <button class="irc-tab" onclick="cenTab('stress',this)">🌡️ Stress Test</button>
-      </div>
-      <div id="cen-tab-whatif"></div>
-      <div id="cen-tab-comparativo" style="display:none"></div>
-      <div id="cen-tab-stress" style="display:none"></div>
-    </div>
-
     <!-- ══ IVA ══ -->
     <div id="panel-iva" class="panel">
       <div class="card">
@@ -1086,8 +772,8 @@ tr:last-child td{border-bottom:none}
   </div>
   <div class="cms" id="cms">
     <div class="msg a">
-      <div class="af"><div class="adot">CI</div> HVR IA</div>
-      <div class="mb">Olá! Sou o assistente fiscal e contabilístico da HVR Business Analytics, com acesso direto aos dados importados.<br><br>Selecione um cliente e importe o balancete — responderei com base nos <strong>dados reais</strong> da empresa.<br><br>Posso analisar rácios, calcular IRC, interpretar artigos do CIRC/CIVA e muito mais. O que precisa?</div>
+      <div class="af"><div class="adot">CI</div> ContaIntel IA</div>
+      <div class="mb">Olá! Sou o assistente fiscal e contabilístico da ContaIntel, com acesso direto aos dados importados.<br><br>Selecione um cliente e importe o balancete — responderei com base nos <strong>dados reais</strong> da empresa.<br><br>Posso analisar rácios, calcular IRC, interpretar artigos do CIRC/CIVA e muito mais. O que precisa?</div>
       <div class="mt">agora</div>
     </div>
   </div>
@@ -1155,12 +841,6 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
-<div class="mo" id="mo-user" onclick="if(event.target===this)closeModal('mo-user')">
-  <div class="mo-box" style="max-width:520px">
-    <div id="modal-body"><!-- filled by JS --></div>
-  </div>
-</div>
-
 <div id="toast"></div>
 
 <script>
@@ -1202,24 +882,17 @@ function nav(p) {
     if (p === 'balancete') loadBalancete();
     if (p === 'racios' && state.financials) renderRacios();
     if (p === 'irc' && state.entityId) { renderViaturas(); renderIRCPanel(); }
-    if (p === 'users') loadUsers();
-    if (p === 'perfil') loadPerfil();
-    if (p === 'multi') loadMultiEmpresa();
-    if (p === 'df') { renderDF(); }
-    if (p === 'prazos') loadPrazos();
-    if (p === 'orcamento') loadOrcamento();
-    if (p === 'cenarios') loadCenarios();
+  if (p === 'users') loadUsers();
     if (p === 'iva' && state.financials) renderIVA();
     if (p === 'clientes') loadEntities();
     if (p === 'importar') loadFilesList();
     if (p === 'conformidade') renderConformidade();
-    if (p === 'irs') {}
   }
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   event?.currentTarget?.classList.add('active');
 
-  const titles = {dashboard:'Dashboard',balancete:'Balancete',racios:'Rácios Financeiros',irc:'Simulação IRC',users:'Utilizadores',perfil:'O Meu Perfil',multi:'Multi-Empresa',df:'Demonstrações Financeiras',prazos:'Prazos Fiscais',irs:'Simulação IRS',orcamento:'Módulo de Orçamento',cenarios:'Cenários & What-If',
+  const titles = {dashboard:'Dashboard',balancete:'Balancete',racios:'Rácios Financeiros',irc:'Simulação IRC',users:'Utilizadores',
     iva:'Apuramento IVA',clientes:'Carteira de Clientes',conformidade:'Conformidade',importar:'Importar Dados',ai:'IA Assistente'};
   document.getElementById('hdr-title').innerHTML = (titles[p]||p) + ' — <span id="hdr-client">' + (state.entityName || 'Nenhum cliente') + '</span>';
 }
@@ -1227,11 +900,7 @@ function nav(p) {
 // ══ API HELPERS ══
 async function api(path, opts={}) {
   try {
-    const headers = {'Content-Type':'application/json'};
-    if (state.token) headers['Authorization'] = 'Bearer ' + state.token;
-    if (opts.headers) { Object.assign(headers, opts.headers); delete opts.headers; }
-    const r = await fetch(API + path, {headers, ...opts});
-    if (r.status === 401) { logout(); return null; }
+    const r = await fetch(API + path, {headers:{'Content-Type':'application/json'}, ...opts});
     if (!r.ok) {
       const err = await r.json().catch(() => ({detail: r.statusText}));
       throw new Error(err.detail || r.statusText);
@@ -2059,1562 +1728,6 @@ function cfRow(label, val, isPositive, isBold=false) {
 }
 
 
-// ══ PERFIL ══
-function loadPerfil() {
-  const u = state.user;
-  if (!u) return;
-  const initials = u.name ? u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
-  const roleMap = { admin:'Administrador', gestor:'Gestor', cliente:'Cliente' };
-  const roleClass = { admin:'b-rd', gestor:'b-bl', cliente:'b-gn' };
-
-  document.getElementById('perfil-ava').textContent = initials;
-  document.getElementById('sb-ava').textContent = initials;
-  document.getElementById('sb-uname').textContent = u.name || '—';
-  document.getElementById('sb-urole').textContent = roleMap[u.role] || u.role;
-  document.getElementById('perfil-nome').textContent = u.name || '—';
-  document.getElementById('perfil-email').textContent = u.email || '—';
-  const badge = document.getElementById('perfil-role-badge');
-  if (badge) { badge.textContent = roleMap[u.role] || u.role; badge.className = 'badge ' + (roleClass[u.role]||'b-bl'); }
-  const ll = document.getElementById('perfil-last-login');
-  if (ll) ll.textContent = u.last_login ? new Date(u.last_login).toLocaleString('pt-PT') : 'Primeiro acesso hoje';
-
-  // Empresas
-  const emprEl = document.getElementById('perfil-empresas');
-  if (emprEl) {
-    if (u.role === 'admin') {
-      emprEl.innerHTML = '<div class="ai gn"><div class="a-ico">🏢</div><div><div class="a-t">Acesso a todas as empresas</div></div></div>';
-    } else {
-      const entities = state.entities || [];
-      emprEl.innerHTML = `<div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Empresas com acesso</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          ${entities.map(e => `<span style="background:var(--cream);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600">${e.name}</span>`).join('')}
-        </div>`;
-    }
-  }
-}
-
-async function alterarPassword() {
-  const atual = document.getElementById('pwd-atual').value;
-  const nova = document.getElementById('pwd-nova').value;
-  const conf = document.getElementById('pwd-conf').value;
-  const msg = document.getElementById('pwd-msg');
-
-  if (!atual || !nova) { msg.textContent = '⚠️ Preencha todos os campos'; msg.style.color='var(--gold-d)'; return; }
-  if (nova !== conf) { msg.textContent = '❌ As passwords não coincidem'; msg.style.color='var(--red)'; return; }
-  if (nova.length < 6) { msg.textContent = '❌ Mínimo 6 caracteres'; msg.style.color='var(--red)'; return; }
-
-  try {
-    const res = await api('/auth/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ current_password: atual, new_password: nova })
-    });
-    if (res) {
-      msg.textContent = '✅ Password alterada com sucesso!';
-      msg.style.color = 'var(--green)';
-      document.getElementById('pwd-atual').value = '';
-      document.getElementById('pwd-nova').value = '';
-      document.getElementById('pwd-conf').value = '';
-    }
-  } catch(e) {
-    msg.textContent = '❌ Password atual incorreta';
-    msg.style.color = 'var(--red)';
-  }
-}
-
-// ══ MULTI-EMPRESA ══
-async function loadMultiEmpresa() {
-  const grid = document.getElementById('multi-grid');
-  if (!grid) return;
-  grid.innerHTML = '<div class="card" style="grid-column:1/-1"><div class="empty"><div class="empty-ico">⏳</div><div class="empty-t">A carregar...</div></div></div>';
-
-  const entities = await api('/entities') || [];
-  if (!entities.length) {
-    grid.innerHTML = '<div class="card"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">Sem empresas</div><div class="empty-s">Crie ou atribua empresas para ver aqui.</div></div></div>';
-    return;
-  }
-
-  // Load financials for each entity
-  const cards = await Promise.all(entities.map(async (e) => {
-    try {
-      const years = await api(`/entities/${e.id}/fiscal-years`) || [];
-      const latestYear = years.find(y => y.status === 'open') || years[0];
-      if (!latestYear) return { entity: e, fin: null };
-      const fin = await api(`/entities/${e.id}/financials?fiscal_year_id=${latestYear.id}`);
-      return { entity: e, fin, year: latestYear };
-    } catch { return { entity: e, fin: null }; }
-  }));
-
-  grid.innerHTML = cards.map(({entity: e, fin, year}) => {
-    if (!fin) return `
-      <div class="card" style="cursor:pointer" onclick="selectEntity('${e.id}','${e.name}','${e.nif}')">
-        <div class="ch"><div><div class="ct">${e.name}</div><div class="cs">NIF ${e.nif}</div></div></div>
-        <div style="text-align:center;padding:20px;color:#bbb;font-size:12px">Sem dados importados</div>
-        <button class="btn btn-o btn-sm" style="width:100%;margin-top:8px" onclick="event.stopPropagation();selectEntity('${e.id}');nav('importar')">📥 Importar Balancete</button>
-      </div>`;
-
-    const r = fin.ratios;
-    const p = fin.pnl;
-    const score_keys = ['liquidez_geral','solvabilidade','margem_liquida','roe','pmr'];
-    // count status using racioStatus if available
-    const rl = p?.resultado_liquido || 0;
-    const vn = p?.total_rendimentos || 0;
-    const ebitda = p?.ebitda || 0;
-    const rlColor = rl >= 0 ? 'var(--green)' : 'var(--red)';
-
-    // Simple alert count
-    const alerts = fin.alerts || [];
-    const criticals = alerts.filter(a => a.severity === 'critical' || a.severity === 'high').length;
-
-    return `
-      <div class="card" style="cursor:pointer;transition:.2s;border:2px solid transparent" 
-           onmouseover="this.style.borderColor='var(--blue-l)'" 
-           onmouseout="this.style.borderColor='transparent'"
-           onclick="selectEntity('${e.id}','${e.name}','${e.nif}')">
-        <div class="ch">
-          <div>
-            <div class="ct">${e.name}</div>
-            <div class="cs">NIF ${e.nif} · ${year?.year || '—'}</div>
-          </div>
-          ${criticals > 0 ? `<span class="badge b-rd">⚠️ ${criticals} alerta${criticals>1?'s':''}</span>` : '<span class="badge b-gn">✅ OK</span>'}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">
-          <div style="background:var(--cream);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Resultado Líquido</div>
-            <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:${rlColor};margin-top:3px">${fmtEur(rl)}</div>
-          </div>
-          <div style="background:var(--cream);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Volume Negócios</div>
-            <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue);margin-top:3px">${fmtEur(vn)}</div>
-          </div>
-          <div style="background:var(--cream);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">EBITDA</div>
-            <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--ink);margin-top:3px">${fmtEur(ebitda)}</div>
-          </div>
-          <div style="background:var(--cream);border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">Liquidez Geral</div>
-            <div style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:${r?.liquidez_geral>=1?'var(--green)':'var(--red)'};margin-top:3px">${r?.liquidez_geral||'—'}</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-p btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}','${e.name}','${e.nif}');nav('dashboard')">📊 Dashboard</button>
-          <button class="btn btn-o btn-sm" style="flex:1" onclick="event.stopPropagation();selectEntity('${e.id}','${e.name}','${e.nif}');nav('racios')">📈 Rácios</button>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-// selectEntity handled above
-
-
-// ══════════════════════════════════════
-// DEMONSTRAÇÕES FINANCEIRAS
-// ══════════════════════════════════════
-function dfTab(name, btn) {
-  document.querySelectorAll('[id^="df-tab-"]').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('[id^="df-tab-"]').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.irc-tab[onclick*="dfTab"]').forEach(el => el.classList.remove('active'));
-  document.getElementById('df-tab-' + name).style.display = '';
-  if (btn) btn.classList.add('active');
-  renderDFTab(name);
-}
-
-function renderDF() {
-  if (!state.financials) {
-    document.getElementById('df-tab-dr').innerHTML = '<div class="card"><div class="empty"><div class="empty-ico">📊</div><div class="empty-t">Importe um balancete para ver as demonstrações financeiras</div></div></div>';
-    return;
-  }
-  renderDFTab('dr');
-}
-
-function renderDFTab(name) {
-  if (!state.financials) return;
-  const f = state.financials;
-  const p = f.pnl;
-  const b = f.balanco;
-  const year = state.year || new Date().getFullYear();
-  const entity = (state.entities||[]).find(e => e.id === state.entityId);
-  const el = document.getElementById('df-tab-' + name);
-  if (!el) return;
-
-  if (name === 'dr') {
-    // Full Demonstração de Resultados (NCRF model)
-    el.innerHTML = `
-      <div class="card">
-        <div class="ch">
-          <div>
-            <div class="ct">📊 Demonstração de Resultados</div>
-            <div class="cs">${entity?.name || ''} · Exercício ${year} · NCRF</div>
-          </div>
-          <button class="btn btn-p btn-sm" onclick="printDF('dr')">🖨️ Exportar PDF</button>
-        </div>
-        <div id="dr-print-area" style="margin-top:12px">
-          <table style="width:100%">
-            <thead>
-              <tr style="background:var(--cream)">
-                <th style="text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Rubricas</th>
-                <th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Notas</th>
-                <th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">${year}</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${drRow('Vendas e serviços prestados', p.vn || p.total_rendimentos, '4', true)}
-              ${drRow('Custo das mercadorias vendidas e matérias consumidas', p.cmvmc, '5', false, true)}
-              ${drRow('Margem Bruta', (p.vn||p.total_rendimentos) - p.cmvmc, null, false, false, true)}
-              ${drRow('Outros rendimentos e ganhos', p.outros_rendimentos || 0, '6')}
-              ${drRow('Fornecimentos e serviços externos', p.fse || 0, '7', false, true)}
-              ${drRow('Gastos com o pessoal', p.gastos_pessoal || 0, '8', false, true)}
-              ${drRow('Imparidades (perdas/reversões)', p.imparidades || 0, '9', false, true)}
-              ${drRow('Provisões (aumentos/reduções)', p.provisoes || 0, '10', false, true)}
-              ${drRow('Outros gastos e perdas', p.outros_gastos || 0, '11', false, true)}
-              ${drSep()}
-              ${drRow('Resultado antes depreciações, gastos fin. e impostos (EBITDA)', p.ebitda, null, false, false, true, 'var(--blue)')}
-              ${drRow('Gastos/reversões depreciações e amortizações', p.depreciacao || 0, '12', false, true)}
-              ${drSep()}
-              ${drRow('Resultado operacional (EBIT)', p.ebit || p.ebitda - p.depreciacao, null, false, false, true)}
-              ${drRow('Rendimentos financeiros', p.rendimentos_financeiros || 0, '13')}
-              ${drRow('Gastos e perdas de financiamento', p.gastos_financiamento || 0, '14', false, true)}
-              ${drSep()}
-              ${drRow('Resultado antes de impostos (RAI)', p.rai || p.resultado_liquido, null, false, false, true)}
-              ${drRow('Imposto sobre o rendimento do período', p.irc_contabilistico || 0, '15', false, true)}
-              ${drSep()}
-              ${drRow('RESULTADO LÍQUIDO DO PERÍODO', p.resultado_liquido, null, false, false, true, p.resultado_liquido >= 0 ? 'var(--green)' : 'var(--red)', true)}
-            </tbody>
-          </table>
-        </div>
-      </div>`;
-  }
-
-  else if (name === 'balanco') {
-    el.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <!-- ATIVO -->
-        <div class="card">
-          <div class="ch">
-            <div><div class="ct">⬅️ Ativo</div><div class="cs">Exercício ${year}</div></div>
-            <button class="btn btn-p btn-sm" onclick="printDF('balanco')">🖨️ PDF</button>
-          </div>
-          <div id="balanco-ativo-print">
-          <table style="width:100%;margin-top:8px">
-            <thead><tr style="background:var(--cream)">
-              <th style="text-align:left;padding:6px 10px;font-size:11px;text-transform:uppercase">Ativo</th>
-              <th style="text-align:right;padding:6px 10px;font-size:11px">Notas</th>
-              <th style="text-align:right;padding:6px 10px;font-size:11px">${year}</th>
-            </tr></thead>
-            <tbody>
-              ${bRow('ATIVO NÃO CORRENTE', null, null, 'section')}
-              ${bRow('Ativos fixos tangíveis', b.ativo_tangivel, '16')}
-              ${bRow('Ativos intangíveis', b.ativo_intangivel, '17')}
-              ${bRow('Propriedades de investimento', b.inv_propriedades, '18')}
-              ${bRow('Participações financeiras', b.participacoes, '19')}
-              ${bRow('Total Ativo Não Corrente', b.ativo_nao_corrente, null, 'subtotal')}
-              ${bRow('ATIVO CORRENTE', null, null, 'section')}
-              ${bRow('Inventários', b.inventarios, '20')}
-              ${bRow('Clientes', b.clientes, '21')}
-              ${bRow('Estado e outros entes públicos', b.estado_devedor, '22')}
-              ${bRow('Outras contas a receber', 0, '23')}
-              ${bRow('Diferimentos', 0, '24')}
-              ${bRow('Caixa e depósitos bancários', b.disponibilidades, '25')}
-              ${bRow('Total Ativo Corrente', b.ativo_corrente, null, 'subtotal')}
-              ${bRow('TOTAL DO ATIVO', b.ativo_total, null, 'total')}
-            </tbody>
-          </table>
-          </div>
-        </div>
-        <!-- CAPITAL PRÓPRIO E PASSIVO -->
-        <div class="card">
-          <div class="ch"><div class="ct">➡️ Capital Próprio e Passivo</div><div class="cs">Exercício ${year}</div></div>
-          <div id="balanco-cp-print">
-          <table style="width:100%;margin-top:8px">
-            <thead><tr style="background:var(--cream)">
-              <th style="text-align:left;padding:6px 10px;font-size:11px;text-transform:uppercase">Capital Próprio e Passivo</th>
-              <th style="text-align:right;padding:6px 10px;font-size:11px">Notas</th>
-              <th style="text-align:right;padding:6px 10px;font-size:11px">${year}</th>
-            </tr></thead>
-            <tbody>
-              ${bRow('CAPITAL PRÓPRIO', null, null, 'section')}
-              ${bRow('Capital realizado', b.capital_social, '26')}
-              ${bRow('Ações (quotas) próprias', 0, '27')}
-              ${bRow('Outros instrumentos de capital próprio', 0, '28')}
-              ${bRow('Reservas', b.reservas, '29')}
-              ${bRow('Excedentes de revalorização', b.excedentes_revalorizacao, '30')}
-              ${bRow('Resultados transitados', b.resultados_transitados, '31')}
-              ${bRow('Resultado líquido do período', f.pnl.resultado_liquido, '32')}
-              ${bRow('Total Capital Próprio', b.capital_proprio, null, 'subtotal', b.capital_proprio >= 0 ? 'var(--green)' : 'var(--red)')}
-              ${bRow('PASSIVO NÃO CORRENTE', null, null, 'section')}
-              ${bRow('Financiamentos obtidos', b.financiamentos_mlp, '33')}
-              ${bRow('Total Passivo Não Corrente', b.passivo_nao_corrente, null, 'subtotal')}
-              ${bRow('PASSIVO CORRENTE', null, null, 'section')}
-              ${bRow('Fornecedores', b.fornecedores, '34')}
-              ${bRow('Estado e outros entes públicos', b.estado_credor, '35')}
-              ${bRow('Pessoal', b.pessoal_passivo, '36')}
-              ${bRow('Financiamentos obtidos CP', b.financiamentos_cp, '37')}
-              ${bRow('Total Passivo Corrente', b.passivo_corrente, null, 'subtotal')}
-              ${bRow('TOTAL PASSIVO', b.passivo_total, null, 'subtotal')}
-              ${bRow('TOTAL CAPITAL PRÓPRIO E PASSIVO', b.capital_proprio + b.passivo_total, null, 'total')}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      </div>`;
-  }
-
-  else if (name === 'reporting') {
-    el.innerHTML = `
-      <div class="card" style="margin-bottom:16px">
-        <div class="ch">
-          <div><div class="ct">📋 Reporting Financeiro</div><div class="cs">Relatórios periódicos automáticos</div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:12px">
-          ${['Mensal','Trimestral','Semestral','Anual'].map((p,i) => `
-            <div style="background:var(--cream);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:.2s"
-                 onmouseover="this.style.background='var(--blue-l)'" onmouseout="this.style.background='var(--cream)'"
-                 onclick="gerarReporting('${p.toLowerCase()}')">
-              <div style="font-size:24px;margin-bottom:6px">${['📅','📆','📊','📈'][i]}</div>
-              <div style="font-weight:700;font-size:14px">${p}</div>
-              <div style="font-size:11px;color:#aaa;margin-top:3px">Gerar relatório</div>
-            </div>`).join('')}
-        </div>
-      </div>
-      <div id="reporting-output"></div>`;
-  }
-
-  else if (name === 'anexo') {
-    el.innerHTML = `
-      <div class="card">
-        <div class="ch"><div class="ct">📎 Anexo às Demonstrações Financeiras</div><div class="cs">NCRF — Notas ao Balanço e DR</div></div>
-        <div class="ai in" style="margin:12px 0"><div class="a-ico">ℹ️</div><div><div class="a-t">Mapas preparados automaticamente com base no balancete importado</div><div class="a-d">Reveja e complete antes de submeter. Alguns campos requerem informação adicional não disponível no balancete.</div></div></div>
-        <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-          ${[
-            ['Nota 4','Decomposição do volume de negócios'],
-            ['Nota 5','CMVMC e existências'],
-            ['Nota 7','Fornecimentos e serviços externos'],
-            ['Nota 8','Gastos com pessoal — n.º médio de empregados'],
-            ['Nota 12','Depreciações e amortizações'],
-            ['Nota 16','Ativos fixos tangíveis — movimentos'],
-            ['Nota 21','Clientes — antiguidade de saldos'],
-            ['Nota 25','Caixa e equivalentes'],
-            ['Nota 26','Capital social — composição'],
-            ['Nota 33','Financiamentos obtidos — condições'],
-          ].map(([nota, desc]) => `
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--cream);border-radius:8px">
-              <div>
-                <span style="font-weight:700;color:var(--blue);margin-right:10px">${nota}</span>
-                <span style="font-size:13px">${desc}</span>
-              </div>
-              <button class="btn btn-o btn-sm" onclick="gerarNota('${nota}')">Ver mapa</button>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  }
-}
-
-// DR helper rows
-function drRow(label, val, nota, isRend=false, isGasto=false, isTotal=false, color='', bold=false) {
-  if (!val && val !== 0) return '';
-  const absVal = Math.abs(val || 0);
-  const color2 = color || (isTotal ? (val>=0?'var(--green)':'var(--red)') : 'var(--ink)');
-  const bg = isTotal ? 'background:var(--cream);' : '';
-  const fw = (bold || isTotal) ? 'font-weight:700;' : '';
-  const sign = isGasto && val > 0 ? '(' : '';
-  const sign2 = isGasto && val > 0 ? ')' : '';
-  return `<tr style="${bg}border-bottom:1px solid var(--cream)">
-    <td style="padding:7px 12px;font-size:13px;${fw}${isTotal?'border-top:2px solid var(--ink);':''}">${label}</td>
-    <td style="text-align:right;padding:7px 12px;font-size:11px;color:#bbb">${nota||''}</td>
-    <td style="text-align:right;padding:7px 12px;font-family:'DM Mono',monospace;font-size:13px;${fw}color:${color2};${isTotal?'border-top:2px solid var(--ink);':''}">${sign}${fmtN(absVal)}${sign2}</td>
-  </tr>`;
-}
-function drSep() {
-  return '<tr><td colspan="3" style="padding:3px;background:transparent"></td></tr>';
-}
-
-// Balance sheet helper rows
-function bRow(label, val, nota, type='', color='') {
-  if (type === 'section') return `<tr style="background:rgba(61,79,92,.06)"><td colspan="3" style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--blue)">${label}</td></tr>`;
-  if (val === null || val === undefined) return '';
-  const absVal = Math.abs(val||0);
-  const bg = type==='total' ? 'background:var(--blue);color:#fff;' : type==='subtotal' ? 'background:var(--cream);font-weight:700;' : '';
-  const c = type==='total' ? 'color:#fff;' : color ? `color:${color};` : '';
-  return `<tr style="${bg}border-bottom:1px solid rgba(0,0,0,.04)">
-    <td style="padding:6px 12px 6px ${type==='section'?'12':'20'}px;font-size:12.5px;${bg}${c}">${label}</td>
-    <td style="text-align:right;padding:6px 10px;font-size:11px;${bg}color:${type==='total'?'rgba(255,255,255,.5)':'#bbb'}">${nota||''}</td>
-    <td style="text-align:right;padding:6px 12px;font-family:'DM Mono',monospace;font-size:12.5px;font-weight:${type==='total'||type==='subtotal'?700:400};${c}${bg}">${fmtN(absVal)}</td>
-  </tr>`;
-}
-
-async function gerarReporting(periodo) {
-  const out = document.getElementById('reporting-output');
-  if (!state.financials) { toast('⚠️ Importe um balancete primeiro'); return; }
-  const f = state.financials;
-  const p = f.pnl;
-  const b = f.balanco;
-  const r = f.ratios;
-  const entity = (state.entities||[]).find(e => e.id === state.entityId);
-  const periodoLabel = {mensal:'Mensal',trimestral:'Trimestral',semestral:'Semestral',anual:'Anual'}[periodo];
-
-  out.innerHTML = `
-    <div class="card" id="report-print-area">
-      <div style="border-bottom:3px solid var(--red);padding-bottom:16px;margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-size:24px;font-weight:800;color:var(--red);letter-spacing:2px">HVR</div>
-            <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#aaa">Business Analytics</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-weight:700;font-size:15px">${entity?.name || 'Empresa'}</div>
-            <div style="font-size:12px;color:#888">NIF: ${entity?.nif || ''}</div>
-            <div style="font-size:11px;color:#aaa">Relatório ${periodoLabel} · ${new Date().toLocaleDateString('pt-PT')}</div>
-          </div>
-        </div>
-      </div>
-      <!-- KPIs -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
-        ${[
-          ['Volume Negócios', fmtEur(p.vn||p.total_rendimentos), p.total_rendimentos > 0 ? '↑' : '—'],
-          ['EBITDA', fmtEur(p.ebitda), p.ebitda > 0 ? '↑' : '↓'],
-          ['Resultado Líquido', fmtEur(p.resultado_liquido), p.resultado_liquido >= 0 ? '↑' : '↓'],
-          ['Autonomia Financeira', (r.autonomia_financeira*100).toFixed(1)+'%', ''],
-        ].map(([l,v,t]) => `
-          <div style="background:var(--cream);border-radius:10px;padding:12px;text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${l}</div>
-            <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${v}</div>
-          </div>`).join('')}
-      </div>
-      <!-- Rácios chave -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px">Rácios Financeiros Chave</div>
-        <table style="width:100%">
-          <thead><tr style="background:var(--cream)"><th style="padding:8px 12px;text-align:left">Rácio</th><th style="padding:8px 12px;text-align:right">Valor</th><th style="padding:8px 12px;text-align:right">Benchmark</th><th style="padding:8px 12px;text-align:center">Estado</th></tr></thead>
-          <tbody>
-            ${[
-              ['Liquidez Geral', r.liquidez_geral, '≥ 1.5'],
-              ['Solvabilidade', r.solvabilidade, '≥ 0.5'],
-              ['Margem EBITDA', r.margem_ebitda+'%', '≥ 15%'],
-              ['ROE', r.roe+'%', '≥ 15%'],
-              ['PMR', r.pmr_dias+'d', '≤ 60d'],
-            ].map(([n,v,bm]) => {
-              const st = racioStatus(parseFloat(v), n.toLowerCase().includes('pmr')?'pmr':n.toLowerCase().includes('roe')?'roe':n.toLowerCase().includes('ebitda')?'margem_ebitda':n.toLowerCase().includes('solvab')?'solvabilidade':'liquidez_geral');
-              return `<tr style="border-bottom:1px solid var(--cream)">
-                <td style="padding:7px 12px;font-size:13px">${n}</td>
-                <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:600">${v}</td>
-                <td style="padding:7px 12px;text-align:right;font-size:12px;color:#aaa">${bm}</td>
-                <td style="padding:7px 12px;text-align:center"><span class="badge ${st.cls}">${st.label}</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-      <!-- Alertas -->
-      ${(f.alerts||[]).length ? `
-        <div style="margin-bottom:16px">
-          <div style="font-weight:700;font-size:13px;margin-bottom:10px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px">Alertas & Recomendações</div>
-          ${f.alerts.map(a => `<div class="ai ${a.severity==='critical'?'er':a.severity==='high'?'wn':'in'}" style="margin-bottom:6px">
-            <div style="font-weight:600">${a.title}</div><div style="font-size:12px;opacity:.8">${a.desc}</div>
-          </div>`).join('')}
-        </div>` : ''}
-      <div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--cream);font-size:10px;color:#aaa;text-align:center">
-        Relatório gerado automaticamente por HVR Business Analytics · ${new Date().toLocaleString('pt-PT')} · Para uso interno
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn btn-p" onclick="printReport()">🖨️ Exportar PDF</button>
-      <button class="btn btn-o" onclick="document.getElementById('reporting-output').innerHTML=''">✕ Fechar</button>
-    </div>`;
-}
-
-function printReport() {
-  const content = document.getElementById('report-print-area');
-  if (!content) return;
-  const win = window.open('', '_blank');
-  win.document.write(`<html><head><title>Relatório HVR</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      body{font-family:'Outfit',sans-serif;padding:30px;color:#0f1117;font-size:13px}
-      table{width:100%;border-collapse:collapse}
-      td,th{padding:6px 10px;border-bottom:1px solid #eee}
-      .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px}
-      .b-gn{background:rgba(26,122,74,.1);color:#1a7a4a}
-      .b-yl{background:rgba(201,168,76,.1);color:#a07830}
-      .b-rd{background:rgba(232,55,27,.1);color:#E8371B}
-    </style></head><body>${content.innerHTML}</body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
-}
-
-function printDF(type) {
-  let content = document.getElementById(type === 'dr' ? 'dr-print-area' : 'balanco-ativo-print');
-  if (!content) return;
-  const entity = (state.entities||[]).find(e => e.id === state.entityId);
-  const win = window.open('', '_blank');
-  win.document.write(`<html><head><title>${type === 'dr' ? 'Demonstração de Resultados' : 'Balanço'} — ${entity?.name||''}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-      body{font-family:'Outfit',sans-serif;padding:40px;color:#0f1117;font-size:13px}
-      h2{color:#E8371B;letter-spacing:2px;margin-bottom:4px}
-      table{width:100%;border-collapse:collapse;margin-top:20px}
-      td,th{padding:7px 12px;border-bottom:1px solid #eee}
-      .total td{background:#3D4F5C;color:#fff;font-weight:700}
-      @media print{body{padding:20px}}
-    </style></head><body>
-    <h2>HVR</h2>
-    <div style="font-size:10px;letter-spacing:2px;color:#aaa;text-transform:uppercase;margin-bottom:16px">Business Analytics</div>
-    <div style="font-size:16px;font-weight:700;margin-bottom:4px">${entity?.name||''} · NIF ${entity?.nif||''}</div>
-    <div style="font-size:12px;color:#888;margin-bottom:20px">${type==='dr'?'Demonstração de Resultados':'Balanço'} · Exercício ${state.year || new Date().getFullYear()}</div>
-    ${content.innerHTML}
-    <div style="margin-top:30px;font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:10px">Gerado por HVR Business Analytics · ${new Date().toLocaleString('pt-PT')}</div>
-    </body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
-}
-
-function gerarNota(nota) {
-  if (!state.financials) { toast('⚠️ Importe um balancete primeiro'); return; }
-  const f = state.financials;
-  const b = f.balanco;
-  const p = f.pnl;
-  const notaNum = nota.split(' ')[1];
-  let content = '';
-
-  const notaMap = {
-    '4': `<div><b>Nota 4 — Decomposição do Volume de Negócios</b><br><br>
-      <table style="width:100%"><thead><tr style="background:var(--cream)"><th>Rubrica</th><th style="text-align:right">€</th></tr></thead><tbody>
-      <tr><td>Prestações de serviços (conta 72)</td><td style="text-align:right;font-family:monospace">${fmtN(p.vn||0)}</td></tr>
-      <tr style="font-weight:700"><td>Total</td><td style="text-align:right;font-family:monospace">${fmtN(p.vn||p.total_rendimentos||0)}</td></tr>
-      </tbody></table></div>`,
-    '21': `<div><b>Nota 21 — Clientes: Antiguidade de Saldos</b><br><br>
-      <table style="width:100%"><thead><tr style="background:var(--cream)"><th>Antiguidade</th><th style="text-align:right">€</th><th style="text-align:right">%</th></tr></thead><tbody>
-      <tr><td>Corrente (≤ 30 dias)</td><td style="text-align:right;font-family:monospace">${fmtN(b.clientes * 0.6)}</td><td style="text-align:right">60%</td></tr>
-      <tr><td>31 a 90 dias</td><td style="text-align:right;font-family:monospace">${fmtN(b.clientes * 0.3)}</td><td style="text-align:right">30%</td></tr>
-      <tr><td>Mais de 90 dias</td><td style="text-align:right;font-family:monospace">${fmtN(b.clientes * 0.1)}</td><td style="text-align:right">10%</td></tr>
-      <tr style="font-weight:700"><td>Total clientes</td><td style="text-align:right;font-family:monospace">${fmtN(b.clientes)}</td><td style="text-align:right">100%</td></tr>
-      </tbody></table>
-      <div style="margin-top:8px;font-size:11px;color:#888">⚠️ Nota: distribuição estimada. Complete com dados reais de aging de clientes.</div></div>`,
-    '25': `<div><b>Nota 25 — Caixa e Equivalentes de Caixa</b><br><br>
-      <table style="width:100%"><thead><tr style="background:var(--cream)"><th>Rubrica</th><th style="text-align:right">€</th></tr></thead><tbody>
-      <tr><td>Caixa (conta 11)</td><td style="text-align:right;font-family:monospace">${fmtN(0)}</td></tr>
-      <tr><td>Depósitos bancários (conta 12)</td><td style="text-align:right;font-family:monospace">${fmtN(b.disponibilidades)}</td></tr>
-      <tr style="font-weight:700"><td>Total</td><td style="text-align:right;font-family:monospace">${fmtN(b.disponibilidades)}</td></tr>
-      </tbody></table></div>`,
-  };
-
-  const html_nota = notaMap[notaNum] || `<div style="color:#aaa;text-align:center;padding:20px"><div style="font-size:24px;margin-bottom:8px">📝</div><div>Mapa para ${nota} requer informação adicional não disponível no balancete.</div><div style="font-size:11px;margin-top:8px">Complete manualmente com base nos registos contabilísticos.</div></div>`;
-
-  // Show in modal
-  document.getElementById('modal-body').innerHTML = `
-    <div style="font-size:13px">${html_nota}</div>
-    <div style="display:flex;gap:8px;margin-top:16px">
-      <button class="btn btn-o" style="flex:1;padding:10px" onclick="closeModal('mo-user')">Fechar</button>
-    </div>`;
-  openModal('mo-user');
-}
-
-// ══════════════════════════════════════
-// PRAZOS FISCAIS
-// ══════════════════════════════════════
-let _prazosData = [];
-let _prazosFilter = 'todos';
-
-async function loadPrazos() {
-  document.getElementById('prazos-ano').textContent = new Date().getFullYear();
-  const prazos = await api('/prazos-fiscais');
-  if (!prazos) return;
-  _prazosData = prazos;
-  renderPrazos();
-}
-
-function filterPrazos(filter, btn) {
-  _prazosFilter = filter;
-  document.querySelectorAll('[onclick*="filterPrazos"]').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderPrazos();
-}
-
-function renderPrazos() {
-  const grid = document.getElementById('prazos-grid');
-  if (!grid) return;
-  let data = _prazosData;
-  if (_prazosFilter !== 'todos') data = data.filter(p => _prazosFilter === 'urgente' ? p.status === 'urgente' || p.status === 'vencido' : p.tipo === _prazosFilter);
-
-  if (!data.length) {
-    grid.innerHTML = '<div class="card"><div class="empty"><div class="empty-ico">✅</div><div class="empty-t">Sem prazos neste filtro</div></div></div>';
-    return;
-  }
-
-  grid.innerHTML = data.map(p => {
-    const statusMap = { vencido: ['b-rd','🔴','Vencido'], urgente: ['b-rd','⚠️','Urgente'], proximo: ['b-yl','📅','Próximo'], ok: ['b-gn','✅','OK'] };
-    const [cls, ico, label] = statusMap[p.status] || ['b-bl','📌','—'];
-    const diasTxt = p.dias_restantes === null ? '—' : p.dias_restantes < 0 ? `${Math.abs(p.dias_restantes)}d vencido` : p.dias_restantes === 0 ? 'Hoje!' : `${p.dias_restantes}d`;
-    const bgCard = p.status === 'vencido' ? 'border-left:3px solid var(--red)' : p.status === 'urgente' ? 'border-left:3px solid var(--gold)' : '';
-    return `
-      <div class="card" style="margin-bottom:10px;${bgCard}">
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-              <span class="badge ${cls}">${ico} ${label}</span>
-              <span style="font-size:10.5px;color:#aaa;text-transform:uppercase;letter-spacing:.5px">${p.tipo}</span>
-            </div>
-            <div style="font-weight:700;font-size:14px;margin-bottom:2px">${p.titulo}</div>
-            <div style="font-size:12px;color:#666;margin-bottom:4px">${p.descricao}</div>
-            <div style="font-size:11px;color:#aaa">${p.regulamento}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${p.status==='vencido'?'var(--red)':p.status==='urgente'?'var(--gold-d)':'var(--blue)'}">${diasTxt}</div>
-            <div style="font-size:11px;color:#aaa;margin-top:2px">${new Date(p.data).toLocaleDateString('pt-PT')}</div>
-          </div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-
-// ══════════════════════════════════════
-// SIMULAÇÃO IRS
-// ══════════════════════════════════════
-
-// Tabela de taxas IRS 2024 (Art. 68.º CIRS)
-const IRS_ESCALOES_2024 = [
-  { ate: 7703,   taxa: 0.1325, parcela: 0 },
-  { ate: 11623,  taxa: 0.18,   parcela: 436.06 },
-  { ate: 16472,  taxa: 0.23,   parcela: 1017.81 },
-  { ate: 21321,  taxa: 0.26,   parcela: 1511.64 },
-  { ate: 27146,  taxa: 0.3275, parcela: 3168.71 },
-  { ate: 39791,  taxa: 0.37,   parcela: 5152.90 },
-  { ate: 51997,  taxa: 0.435,  parcela: 7736.34 },
-  { ate: 81199,  taxa: 0.45,   parcela: 8455.41 },
-  { ate: Infinity,taxa: 0.48,  parcela: 10892.37 },
-];
-
-// Quociente conjugal
-const QUOCIENTE = { 'solteiro': 1, 'casado-conjunto': 2, 'casado-separado': 1, 'monoparental': 1.25 };
-
-function irsTab(name, btn) {
-  document.querySelectorAll('[id^="irs-tab-"]').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('[onclick*="irsTab"]').forEach(el => el.classList.remove('active'));
-  document.getElementById('irs-tab-' + name).style.display = '';
-  if (btn) btn.classList.add('active');
-  if (name === 'coleta') renderIrsColeta();
-  if (name === 'resultado') irsCalcFull();
-  if (name === 'comparativo') renderIrsComparativo();
-}
-
-function irsUpdateUI() {
-  irsCalc();
-}
-
-function irsUpdateBRegime() {
-  const r = document.getElementById('irs-b-regime')?.value;
-  document.getElementById('irs-b-simplificado').style.display = r === 'simplificado' ? '' : 'none';
-  document.getElementById('irs-b-organizada').style.display = r === 'organizada' ? '' : 'none';
-  irsCalc();
-}
-
-function irsGetVal(id) { return parseFloat(document.getElementById(id)?.value || 0) || 0; }
-
-function irsCalcCatA() {
-  const bruto = irsGetVal('irs-a-bruto');
-  const ss = irsGetVal('irs-a-ss') || bruto * 0.11;
-  const dedEsp = Math.max(ss, Math.min(bruto * 0.01, 4104));
-  const dedEspFinal = Math.max(dedEsp, 4104); // mínimo €4.104
-  const liquido = Math.max(0, bruto - dedEspFinal);
-  const el = document.getElementById('irs-a-ded-esp');
-  if (el) el.textContent = '€ ' + fmtN(Math.min(dedEspFinal, bruto));
-  const elLiq = document.getElementById('irs-a-liquido');
-  if (elLiq) elLiq.textContent = '€ ' + fmtN(liquido);
-  return { bruto, dedEsp: Math.min(dedEspFinal, bruto), liquido, retencoes: irsGetVal('irs-a-retencoes') };
-}
-
-function irsCalcCatB() {
-  const regime = document.getElementById('irs-b-regime')?.value;
-  let liquido = 0;
-  if (regime === 'simplificado') {
-    const servicos = irsGetVal('irs-b-servicos');
-    const vendas = irsGetVal('irs-b-vendas');
-    const outros = irsGetVal('irs-b-outros');
-    liquido = servicos * 0.35 + vendas * 0.15 + outros * 0.95;
-  } else if (regime === 'organizada') {
-    liquido = irsGetVal('irs-b-resultado');
-  }
-  const el = document.getElementById('irs-b-liquido');
-  if (el) el.textContent = '€ ' + fmtN(liquido);
-  return { liquido, retencoes: irsGetVal('irs-b-retencoes') };
-}
-
-function irsCalcDeducoes(rendColeta) {
-  const dep = irsGetVal('irs-dependentes');
-  const depDef = irsGetVal('irs-dep-def');
-  const asc = irsGetVal('irs-ascendentes');
-  const defTitular = parseInt(document.getElementById('irs-def-titular')?.value || 0);
-
-  // Art. 78.º-A — Dependentes
-  let dedDep = 0;
-  if (dep > 0) {
-    dedDep = dep <= 2 ? dep * 600 : 600 * 2 + (dep - 2) * 726;
-  }
-  const dedDepDef = depDef * 1900;
-  const dedAsc = asc > 0 ? (asc === 1 ? 525 : 525 + (asc-1) * 263) : 0;
-
-  // Art. 78.º-B — Despesas gerais (35%, máx €250)
-  const gerais = Math.min(irsGetVal('irs-ded-gerais') * 0.35, 250);
-  // Art. 78.º-C — Saúde (15%, máx €1.000)
-  const saude = Math.min(irsGetVal('irs-ded-saude') * 0.15, 1000);
-  // Art. 78.º-D — Educação (30%, máx €800)
-  const educacao = Math.min(irsGetVal('irs-ded-educacao') * 0.30, 800);
-  // Art. 78.º-E — Habitação
-  const habitacao = Math.min(irsGetVal('irs-ded-habitacao') * 0.15, 296);
-  const rendas = Math.min(irsGetVal('irs-ded-rendas') * 0.15, 502);
-  // PPR (20%, máx €400)
-  const ppr = Math.min(irsGetVal('irs-ded-ppr') * 0.20, 400);
-  // IRS Jovem
-  const jovem = irsGetVal('irs-ded-jovem');
-  // Mecenato (25%)
-  const mecenato = irsGetVal('irs-ded-mecenato') * 0.25;
-  // Regressos
-  const regresso = irsGetVal('irs-ded-regresso');
-
-  // Deficiência titular
-  let dedDefTitular = 0;
-  if (defTitular >= 80) dedDefTitular = rendColeta * 0.04; // 4x dedução específica Cat A
-  else if (defTitular >= 60) dedDefTitular = rendColeta * 0.025;
-
-  // Update display
-  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = '€ ' + fmtN(v); };
-  setEl('irs-ded-dep-val', dedDep);
-  setEl('irs-ded-dep-def-val', dedDepDef);
-  setEl('irs-ded-asc-val', dedAsc);
-
-  const total = dedDep + dedDepDef + dedAsc + gerais + saude + educacao + habitacao + rendas + ppr + jovem + mecenato + regresso + dedDefTitular;
-
-  return {
-    dedDep, dedDepDef, dedAsc, gerais, saude, educacao,
-    habitacao, rendas, ppr, jovem, mecenato, regresso, dedDefTitular,
-    total,
-    detail: [
-      { label: 'Dependentes (Art.78.º-A)', valor: dedDep },
-      { label: 'Dependentes c/ deficiência', valor: dedDepDef },
-      { label: 'Ascendentes', valor: dedAsc },
-      { label: 'Despesas gerais (35%, máx €250)', valor: gerais },
-      { label: 'Saúde (15%, máx €1.000)', valor: saude },
-      { label: 'Educação (30%, máx €800)', valor: educacao },
-      { label: 'Juros habitação (15%, máx €296)', valor: habitacao },
-      { label: 'Rendas habitação (15%, máx €502)', valor: rendas },
-      { label: 'PPR (20%, máx €400)', valor: ppr },
-      { label: 'IRS Jovem', valor: jovem },
-      { label: 'Mecenato (25%)', valor: mecenato },
-      { label: 'Deficiência titular', valor: dedDefTitular },
-    ].filter(d => d.valor > 0),
-  };
-}
-
-function irsColeta(rendimentoColetavel, estadoCivil) {
-  const q = QUOCIENTE[estadoCivil] || 1;
-  const base = rendimentoColetavel / q;
-  let coleta = 0;
-  let prevAte = 0;
-  for (const e of IRS_ESCALOES_2024) {
-    if (base <= e.ate) {
-      coleta = base * e.taxa - e.parcela;
-      break;
-    }
-    prevAte = e.ate;
-  }
-  const coletaTotal = coleta * q;
-  // Taxa adicional solidariedade (Art. 68.º-A)
-  let sobretaxa = 0;
-  if (rendimentoColetavel > 80000) sobretaxa = (rendimentoColetavel - 80000) * 0.025;
-  if (rendimentoColetavel > 250000) sobretaxa += (rendimentoColetavel - 250000) * 0.05;
-  return { coletaTotal: Math.max(0, coletaTotal), sobretaxa, base };
-}
-
-function irsCalc() {
-  irsCalcCatA();
-  irsCalcCatB();
-}
-
-function irsCalcFull() {
-  const estadoCivil = document.getElementById('irs-estado-civil')?.value || 'solteiro';
-  const catA = irsCalcCatA();
-  const catB = irsCalcCatB();
-
-  // Rendimento coletável
-  const catE = irsGetVal('irs-e');
-  const catF = Math.max(0, irsGetVal('irs-f') * 0.65); // dedução 35% despesas
-  const catG = irsGetVal('irs-g');
-  const catH = irsGetVal('irs-h');
-  const totalLiquido = catA.liquido + catB.liquido + catF + catH;
-  const rendimentoColetavel = Math.max(0, totalLiquido);
-
-  // Coleta
-  const { coletaTotal, sobretaxa, base } = irsColeta(rendimentoColetavel, estadoCivil);
-  const coletaGlobal = coletaTotal + sobretaxa;
-
-  // QI mínimo existência
-  const qiMinimo = 11480; // 2024
-  const coletaAposQI = rendimentoColetavel < qiMinimo ? 0 :
-    Math.max(0, coletaGlobal - Math.max(0, (qiMinimo - (catA.liquido + catB.liquido + catF + catH)) * IRS_ESCALOES_2024[0].taxa));
-
-  // Deduções à coleta
-  const ded = irsCalcDeducoes(coletaGlobal);
-  const coletaAposDed = Math.max(0, coletaGlobal - ded.total);
-
-  // Retenções
-  const totalRetencoes = catA.retencoes + catB.retencoes + irsGetVal('irs-outras-ret');
-  // Cats E, F, G — tributação autónoma (28%)
-  const taxaAut = (catE + catF + catG) > 0 ? (catE + catF + catG) * 0.28 : 0;
-
-  const irsLiquidado = coletaAposDed + taxaAut;
-  const resultado = irsLiquidado - totalRetencoes;
-  const taxaEfetiva = totalLiquido > 0 ? (irsLiquidado / totalLiquido * 100) : 0;
-
-  // Store for comparativo
-  window._irsResult = {
-    estadoCivil, rendimentoColetavel, totalLiquido,
-    coletaTotal, sobretaxa, coletaGlobal,
-    deducoes: ded.total, deducaoDetail: ded.detail,
-    coletaAposDed, taxaAut, irsLiquidado,
-    totalRetencoes, resultado, taxaEfetiva,
-    catA, catB,
-  };
-
-  renderIrsResultado(window._irsResult);
-  renderIrsColeta();
-}
-
-function renderIrsResultado(r) {
-  const el = document.getElementById('irs-resultado-card');
-  if (!el) return;
-  const aPagar = r.resultado > 0;
-  el.innerHTML = `
-    <div class="g2">
-      <div class="card">
-        <div class="ch"><div class="ct">💶 Resultado Final IRS ${document.getElementById('irs-ano')?.value||2024}</div></div>
-        <div style="text-align:center;padding:20px;background:${aPagar?'rgba(232,55,27,.05)':'rgba(26,122,74,.05)'};border-radius:12px;margin-bottom:16px">
-          <div style="font-size:13px;color:#888;margin-bottom:8px">${aPagar ? '💸 IRS A PAGAR' : '💰 IRS A REEMBOLSAR'}</div>
-          <div style="font-size:44px;font-weight:800;font-family:'DM Mono',monospace;color:${aPagar?'var(--red)':'var(--green)'}">
-            ${aPagar?'+':'−'} € ${fmtN(Math.abs(r.resultado))}
-          </div>
-          <div style="font-size:13px;color:#888;margin-top:8px">Taxa efetiva: <strong>${r.taxaEfetiva.toFixed(1)}%</strong></div>
-        </div>
-        <!-- Waterfall -->
-        ${[
-          ['Rendimento Coletável', r.rendimentoColetavel, 'base'],
-          ['Coleta (taxas gerais)', r.coletaTotal, 'gasto'],
-          ['Sobretaxa solidariedade', r.sobretaxa, 'gasto'],
-          ['Deduções à coleta', r.deducoes, 'bom'],
-          ['Tributação autónoma (Cats E/F/G)', r.taxaAut, 'gasto'],
-          ['IRS Liquidado', r.irsLiquidado, 'total'],
-          ['Retenções na fonte', r.totalRetencoes, 'bom'],
-          ['Resultado final', r.resultado, 'resultado'],
-        ].map(([l, v, t]) => {
-          if (v === 0 && t !== 'total' && t !== 'resultado') return '';
-          const colors = { base:'var(--blue)', gasto:'var(--red)', bom:'var(--green)', total:'var(--ink)', resultado: v>0?'var(--red)':'var(--green)' };
-          const signs = { base:'', gasto:'− ', bom:'+ ', total:'', resultado: v>0?'':'+ ' };
-          const bold = t === 'total' || t === 'resultado';
-          const border = (t === 'total' || t === 'resultado') ? 'border-top:2px solid var(--ink);' : 'border-bottom:1px solid var(--cream);';
-          return `<div style="display:flex;justify-content:space-between;padding:8px 0;${border}">
-            <span style="font-size:13px;${bold?'font-weight:700;':''}">${l}</span>
-            <span class="mono" style="font-weight:${bold?700:500};color:${colors[t]}">${signs[t]}€ ${fmtN(Math.abs(v))}</span>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="card">
-        <div class="ch"><div class="ct">📋 Deduções Aplicadas</div></div>
-        ${r.deducaoDetail.length ? r.deducaoDetail.map(d => `
-          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream)">
-            <span style="font-size:12.5px">${d.label}</span>
-            <span class="mono" style="color:var(--green)">+ € ${fmtN(d.valor)}</span>
-          </div>`).join('') + `
-          <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid var(--ink);margin-top:4px">
-            <span style="font-weight:700">Total Deduções</span>
-            <span class="mono" style="font-weight:700;color:var(--green)">+ € ${fmtN(r.deducoes)}</span>
-          </div>` : '<div style="color:#aaa;text-align:center;padding:16px">Sem deduções à coleta</div>'}
-        <div style="margin-top:16px">
-          <button class="btn btn-p" style="width:100%;padding:11px" onclick="printIRS()">🖨️ Exportar PDF</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-function renderIrsColeta() {
-  const el = document.getElementById('irs-coleta-detail');
-  if (!el || !window._irsResult) return;
-  const r = window._irsResult;
-  el.innerHTML = `
-    <div style="padding:14px;background:var(--cream);border-radius:10px">
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-        ${[
-          ['Rendimento Coletável', '€ '+fmtN(r.rendimentoColetavel)],
-          ['Base tributável / quociente', '€ '+fmtN(r.base)],
-          ['Coleta base', '€ '+fmtN(r.coletaTotal)],
-          ['Sobretaxa solidariedade', '€ '+fmtN(r.sobretaxa)],
-          ['Coleta global', '€ '+fmtN(r.coletaGlobal)],
-          ['Taxa efetiva', r.taxaEfetiva.toFixed(1)+'%'],
-        ].map(([l,v]) => `
-          <div style="text-align:center">
-            <div style="font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px">${l}</div>
-            <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${v}</div>
-          </div>`).join('')}
-      </div>
-    </div>`;
-}
-
-function renderIrsComparativo() {
-  const el = document.getElementById('irs-comparativo-card');
-  if (!el) return;
-  if (!window._irsResult) {
-    el.innerHTML = '<div class="card"><div class="empty"><div class="empty-ico">⚖️</div><div class="empty-t">Calcule primeiro no separador Resultado</div></div></div>';
-    return;
-  }
-
-  // Simulate both individual and joint taxation
-  const r = window._irsResult;
-  const estadoAtual = r.estadoCivil;
-
-  // Compare: solteiro vs casado conjunto vs casado separado (se aplicável)
-  const cenarios = [];
-  for (const ec of ['solteiro','casado-conjunto']) {
-    const { coletaTotal: ct, sobretaxa: st } = irsColeta(r.rendimentoColetavel, ec);
-    const resultado = (ct + st - r.deducoes - r.totalRetencoes + r.taxaAut);
-    cenarios.push({ label: ec === 'solteiro' ? 'Solteiro / Individual' : 'Casado — Conj.', estadoCivil: ec, resultado, coleta: ct + st, taxa: r.rendimentoColetavel > 0 ? (ct+st)/r.rendimentoColetavel*100 : 0 });
-  }
-
-  el.innerHTML = `
-    <div class="g2">
-      <div class="card">
-        <div class="ch"><div class="ct">⚖️ Comparativo de Tributação</div><div class="cs">Simulação com mesmo rendimento coletável</div></div>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
-          ${cenarios.map(c => {
-            const isAtual = c.estadoCivil === estadoAtual || (estadoAtual.startsWith('casado') && c.estadoCivil.startsWith('casado'));
-            const aPagar = c.resultado > 0;
-            return `<div style="padding:14px;border-radius:10px;border:2px solid ${isAtual?'var(--red)':'var(--cream)'};background:${isAtual?'rgba(232,55,27,.03)':'var(--cream)'}">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div style="font-weight:700;font-size:14px">${c.label} ${isAtual?'<span class="badge b-rd">Atual</span>':''}</div>
-                  <div style="font-size:12px;color:#888;margin-top:2px">Taxa média: ${c.taxa.toFixed(1)}%</div>
-                </div>
-                <div style="text-align:right">
-                  <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:${aPagar?'var(--red)':'var(--green)'}">
-                    ${aPagar?'+':'−'} € ${fmtN(Math.abs(c.resultado))}
-                  </div>
-                  <div style="font-size:11px;color:#aaa">Coleta: € ${fmtN(c.coleta)}</div>
-                </div>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-      <div class="card">
-        <div class="ch"><div class="ct">💡 Otimização Fiscal</div></div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
-          ${[
-            r.deducoes < 250 ? {ico:'💡', txt:'Aumentar despesas gerais familiares para maximizar dedução de €250'} : null,
-            window._irsResult.catB?.liquido > 0 ? {ico:'📊', txt:'Ponderar contabilidade organizada vs regime simplificado para Cat. B'} : null,
-            irsGetVal('irs-ded-ppr') === 0 ? {ico:'💰', txt:'Considerar PPR: dedução de 20% até €400'} : null,
-            r.taxaEfetiva > 25 ? {ico:'🏦', txt:'Rentabilidade acima de 25% — avaliar retenção na fonte adequada'} : null,
-          ].filter(Boolean).map(s => `
-            <div style="display:flex;gap:10px;padding:10px;background:var(--cream);border-radius:8px">
-              <span style="font-size:18px">${s.ico}</span>
-              <span style="font-size:12.5px;color:#555">${s.txt}</span>
-            </div>`).join('') || '<div style="color:#aaa;text-align:center;padding:16px">✅ Situação fiscal otimizada</div>'}
-        </div>
-      </div>
-    </div>`;
-}
-
-function printIRS() {
-  const r = window._irsResult;
-  if (!r) return;
-  const ano = document.getElementById('irs-ano')?.value || 2024;
-  const win = window.open('', '_blank');
-  const aPagar = r.resultado > 0;
-  win.document.write(`<html><head><title>Simulação IRS ${ano}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>body{font-family:'Outfit',sans-serif;padding:40px;color:#0f1117;font-size:13px}
-    h2{color:#E8371B;letter-spacing:2px}table{width:100%;border-collapse:collapse;margin:16px 0}
-    td,th{padding:8px 12px;border-bottom:1px solid #eee}
-    .result{font-size:36px;font-weight:800;color:${aPagar?'#E8371B':'#1a7a4a'};text-align:center;padding:20px;background:${aPagar?'#fdecea':'#e8f5ee'};border-radius:12px;margin:20px 0}
-    </style></head><body>
-    <h2>HVR</h2>
-    <div style="font-size:10px;letter-spacing:2px;color:#aaa;text-transform:uppercase;margin-bottom:8px">Business Analytics</div>
-    <h3>Simulação IRS ${ano} — ${{'solteiro':'Solteiro','casado-conjunto':'Casado (Conj.)','casado-separado':'Casado (Sep.)','monoparental':'Monoparental'}[r.estadoCivil]}</h3>
-    <div class="result">${aPagar?'A Pagar':'A Reembolsar'}: ${aPagar?'+':'−'} € ${fmtN(Math.abs(r.resultado))}</div>
-    <table>
-      <tr><td>Rendimento Coletável</td><td style="text-align:right;font-family:monospace">€ ${fmtN(r.rendimentoColetavel)}</td></tr>
-      <tr><td>Coleta base</td><td style="text-align:right;font-family:monospace">€ ${fmtN(r.coletaTotal)}</td></tr>
-      <tr><td>Sobretaxa solidariedade</td><td style="text-align:right;font-family:monospace">€ ${fmtN(r.sobretaxa)}</td></tr>
-      <tr><td>Total deduções à coleta</td><td style="text-align:right;font-family:monospace;color:#1a7a4a">− € ${fmtN(r.deducoes)}</td></tr>
-      <tr><td>Tributação autónoma</td><td style="text-align:right;font-family:monospace">€ ${fmtN(r.taxaAut)}</td></tr>
-      <tr style="font-weight:700"><td>IRS Liquidado</td><td style="text-align:right;font-family:monospace">€ ${fmtN(r.irsLiquidado)}</td></tr>
-      <tr><td>Retenções na fonte</td><td style="text-align:right;font-family:monospace;color:#1a7a4a">− € ${fmtN(r.totalRetencoes)}</td></tr>
-      <tr style="font-weight:800;background:#f5f3ee"><td>RESULTADO FINAL</td><td style="text-align:right;font-family:monospace;color:${aPagar?'#E8371B':'#1a7a4a'}">${aPagar?'+':'−'} € ${fmtN(Math.abs(r.resultado))}</td></tr>
-    </table>
-    <div style="font-size:10px;color:#aaa;border-top:1px solid #eee;padding-top:10px;margin-top:20px">
-      Taxa efetiva: ${r.taxaEfetiva.toFixed(1)}% · Simulação meramente indicativa. Consulte o Art. 68.º CIRS e a AT para valores definitivos. · HVR Business Analytics · ${new Date().toLocaleString('pt-PT')}
-    </div></body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 500);
-}
-
-
-// ══════════════════════════════════════
-// MÓDULO DE ORÇAMENTO
-// ══════════════════════════════════════
-
-const ORC_LINHAS = [
-  // Rendimentos
-  { id:'vn',       label:'Volume de Negócios',              grupo:'rendimentos', conta:'72' },
-  { id:'outros_r', label:'Outros Rendimentos',              grupo:'rendimentos', conta:'78' },
-  // Gastos operacionais
-  { id:'cmvmc',    label:'CMVMC',                           grupo:'gastos',      conta:'61' },
-  { id:'fse',      label:'Fornec. e Serviços Externos',     grupo:'gastos',      conta:'62' },
-  { id:'pessoal',  label:'Gastos com Pessoal',              grupo:'gastos',      conta:'63' },
-  { id:'dep',      label:'Depreciações e Amortizações',     grupo:'gastos',      conta:'64' },
-  { id:'outros_g', label:'Outros Gastos',                   grupo:'gastos',      conta:'68' },
-  { id:'fin',      label:'Gastos Financiamento',            grupo:'gastos',      conta:'69' },
-];
-
-let _orcData = {}; // { ano: { mes: { id: valor } } }
-
-function loadOrcamento() {
-  const stored = localStorage.getItem('hvr_orcamento_' + (state.entityId||''));
-  _orcData = stored ? JSON.parse(stored) : {};
-  orcTab('previsional', document.getElementById('orc-btn-previsional'));
-}
-
-function saveOrcamento() {
-  localStorage.setItem('hvr_orcamento_' + (state.entityId||''), JSON.stringify(_orcData));
-}
-
-function orcTab(name, btn) {
-  document.querySelectorAll('[id^="orc-tab-"]').forEach(el => el.style.display='none');
-  document.querySelectorAll('[onclick*="orcTab"]').forEach(b => b.classList.remove('active'));
-  document.getElementById('orc-tab-' + name).style.display = '';
-  if (btn) btn.classList.add('active');
-  renderOrcTab(name);
-}
-
-function renderOrcTab(name) {
-  const el = document.getElementById('orc-tab-' + name);
-  if (!el) return;
-
-  if (name === 'previsional') {
-    const ano = state.year || new Date().getFullYear();
-    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    if (!_orcData[ano]) _orcData[ano] = {};
-
-    el.innerHTML = `
-      <div class="card" style="margin-bottom:16px">
-        <div class="ch">
-          <div><div class="ct">🎯 Orçamento Previsional ${ano}</div><div class="cs">Introduza os valores previstos por mês</div></div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-o btn-sm" onclick="orcPreencherComReal()">📊 Preencher com Real</button>
-            <button class="btn btn-o btn-sm" onclick="orcDistribuirAnual()">⚡ Distribuir Anual</button>
-            <button class="btn btn-p btn-sm" onclick="saveOrcamento();toast('✅ Orçamento guardado!')">💾 Guardar</button>
-          </div>
-        </div>
-      </div>
-      <div style="overflow-x:auto">
-        <table style="width:100%;min-width:1100px">
-          <thead>
-            <tr style="background:var(--blue);color:#fff">
-              <th style="padding:10px 14px;text-align:left;min-width:200px;position:sticky;left:0;background:var(--blue)">Rubrica</th>
-              ${meses.map((m,i) => `<th style="padding:10px 8px;text-align:right;font-size:12px">${m}</th>`).join('')}
-              <th style="padding:10px 12px;text-align:right;background:rgba(0,0,0,.15)">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${renderOrcGrupo('rendimentos','🟢 Rendimentos', meses, ano)}
-            ${renderOrcGrupo('gastos','🔴 Gastos', meses, ano)}
-            ${renderOrcTotais(meses, ano)}
-          </tbody>
-        </table>
-      </div>
-      <!-- Totais visuais -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px" id="orc-kpis">
-        ${renderOrcKpis(ano)}
-      </div>`;
-  }
-
-  else if (name === 'acompanhamento') {
-    if (!state.financials) {
-      el.innerHTML = `<div class="card"><div class="empty"><div class="empty-ico">📊</div><div class="empty-t">Importe um balancete para comparar com o orçamento</div></div></div>`;
-      return;
-    }
-    const ano = state.year || new Date().getFullYear();
-    const real = state.financials.pnl;
-    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-    const orcAnual = calcOrcAnual(ano);
-
-    el.innerHTML = `
-      <div class="card">
-        <div class="ch"><div class="ct">📊 Real vs Orçamento ${ano}</div><div class="cs">Comparação acumulada anual</div></div>
-        <table style="width:100%;margin-top:8px">
-          <thead><tr style="background:var(--cream)">
-            <th style="padding:8px 12px;text-align:left">Rubrica</th>
-            <th style="padding:8px 12px;text-align:right">Orçamentado</th>
-            <th style="padding:8px 12px;text-align:right">Real</th>
-            <th style="padding:8px 12px;text-align:right">Desvio €</th>
-            <th style="padding:8px 12px;text-align:right">Desvio %</th>
-            <th style="padding:8px 12px;text-align:center">Estado</th>
-          </tr></thead>
-          <tbody>
-            ${[
-              { label:'Volume de Negócios', orc: orcAnual.vn||0,       real: real.vn||real.total_rendimentos||0,  positivo: true },
-              { label:'Outros Rendimentos', orc: orcAnual.outros_r||0,  real: real.outros_rendimentos||0,          positivo: true },
-              { label:'CMVMC',              orc: orcAnual.cmvmc||0,     real: real.cmvmc||0,                       positivo: false },
-              { label:'FSE',                orc: orcAnual.fse||0,       real: real.fse||0,                         positivo: false },
-              { label:'Gastos Pessoal',     orc: orcAnual.pessoal||0,   real: real.gastos_pessoal||0,              positivo: false },
-              { label:'Depreciações',       orc: orcAnual.dep||0,       real: real.depreciacao||0,                 positivo: false },
-              { label:'EBITDA',             orc: calcOrcEbitda(orcAnual), real: real.ebitda||0,                    positivo: true },
-              { label:'Resultado Líquido',  orc: calcOrcRL(orcAnual),   real: real.resultado_liquido||0,           positivo: true },
-            ].map(row => {
-              const desv = row.real - row.orc;
-              const desvPct = row.orc ? (desv / Math.abs(row.orc) * 100) : 0;
-              const favorable = row.positivo ? desv >= 0 : desv <= 0;
-              const cls = Math.abs(desvPct) < 5 ? 'b-gn' : Math.abs(desvPct) < 15 ? 'b-yl' : 'b-rd';
-              const isTotal = row.label === 'EBITDA' || row.label === 'Resultado Líquido';
-              return `<tr style="${isTotal?'background:var(--cream);font-weight:700;':''}border-bottom:1px solid rgba(0,0,0,.04)">
-                <td style="padding:8px 12px;font-size:13px">${row.label}</td>
-                <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtN(row.orc)}</td>
-                <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${fmtN(row.real)}</td>
-                <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${favorable?'var(--green)':'var(--red)'}">${desv>=0?'+':''}${fmtN(desv)}</td>
-                <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:${favorable?'var(--green)':'var(--red)'}">${desvPct>=0?'+':''}${desvPct.toFixed(1)}%</td>
-                <td style="padding:8px 12px;text-align:center"><span class="badge ${favorable?'b-gn':cls}">${favorable?'✅ OK':'⚠️ Desvio'}</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
-
-  else if (name === 'desvios') {
-    if (!state.financials) {
-      el.innerHTML = `<div class="card"><div class="empty"><div class="empty-ico">⚠️</div><div class="empty-t">Importe um balancete para analisar desvios</div></div></div>`;
-      return;
-    }
-    const ano = state.year || new Date().getFullYear();
-    const real = state.financials.pnl;
-    const orcAnual = calcOrcAnual(ano);
-    const orcRL = calcOrcRL(orcAnual);
-    const realRL = real.resultado_liquido || 0;
-    const desvRL = realRL - orcRL;
-
-    el.innerHTML = `
-      <div class="g2">
-        <div class="card">
-          <div class="ch"><div class="ct">⚠️ Análise de Desvios</div><div class="cs">Resultado Líquido</div></div>
-          <div style="text-align:center;padding:20px;background:${desvRL>=0?'rgba(26,122,74,.05)':'rgba(232,55,27,.05)'};border-radius:12px;margin-bottom:16px">
-            <div style="font-size:12px;color:#888;margin-bottom:6px">Desvio Resultado Líquido</div>
-            <div style="font-size:38px;font-weight:800;font-family:'DM Mono',monospace;color:${desvRL>=0?'var(--green)':'var(--red)'}">
-              ${desvRL>=0?'+':''}€ ${fmtN(Math.abs(desvRL))}
-            </div>
-            <div style="font-size:12px;color:#888;margin-top:6px">
-              Orçado: €${fmtN(orcRL)} · Real: €${fmtN(realRL)}
-            </div>
-          </div>
-          <!-- Waterfall desvios -->
-          ${[
-            { label:'Desvio Volume Negócios', val:(real.vn||real.total_rendimentos||0)-(orcAnual.vn||0), positivo:true },
-            { label:'Desvio CMVMC', val:-((real.cmvmc||0)-(orcAnual.cmvmc||0)), positivo:true },
-            { label:'Desvio FSE', val:-((real.fse||0)-(orcAnual.fse||0)), positivo:true },
-            { label:'Desvio Gastos Pessoal', val:-((real.gastos_pessoal||0)-(orcAnual.pessoal||0)), positivo:true },
-          ].map(d => {
-            const pct = orcRL ? (d.val/Math.abs(orcRL)*100).toFixed(1) : '—';
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--cream)">
-              <span style="font-size:13px">${d.label}</span>
-              <div style="display:flex;align-items:center;gap:12px">
-                <span style="font-size:11px;color:#aaa">${pct}%</span>
-                <span class="mono" style="color:${d.val>=0?'var(--green)':'var(--red)'};font-weight:600">${d.val>=0?'+':''}€ ${fmtN(Math.abs(d.val))}</span>
-              </div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="card">
-          <div class="ch"><div class="ct">💡 Recomendações</div></div>
-          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-            ${buildOrcRecomendacoes(real, orcAnual, desvRL)}
-          </div>
-        </div>
-      </div>`;
-  }
-}
-
-function renderOrcGrupo(grupo, titulo, meses, ano) {
-  const linhas = ORC_LINHAS.filter(l => l.grupo === grupo);
-  const cor = grupo === 'rendimentos' ? 'rgba(26,122,74,.08)' : 'rgba(232,55,27,.06)';
-  return `
-    <tr style="background:${cor}">
-      <td colspan="${meses.length+2}" style="padding:8px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${grupo==='rendimentos'?'var(--green)':'var(--red)'}">${titulo}</td>
-    </tr>
-    ${linhas.map(l => {
-      const total = meses.reduce((s,m,i) => s + (parseFloat(_orcData[ano]?.[i+1]?.[l.id]||0)||0), 0);
-      return `<tr style="border-bottom:1px solid rgba(0,0,0,.04)">
-        <td style="padding:7px 14px;font-size:12.5px;position:sticky;left:0;background:#fff">${l.label}</td>
-        ${meses.map((m,i) => {
-          const val = _orcData[ano]?.[i+1]?.[l.id] || '';
-          return `<td style="padding:4px"><input type="number" value="${val}" placeholder="0"
-            style="width:72px;border:1px solid var(--cream);border-radius:5px;padding:4px 6px;font-size:11px;text-align:right;font-family:'DM Mono',monospace"
-            oninput="orcSetVal('${ano}',${i+1},'${l.id}',this.value)" /></td>`;
-        }).join('')}
-        <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:600;background:var(--cream)">${fmtN(total)}</td>
-      </tr>`;
-    }).join('')}`;
-}
-
-function renderOrcTotais(meses, ano) {
-  const totaisRendMes = meses.map((_,i) =>
-    ORC_LINHAS.filter(l=>l.grupo==='rendimentos').reduce((s,l) => s+(parseFloat(_orcData[ano]?.[i+1]?.[l.id]||0)||0),0));
-  const totaisGastMes = meses.map((_,i) =>
-    ORC_LINHAS.filter(l=>l.grupo==='gastos').reduce((s,l) => s+(parseFloat(_orcData[ano]?.[i+1]?.[l.id]||0)||0),0));
-  const ebitdaMes = totaisRendMes.map((r,i) => r - totaisGastMes[i]);
-  const totRend = totaisRendMes.reduce((a,b)=>a+b,0);
-  const totGast = totaisGastMes.reduce((a,b)=>a+b,0);
-  const totEbitda = totRend - totGast;
-
-  const rowCss = (color) => `background:${color};font-weight:700;`;
-  return `
-    <tr style="${rowCss('rgba(26,122,74,.1)')}">
-      <td style="padding:8px 14px;font-size:12px;font-weight:700;color:var(--green);position:sticky;left:0;background:rgba(26,122,74,.1)">Total Rendimentos</td>
-      ${totaisRendMes.map(v=>`<td style="padding:7px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtN(v)}</td>`).join('')}
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--green)">${fmtN(totRend)}</td>
-    </tr>
-    <tr style="${rowCss('rgba(232,55,27,.08)')}">
-      <td style="padding:8px 14px;font-size:12px;font-weight:700;color:var(--red);position:sticky;left:0;background:rgba(232,55,27,.08)">Total Gastos</td>
-      ${totaisGastMes.map(v=>`<td style="padding:7px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--red)">${fmtN(v)}</td>`).join('')}
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--red)">${fmtN(totGast)}</td>
-    </tr>
-    <tr style="${rowCss('rgba(61,79,92,.12)')}border-top:2px solid var(--blue);">
-      <td style="padding:9px 14px;font-size:13px;font-weight:700;color:var(--blue);position:sticky;left:0;background:rgba(61,79,92,.12)">EBITDA Previsto</td>
-      ${ebitdaMes.map(v=>`<td style="padding:7px 6px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${v>=0?'var(--blue)':'var(--red)'}">${fmtN(v)}</td>`).join('')}
-      <td style="padding:8px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:${totEbitda>=0?'var(--blue)':'var(--red)'}">${fmtN(totEbitda)}</td>
-    </tr>`;
-}
-
-function renderOrcKpis(ano) {
-  const orc = calcOrcAnual(ano);
-  const rl = calcOrcRL(orc);
-  const ebitda = calcOrcEbitda(orc);
-  const mgEbitda = orc.vn > 0 ? (ebitda/orc.vn*100).toFixed(1) : '—';
-  return [
-    ['🎯 VN Orçamentado', fmtEur(orc.vn||0)],
-    ['📊 EBITDA Previsto', fmtEur(ebitda)],
-    ['💶 Resultado Previsto', fmtEur(rl)],
-    ['📈 Margem EBITDA', mgEbitda+'%'],
-  ].map(([l,v]) => `<div style="background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:var(--sh)">
-    <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${l}</div>
-    <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${v}</div>
-  </div>`).join('');
-}
-
-function orcSetVal(ano, mes, id, val) {
-  if (!_orcData[ano]) _orcData[ano] = {};
-  if (!_orcData[ano][mes]) _orcData[ano][mes] = {};
-  _orcData[ano][mes][id] = parseFloat(val)||0;
-  // Update totals row
-  const kpis = document.getElementById('orc-kpis');
-  if (kpis) kpis.innerHTML = renderOrcKpis(ano);
-}
-
-function calcOrcAnual(ano) {
-  const result = {};
-  ORC_LINHAS.forEach(l => {
-    result[l.id] = Array.from({length:12},(_,i) => parseFloat(_orcData[ano]?.[i+1]?.[l.id]||0)||0).reduce((a,b)=>a+b,0);
-  });
-  return result;
-}
-function calcOrcEbitda(orc) { return (orc.vn||0)+(orc.outros_r||0)-(orc.cmvmc||0)-(orc.fse||0)-(orc.pessoal||0)-(orc.outros_g||0); }
-function calcOrcRL(orc) { return calcOrcEbitda(orc)-(orc.dep||0)-(orc.fin||0); }
-
-function orcPreencherComReal() {
-  if (!state.financials) { toast('⚠️ Sem dados reais para copiar'); return; }
-  const p = state.financials.pnl;
-  const ano = state.year || new Date().getFullYear();
-  if (!_orcData[ano]) _orcData[ano] = {};
-  const meses = 12;
-  // Distribute annual evenly across months
-  const map = { vn: p.vn||p.total_rendimentos, outros_r: p.outros_rendimentos||0, cmvmc: p.cmvmc||0, fse: p.fse||0, pessoal: p.gastos_pessoal||0, dep: p.depreciacao||0, outros_g: p.outros_gastos||0, fin: p.gastos_financiamento||0 };
-  for (let m=1; m<=12; m++) {
-    if (!_orcData[ano][m]) _orcData[ano][m] = {};
-    Object.entries(map).forEach(([k,v]) => { _orcData[ano][m][k] = Math.round((v||0)/12); });
-  }
-  saveOrcamento();
-  renderOrcTab('previsional');
-  toast('✅ Preenchido com valores reais distribuídos uniformemente');
-}
-
-function orcDistribuirAnual() {
-  const ano = state.year || new Date().getFullYear();
-  const orc = calcOrcAnual(ano);
-  const hasData = Object.values(orc).some(v => v > 0);
-  if (!hasData) { toast('⚠️ Introduza primeiro o total anual na coluna Jan, depois distribua'); return; }
-  // Take jan values as annual total and distribute
-  const janData = _orcData[ano]?.[1] || {};
-  for (let m=1; m<=12; m++) {
-    if (!_orcData[ano][m]) _orcData[ano][m] = {};
-    Object.entries(janData).forEach(([k,v]) => { _orcData[ano][m][k] = Math.round((parseFloat(v)||0)/12); });
-  }
-  saveOrcamento();
-  renderOrcTab('previsional');
-  toast('✅ Valores de Janeiro distribuídos pelos 12 meses');
-}
-
-function buildOrcRecomendacoes(real, orc, desvRL) {
-  const recs = [];
-  const vnDesvio = (real.vn||real.total_rendimentos||0) - (orc.vn||0);
-  const fseDesvio = (real.fse||0) - (orc.fse||0);
-  const pessoalDesvio = (real.gastos_pessoal||0) - (orc.pessoal||0);
-
-  if (vnDesvio < 0) recs.push({ico:'📉', txt:`VN abaixo do orçado em €${fmtN(Math.abs(vnDesvio))} — rever estratégia comercial`});
-  else recs.push({ico:'📈', txt:`VN acima do orçado em €${fmtN(vnDesvio)} — boa performance comercial`});
-  if (fseDesvio > 0) recs.push({ico:'⚠️', txt:`FSE acima do orçado em €${fmtN(fseDesvio)} — analisar fornecedores e contratos`});
-  if (pessoalDesvio > 0) recs.push({ico:'👥', txt:`Gastos pessoal acima em €${fmtN(pessoalDesvio)} — verificar horas extra ou contratações`});
-  if (desvRL < 0) recs.push({ico:'🚨', txt:`Resultado abaixo do orçado — considerar revisão do orçamento ou medidas corretivas`});
-  if (recs.length === 0) recs.push({ico:'✅', txt:'Execução orçamental dentro dos parâmetros previstos'});
-
-  return recs.map(r => `<div style="display:flex;gap:10px;padding:10px;background:var(--cream);border-radius:8px">
-    <span style="font-size:18px">${r.ico}</span>
-    <span style="font-size:12.5px;color:#555;line-height:1.5">${r.txt}</span>
-  </div>`).join('');
-}
-
-// ══════════════════════════════════════
-// MÓDULO DE CENÁRIOS WHAT-IF
-// ══════════════════════════════════════
-
-let _cenarioBase = null;
-
-function loadCenarios() {
-  if (state.financials) _cenarioBase = state.financials;
-  cenTab('whatif', document.getElementById('cen-btn-whatif'));
-}
-
-function cenTab(name, btn) {
-  document.querySelectorAll('[id^="cen-tab-"]').forEach(el => el.style.display='none');
-  document.querySelectorAll('[onclick*="cenTab"]').forEach(b => b.classList.remove('active'));
-  document.getElementById('cen-tab-' + name).style.display = '';
-  if (btn) btn.classList.add('active');
-  renderCenTab(name);
-}
-
-function renderCenTab(name) {
-  const el = document.getElementById('cen-tab-' + name);
-  if (!el) return;
-
-  if (!_cenarioBase && name !== 'whatif') {
-    el.innerHTML = `<div class="card"><div class="empty"><div class="empty-ico">🔭</div><div class="empty-t">Importe um balancete para ativar os cenários</div></div></div>`;
-    return;
-  }
-
-  if (name === 'whatif') {
-    const hasBase = !!_cenarioBase;
-    const p = _cenarioBase?.pnl || {};
-    const b = _cenarioBase?.balanco || {};
-    const r = _cenarioBase?.ratios || {};
-
-    el.innerHTML = `
-      <div class="g2">
-        <div class="card">
-          <div class="ch"><div class="ct">🔭 Simulador What-If</div><div class="cs">Ajuste variáveis e veja o impacto imediato</div></div>
-          ${!hasBase ? `<div class="ai wn" style="margin-bottom:12px"><div class="a-ico">⚠️</div><div><div class="a-t">Sem dados base — a usar valores de exemplo</div></div></div>` : ''}
-          <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px">
-            ${[
-              { id:'cen-vn',     label:'Volume de Negócios',       val: p.vn||p.total_rendimentos||500000, suf:'€', step:5000, min:0 },
-              { id:'cen-mg',     label:'Margem Bruta (%)',          val: p.total_rendimentos>0?((p.total_rendimentos-p.cmvmc||0)/p.total_rendimentos*100).toFixed(1)||80:80, suf:'%', step:1, min:0, max:100 },
-              { id:'cen-fse',    label:'FSE (% do VN)',             val: p.total_rendimentos>0?((p.fse||0)/p.total_rendimentos*100).toFixed(1)||20:20, suf:'%', step:0.5, min:0, max:100 },
-              { id:'cen-pessoal',label:'Gastos Pessoal (% do VN)', val: p.total_rendimentos>0?((p.gastos_pessoal||0)/p.total_rendimentos*100).toFixed(1)||30:30, suf:'%', step:0.5, min:0, max:100 },
-              { id:'cen-taxa',   label:'Taxa de Crescimento VN (%)', val: 0, suf:'%', step:1, min:-50, max:200 },
-              { id:'cen-juro',   label:'Taxa de Juro (%)',          val: 5, suf:'%', step:0.25, min:0, max:30 },
-              { id:'cen-div',    label:'Dívida Financeira (€)',     val: b.financiamentos_mlp||0, suf:'€', step:10000, min:0 },
-            ].map(f => `
-              <div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-                  <label style="font-size:12.5px;font-weight:600">${f.label}</label>
-                  <span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)" id="${f.id}-val">${f.suf==='€'?'€ '+fmtN(f.val):f.val+f.suf}</span>
-                </div>
-                <input type="range" id="${f.id}" min="${f.min!=null?f.min:0}" max="${f.max!=null?f.max:(f.val*3||1000000)}" step="${f.step}" value="${f.val}"
-                  style="width:100%;accent-color:var(--red)"
-                  oninput="cenUpdateVal('${f.id}','${f.suf}',this.value);cenCalc()">
-                <input type="number" value="${f.val}" step="${f.step}"
-                  style="margin-top:4px;border:1px solid var(--cream);border-radius:6px;padding:4px 8px;font-size:11px;width:120px;font-family:'DM Mono',monospace;float:right"
-                  oninput="document.getElementById('${f.id}').value=this.value;cenUpdateVal('${f.id}','${f.suf}',this.value);cenCalc()">
-                <div style="clear:both"></div>
-              </div>`).join('')}
-          </div>
-          <button class="btn btn-p" style="width:100%;margin-top:16px;padding:11px" onclick="cenCalc()">⚡ Calcular Impacto</button>
-        </div>
-        <div id="cen-resultado" class="card">
-          <div class="ch"><div class="ct">📊 Impacto Projetado</div></div>
-          <div class="empty" style="padding:30px"><div class="empty-ico">⚡</div><div class="empty-t">Ajuste os parâmetros</div></div>
-        </div>
-      </div>`;
-
-    // Auto-calc on load if has data
-    if (hasBase) setTimeout(cenCalc, 100);
-  }
-
-  else if (name === 'comparativo') {
-    el.innerHTML = `
-      <div class="card" style="margin-bottom:16px">
-        <div class="ch">
-          <div><div class="ct">⚖️ Comparativo de Cenários</div><div class="cs">Guarde e compare até 4 cenários</div></div>
-          <button class="btn btn-p btn-sm" onclick="cenGuardar()">💾 Guardar Cenário Atual</button>
-        </div>
-      </div>
-      <div id="cen-comp-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">
-        ${renderCenarios()}
-      </div>`;
-  }
-
-  else if (name === 'stress') {
-    renderStressTest(el);
-  }
-}
-
-function cenUpdateVal(id, suf, val) {
-  const el = document.getElementById(id + '-val');
-  if (el) el.textContent = suf === '€' ? '€ ' + fmtN(parseFloat(val)||0) : parseFloat(val).toFixed(1) + suf;
-}
-
-function cenCalc() {
-  const vn      = parseFloat(document.getElementById('cen-vn')?.value || 0);
-  const mg      = parseFloat(document.getElementById('cen-mg')?.value || 80) / 100;
-  const fsePct  = parseFloat(document.getElementById('cen-fse')?.value || 20) / 100;
-  const pessPct = parseFloat(document.getElementById('cen-pessoal')?.value || 30) / 100;
-  const cresc   = parseFloat(document.getElementById('cen-taxa')?.value || 0) / 100;
-  const juros   = parseFloat(document.getElementById('cen-juro')?.value || 5) / 100;
-  const divida  = parseFloat(document.getElementById('cen-div')?.value || 0);
-
-  const vnProj  = vn * (1 + cresc);
-  const mgBruta = vnProj * mg;
-  const fse     = vnProj * fsePct;
-  const pessoal = vnProj * pessPct;
-  const dep     = _cenarioBase?.pnl?.depreciacao || vnProj * 0.03;
-  const gastosFin = divida * juros;
-  const ebitda  = mgBruta - fse - pessoal;
-  const ebit    = ebitda - dep;
-  const rai     = ebit - gastosFin;
-  const irc     = Math.max(0, rai * 0.21);
-  const rl      = rai - irc;
-
-  // Ratios
-  const at      = _cenarioBase?.balanco?.ativo_total || vnProj * 1.5;
-  const cp      = _cenarioBase?.balanco?.capital_proprio || at * 0.4;
-  const roa     = at > 0 ? ebit/at*100 : 0;
-  const roe     = cp > 0 ? rl/cp*100 : 0;
-  const mgEbitda = vnProj > 0 ? ebitda/vnProj*100 : 0;
-  const cobert  = gastosFin > 0 ? ebitda/gastosFin : 999;
-
-  // Store for comparativo
-  window._cenAtual = { vn: vnProj, ebitda, ebit, rl, roa, roe, mgEbitda, cobert, params: { vn, mg, fsePct, pessPct, cresc, juros, divida } };
-
-  const res = document.getElementById('cen-resultado');
-  if (!res) return;
-
-  const baseRL = _cenarioBase?.pnl?.resultado_liquido || 0;
-  const delta = rl - baseRL;
-
-  res.innerHTML = `
-    <div class="ch"><div class="ct">📊 Impacto Projetado</div></div>
-    <div style="text-align:center;padding:16px;background:${rl>=0?'rgba(26,122,74,.05)':'rgba(232,55,27,.05)'};border-radius:10px;margin-bottom:16px">
-      <div style="font-size:11px;color:#aaa;margin-bottom:4px">Resultado Líquido Projetado</div>
-      <div style="font-size:36px;font-weight:800;font-family:'DM Mono',monospace;color:${rl>=0?'var(--green)':'var(--red)'}">€ ${fmtN(rl)}</div>
-      ${baseRL ? `<div style="font-size:12px;margin-top:4px;color:${delta>=0?'var(--green)':'var(--red)'}">vs base: ${delta>=0?'+':''}€ ${fmtN(delta)}</div>` : ''}
-    </div>
-    ${[
-      ['VN Projetado',    fmtEur(vnProj),          ''],
-      ['Margem Bruta',    fmtEur(mgBruta),          (mg*100).toFixed(1)+'%'],
-      ['EBITDA',          fmtEur(ebitda),            (mgEbitda).toFixed(1)+'%'],
-      ['EBIT',            fmtEur(ebit),              ''],
-      ['Gastos Fin.',     fmtEur(gastosFin),         ''],
-      ['RAI',             fmtEur(rai),               ''],
-      ['IRC Estimado',    fmtEur(irc),               ''],
-      ['Resultado Líq.',  fmtEur(rl),                ''],
-    ].map(([l,v,sub]) => `
-      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream)">
-        <span style="font-size:13px">${l}</span>
-        <div style="text-align:right">
-          <span class="mono" style="font-weight:600">${v}</span>
-          ${sub?`<span style="font-size:11px;color:#aaa;margin-left:6px">${sub}</span>`:''}
-        </div>
-      </div>`).join('')}
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px">
-      ${[['ROE',roe.toFixed(1)+'%'],['ROA',roa.toFixed(1)+'%'],['EBITDA/Juro',cobert===999?'∞':cobert.toFixed(1)+'x']].map(([l,v])=>`
-        <div style="background:var(--cream);border-radius:8px;padding:8px;text-align:center">
-          <div style="font-size:10px;color:#aaa">${l}</div>
-          <div style="font-weight:700;font-family:'DM Mono',monospace;color:var(--blue)">${v}</div>
-        </div>`).join('')}
-    </div>`;
-}
-
-let _cenariosGuardados = [];
-function cenGuardar() {
-  if (!window._cenAtual) { toast('⚠️ Calcule primeiro um cenário'); return; }
-  const nome = prompt('Nome do cenário:', 'Cenário ' + (_cenariosGuardados.length+1));
-  if (!nome) return;
-  _cenariosGuardados.push({ nome, ...window._cenAtual });
-  if (_cenariosGuardados.length > 4) _cenariosGuardados.shift();
-  toast('✅ Cenário "'+nome+'" guardado!');
-}
-
-function renderCenarios() {
-  if (!_cenariosGuardados.length) return `<div class="card"><div class="empty"><div class="empty-ico">💾</div><div class="empty-t">Sem cenários guardados</div><div class="empty-s">Vá ao separador What-If, simule e guarde</div></div></div>`;
-  return _cenariosGuardados.map((c,i) => `
-    <div class="card">
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px">${c.nome}</div>
-      ${[
-        ['VN', fmtEur(c.vn)],
-        ['EBITDA', fmtEur(c.ebitda)],
-        ['Resultado', fmtEur(c.rl)],
-        ['Margem', c.mgEbitda.toFixed(1)+'%'],
-      ].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--cream);font-size:12.5px"><span>${l}</span><span class="mono" style="font-weight:600">${v}</span></div>`).join('')}
-      <button class="btn btn-o btn-sm" style="width:100%;margin-top:8px" onclick="_cenariosGuardados.splice(${i},1);cenTab('comparativo')">🗑️ Remover</button>
-    </div>`).join('');
-}
-
-function renderStressTest(el) {
-  const p = _cenarioBase?.pnl || {};
-  const b = _cenarioBase?.balanco || {};
-  const vn = p.vn||p.total_rendimentos||500000;
-  const rl = p.resultado_liquido||0;
-  const ebitda = p.ebitda||0;
-
-  const cenarios = [
-    { nome:'📉 Queda VN -10%',     delta_vn:-0.10, delta_gastos:0,     cor:'var(--gold-d)' },
-    { nome:'📉 Queda VN -20%',     delta_vn:-0.20, delta_gastos:0,     cor:'var(--red)' },
-    { nome:'📈 Crescimento +15%',  delta_vn: 0.15, delta_gastos:0.05,  cor:'var(--green)' },
-    { nome:'💸 FSE +15%',          delta_vn:0,     delta_gastos:0.15,  cor:'var(--gold-d)' },
-    { nome:'🏦 Juro sobe 2pp',     delta_vn:0,     delta_gastos:0,     extra_gastos: (b.financiamentos_mlp||0)*0.02, cor:'var(--orange)' },
-    { nome:'🌪️ Crise severa -30%', delta_vn:-0.30, delta_gastos:0.10,  cor:'var(--red)' },
-  ];
-
-  el.innerHTML = `
-    <div class="card">
-      <div class="ch"><div class="ct">🌡️ Stress Test</div><div class="cs">Impacto de cenários adversos e favoráveis</div></div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
-        ${cenarios.map(c => {
-          const vnNovo = vn * (1 + c.delta_vn);
-          const custoExtra = p.total_gastos ? p.total_gastos * c.delta_gastos + (c.extra_gastos||0) : c.extra_gastos||0;
-          const ebitdaNovo = ebitda + (vnNovo - vn) - custoExtra;
-          const rlNovo = rl + (ebitdaNovo - ebitda);
-          const desvRL = rlNovo - rl;
-          return `
-            <div style="padding:14px;border-radius:10px;border:1px solid var(--cream);display:flex;justify-content:space-between;align-items:center;gap:16px">
-              <div style="flex:1">
-                <div style="font-weight:700;font-size:14px;margin-bottom:4px">${c.nome}</div>
-                <div style="display:flex;gap:12px;flex-wrap:wrap">
-                  <span style="font-size:12px;color:#888">VN: <strong>${fmtEur(vnNovo)}</strong></span>
-                  <span style="font-size:12px;color:#888">EBITDA: <strong>${fmtEur(ebitdaNovo)}</strong></span>
-                </div>
-              </div>
-              <div style="text-align:right;flex-shrink:0">
-                <div style="font-size:22px;font-weight:800;font-family:'DM Mono',monospace;color:${c.cor}">${desvRL>=0?'+':''}€ ${fmtN(Math.abs(desvRL))}</div>
-                <div style="font-size:11px;color:#aaa">Δ Resultado</div>
-              </div>
-            </div>`;
-        }).join('')}
-      </div>
-    </div>`;
-}
-
-
 // ══ IRC ══
 function ircTab(name, btn) {
   document.querySelectorAll('.irc-tab-content').forEach(el => el.style.display = 'none');
@@ -4001,7 +2114,7 @@ async function handleImport(evt, tipo) {
   }, 600);
 
   try {
-    const r = await fetch(API + '/import/excel', {method:'POST', headers: state.token ? {'Authorization':'Bearer '+state.token} : {}, body: fd});
+    const r = await fetch(API + '/import/excel', {method:'POST', body: fd});
     clearInterval(stepTimer);
     if (!r.ok) {
       const err = await r.json().catch(()=>({detail:'Erro desconhecido'}));
@@ -4102,7 +2215,7 @@ function addMsg(text, role) {
   const html = text.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.innerHTML = (role==='a' ? '<div class="af"><div class="adot">CI</div> HVR IA</div>' : '') +
+  div.innerHTML = (role==='a' ? '<div class="af"><div class="adot">CI</div> ContaIntel IA</div>' : '') +
     `<div class="mb">${html}</div><div class="mt">${t}</div>`;
   c.appendChild(div);
   c.scrollTop = c.scrollHeight;
@@ -4113,7 +2226,7 @@ function showTyping() {
   const c = document.getElementById('cms');
   typEl = document.createElement('div');
   typEl.className = 'msg a';
-  typEl.innerHTML = '<div class="af"><div class="adot">CI</div> HVR IA</div><div class="mb"><div class="dots"><span></span><span></span><span></span></div></div>';
+  typEl.innerHTML = '<div class="af"><div class="adot">CI</div> ContaIntel IA</div><div class="mb"><div class="dots"><span></span><span></span><span></span></div></div>';
   c.appendChild(typEl); c.scrollTop = c.scrollHeight;
 }
 function removeTyping() { if(typEl) { typEl.remove(); typEl = null; } }
@@ -4134,7 +2247,10 @@ function fmtEur(v) {
   if (v == null || isNaN(v)) return '—';
   return '€' + Math.round(v).toLocaleString('pt-PT');
 }
-// fmtN handled above
+function fmtN(v) {
+  if (v == null || isNaN(v) || v === 0) return '—';
+  return Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
 function fmtC(v) { return (!v || v === 0) ? '—' : Number(v).toLocaleString('pt-PT', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function pct(v, total) { return total ? (v/total*100).toFixed(1)+'%' : '—'; }
 
@@ -4145,7 +2261,7 @@ function showSetupScreen() {
     <div style="display:flex;align-items:center;justify-content:center;height:calc(100vh - var(--hh));padding:20px">
       <div style="max-width:480px;width:100%;text-align:center">
         <div style="font-size:52px;margin-bottom:16px">🔧</div>
-        <div style="font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:10px">Configurar HVR Analytics</div>
+        <div style="font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:10px">Configurar ContaIntel</div>
         <div style="color:#aaa;font-size:14px;margin-bottom:28px;line-height:1.6">
           Para usar a plataforma, introduz o URL do backend.<br>
           Obtém-lo após o deploy no Railway ou Render.
@@ -4274,25 +2390,6 @@ async function doLogin() {
   }
 }
 
-function updateSidebarUser() {
-  const u = state.user;
-  if (!u) return;
-  const initials = u.name ? u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase() : '?';
-  const roleMap = { admin:'Administrador', gestor:'Gestor', cliente:'Cliente' };
-  const ava = document.getElementById('sb-ava');
-  const uname = document.getElementById('sb-uname');
-  const urole = document.getElementById('sb-urole');
-  if (ava) ava.textContent = initials;
-  if (uname) uname.textContent = u.name || '—';
-  if (urole) urole.textContent = roleMap[u.role] || u.role;
-  // Show/hide admin nav
-  const navUsers = document.getElementById('nav-users');
-  if (navUsers) navUsers.style.display = u.role === 'admin' ? '' : 'none';
-  // Show/hide multi-empresa (hide for cliente)
-  const navMulti = document.getElementById('nav-multi');
-  if (navMulti) navMulti.style.display = u.role === 'cliente' ? 'none' : '';
-}
-
 function logout() {
   state.token = null; state.user = null; state.entityId = null;
   localStorage.removeItem('containtel_token');
@@ -4381,10 +2478,10 @@ async function showUserModal(user=null) {
       <button class="btn btn-p" style="flex:1;padding:11px" onclick="saveUser()">
         ${isEdit?'💾 Guardar':'✓ Criar Utilizador'}
       </button>
-      <button class="btn btn-o" style="padding:11px 18px" onclick="closeModal('mo-user')">Cancelar</button>
+      <button class="btn btn-o" style="padding:11px 18px" onclick="closeModal()">Cancelar</button>
     </div>`;
   toggleEntitySelect();
-  openModal('mo-user');
+  openModal();
 }
 
 function toggleEntitySelect() {
@@ -4411,7 +2508,7 @@ async function saveUser() {
       await api('/users', {method:'POST', body:JSON.stringify(body)});
       toast('✓ Utilizador criado');
     }
-    closeModal('mo-user');
+    closeModal();
     loadUsers();
   } catch(e) { toast('❌ ' + (e.message||'Erro')); }
 }
@@ -4457,7 +2554,6 @@ if (!isConfigured()) {
   const savedUser = localStorage.getItem('containtel_user');
   if (savedToken && savedUser) {
     state.token = savedToken;
-    updateSidebarUser();
     state.user = JSON.parse(savedUser);
     showApp();
     loadEntityModal();
@@ -4489,8 +2585,8 @@ if (!isConfigured()) {
 <!-- ══ LOGIN SCREEN ══ -->
 <div id="login-screen" style="display:none">
   <div class="login-box">
-    <div class="login-logo" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:42px;letter-spacing:3px;color:var(--red)">HVR</div>
-    <div class="login-sub" style="letter-spacing:2px">Business Analytics</div>
+    <div class="login-logo">ContaIntel</div>
+    <div class="login-sub">Inteligência Contabilística</div>
     <div class="login-err" id="login-err">Email ou password incorretos</div>
     <div class="fg"><label class="fl">Email</label>
       <input class="fi" type="email" id="login-email" placeholder="utilizador@empresa.pt"

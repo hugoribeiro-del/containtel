@@ -45,7 +45,11 @@ app.add_middleware(
 )
 
 # ── JWT CONFIG ──
-JWT_SECRET = os.environ.get("JWT_SECRET", secrets.token_hex(32))
+_JWT_SECRET_ENV = os.environ.get("JWT_SECRET")
+if not _JWT_SECRET_ENV:
+    import sys
+    print("⚠️  AVISO: JWT_SECRET não definido — tokens invalidados ao reiniciar. Defina JWT_SECRET nas variáveis de ambiente.", file=sys.stderr)
+JWT_SECRET = _JWT_SECRET_ENV or secrets.token_hex(32)
 JWT_ALGO = "HS256"
 JWT_EXPIRE_HOURS = 8
 security_scheme = HTTPBearer(auto_error=False)
@@ -73,11 +77,11 @@ def get_db():
     conn.execute("PRAGMA journal_mode=WAL")
     try:
         yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
-        try:
-            conn.commit()
-        except:
-            pass
         conn.close()
 
 def new_conn():
@@ -428,7 +432,9 @@ def calculate_financials(entries: list) -> dict:
     subsidios = get_val("75", "credor")
     outros_rend = get_val("78", "credor")
 
-    ebitda = resultado_liquido + dep_val + fin_val
+    # EBITDA = RL + IRC contab. + Gastos financiamento + Depreciações (EBITDA = resultado antes de tudo)
+    irc_contab_simple = get_val("8122", "devedor") or get_val("812", "devedor") or get_val("81", "devedor")
+    ebitda = resultado_liquido + irc_contab_simple + fin_val + dep_val
 
     # ── BALANÇO ──
     caixa_dev = get_val("11", "devedor")
@@ -438,7 +444,11 @@ def calculate_financials(entries: list) -> dict:
     fornec_val = get_val("22", "credor")
     pessoal_pass = get_val("23", "credor")
     estado_val = get_val("24", "credor")
-    financiamentos_val = get_val("25", "credor")
+    # Conta 25: 251x = financiamentos MLP, 252x = empréstimos CP — separar por subconta
+    fin_mlp_sub = sum(to_f(r.get("credor", 0)) for r in entries if str(r["conta"]).startswith("251"))
+    fin_cp_sub  = sum(to_f(r.get("credor", 0)) for r in entries if str(r["conta"]).startswith("252"))
+    financiamentos_val = fin_mlp_sub if (fin_mlp_sub or fin_cp_sub) else get_val("25", "credor")
+    financ_cp = fin_cp_sub  # empréstimos correntes (CP)
     outras_crp = get_val("27", "credor")
     diferimentos = get_val("28", "devedor")
     ativo_tang = get_val("43", "devedor")
@@ -461,7 +471,7 @@ def calculate_financials(entries: list) -> dict:
     def sd(a, b): return round(a / b, 4) if b else 0
 
     liq_geral = sd(ac, pc)
-    liq_red = sd(ac, pc)
+    liq_red = sd(ac - inventarios, pc)   # exclui existências (menos líquidas)
     liq_im = sd(disp, pc)
     solvabilidade = sd(cp, passivo)
     autonomia = sd(cp, at_total)
@@ -469,7 +479,7 @@ def calculate_financials(entries: list) -> dict:
     mg_ebitda = sd(ebitda, total_rendimentos) * 100
     mg_liquida = sd(resultado_liquido, total_rendimentos) * 100
     roe = sd(resultado_liquido, cp) * 100 if cp > 0 else 0
-    roa = sd(ebitda - fin_val, at_total) * 100 if at_total > 0 else 0
+    roa = sd(ebit, at_total) * 100 if at_total > 0 else 0
     pmr = sd(clientes_val * 365, total_rendimentos) if total_rendimentos > 0 else 0
     pmp = sd(fornec_val * 365, fse) if fse > 0 else 0
     ciclo_caixa = pmr - pmp
@@ -517,10 +527,11 @@ def calculate_financials(entries: list) -> dict:
     gastos_detail = [g for g in gastos_detail if g["valor"] > 0]
 
     # ── DEMONSTRAÇÃO DE RESULTADOS COMPLETA (NCRF) ──
-    vn = prestacoes + get_val("71", "credor")  # 71=Vendas, 72=PS
-    vn_total = vn + prestacoes if vn > 0 else prestacoes
+    vendas = get_val("71", "credor")           # 71=Vendas de mercadorias/produtos
+    # prestacoes já calculado acima (conta 72)
+    vn_total = vendas + prestacoes             # VN = 71 + 72
     cmvmc = get_val("61", "devedor")            # 61=CMVMC
-    mg_bruta = vn_total - cmvmc
+    mg_bruta = vn_total - cmvmc  # Margem bruta sobre VN
     var_prod = get_val("73", "credor") - get_val("73", "devedor")  # 73=Variação prod
     outros_rend_exp = get_val("74", "credor") + get_val("75", "credor") + get_val("76", "credor") + get_val("78", "credor")
     rbe = mg_bruta + var_prod + outros_rend_exp - fse - gastos_pessoal
@@ -861,7 +872,7 @@ def list_entities(db=Depends(get_db), user=Depends(get_current_user)):
     return [dict(r) for r in rows]
 
 @app.post("/api/entities")
-def create_entity(entity: EntityCreate, db=Depends(get_db)):
+def create_entity(entity: EntityCreate, db=Depends(get_db), user=Depends(get_current_user)):
     eid = str(uuid.uuid4())
     try:
         db.execute("""INSERT INTO entities (id, name, nif, legal_form, cae_code, regime_irc, regime_iva, email, address)
@@ -879,7 +890,7 @@ def create_entity(entity: EntityCreate, db=Depends(get_db)):
     return {"id": eid, "message": "Entidade criada com sucesso"}
 
 @app.get("/api/entities/{entity_id}")
-def get_entity(entity_id: str, db=Depends(get_db)):
+def get_entity(entity_id: str, db=Depends(get_db), user=Depends(get_current_user)):
     row = db.execute("SELECT * FROM entities WHERE id=?", (entity_id,)).fetchone()
     if not row:
         raise HTTPException(404, "Entidade não encontrada")
@@ -890,7 +901,7 @@ def get_entity(entity_id: str, db=Depends(get_db)):
     return entity
 
 @app.delete("/api/entities/{entity_id}")
-def delete_entity(entity_id: str, db=Depends(get_db)):
+def delete_entity(entity_id: str, db=Depends(get_db), user=Depends(require_admin)):
     db.execute("UPDATE entities SET is_active=0 WHERE id=?", (entity_id,))
     db.commit()
     return {"message": "Entidade desativada"}
@@ -926,87 +937,88 @@ async def import_excel(
     fiscal_year_id: str = Form(...),
     file: UploadFile = File(...),
 ):
+    """Import a trial balance Excel file. Auto-detects columns and maps to SNC accounts."""
     db = new_conn()
-    """
-    Import a trial balance Excel file.
-    Auto-detects column structure and maps to SNC accounts.
-    """
     start = time.time()
-
-    # Validate file type
-    if not file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
-        raise HTTPException(400, "Formato não suportado. Use .xlsx, .xls ou .csv")
-
-    # Save uploaded file
-    file_id = str(uuid.uuid4())
-    save_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
-    content = await file.read()
-    save_path.write_bytes(content)
-
-    # Hash for dedup
-    file_hash = hashlib.md5(content).hexdigest()
-
-    # Parse
     try:
-        parsed = parse_excel_balancete(save_path)
-    except Exception as e:
-        save_path.unlink(missing_ok=True)
-        raise HTTPException(422, f"Erro ao processar ficheiro: {str(e)}")
+        # Validate file type
+        if not file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
+            raise HTTPException(400, "Formato não suportado. Use .xlsx, .xls ou .csv")
 
-    entries = parsed["entries"]
-    meta = parsed["meta"]
+        # Save uploaded file
+        file_id = str(uuid.uuid4())
+        save_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
+        content = await file.read()
+        save_path.write_bytes(content)
 
-    if not entries:
-        raise HTTPException(422, "Nenhuma conta encontrada no ficheiro.")
+        # Hash for dedup
+        file_hash = hashlib.md5(content).hexdigest()
 
-    # Delete previous import for same entity+year (replace strategy)
-    old_files = db.execute(
-        "SELECT id FROM trial_balance_files WHERE entity_id=? AND fiscal_year_id=?",
-        (entity_id, fiscal_year_id)
-    ).fetchall()
-    for old in old_files:
-        db.execute("DELETE FROM trial_balance_entries WHERE file_id=?", (old["id"],))
-        db.execute("DELETE FROM trial_balance_files WHERE id=?", (old["id"],))
+        # Parse
+        try:
+            parsed = parse_excel_balancete(save_path)
+        except Exception as e:
+            save_path.unlink(missing_ok=True)
+            raise HTTPException(422, f"Erro ao processar ficheiro: {str(e)}")
 
-    # Insert file record
-    db.execute("""INSERT INTO trial_balance_files
-                  (id, entity_id, fiscal_year_id, file_name, file_hash, source, total_accounts)
-                  VALUES (?,?,?,?,?,?,?)""",
-               (file_id, entity_id, fiscal_year_id, file.filename, file_hash, "excel", len(entries)))
+        entries = parsed["entries"]
+        meta = parsed["meta"]
 
-    # Insert entries in bulk
-    db.executemany("""INSERT INTO trial_balance_entries
-                      (file_id, entity_id, fiscal_year_id, classe, nivel, integradora,
-                       conta, descricao, deb_periodo, cred_periodo, deb_acum, cred_acum,
-                       devedor, credor, saldo_tot)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                   [(file_id, entity_id, fiscal_year_id,
-                     e["classe"], e["nivel"], int(e["integradora"]),
-                     e["conta"], e["descricao"],
-                     e["deb_periodo"], e["cred_periodo"],
-                     e["deb_acum"], e["cred_acum"],
-                     e["devedor"], e["credor"], e["saldo_tot"])
-                    for e in entries])
-    db.commit()
+        if not entries:
+            raise HTTPException(422, "Nenhuma conta encontrada no ficheiro.")
 
-    # Calculate financials immediately
-    financials = calculate_financials(entries)
+        # Delete previous import for same entity+year (replace strategy)
+        old_files = db.execute(
+            "SELECT id FROM trial_balance_files WHERE entity_id=? AND fiscal_year_id=?",
+            (entity_id, fiscal_year_id)
+        ).fetchall()
+        for old in old_files:
+            db.execute("DELETE FROM trial_balance_entries WHERE file_id=?", (old["id"],))
+            db.execute("DELETE FROM trial_balance_files WHERE id=?", (old["id"],))
 
-    elapsed = round((time.time() - start) * 1000)
+        # Insert file record
+        db.execute("""INSERT INTO trial_balance_files
+                      (id, entity_id, fiscal_year_id, file_name, file_hash, source, total_accounts)
+                      VALUES (?,?,?,?,?,?,?)""",
+                   (file_id, entity_id, fiscal_year_id, file.filename, file_hash, "excel", len(entries)))
 
-    result = {
-        "status": "success",
-        "file_id": file_id,
-        "file_name": file.filename,
-        "total_accounts": len(entries),
-        "meta": meta,
-        "financials": financials,
-        "processing_ms": elapsed,
-        "col_map_detected": parsed["col_map"],
-        "message": f"✓ {len(entries)} contas importadas com sucesso em {elapsed}ms"
-    }
-    db.close()
-    return result
+        # Insert entries in bulk
+        db.executemany("""INSERT INTO trial_balance_entries
+                          (file_id, entity_id, fiscal_year_id, classe, nivel, integradora,
+                           conta, descricao, deb_periodo, cred_periodo, deb_acum, cred_acum,
+                           devedor, credor, saldo_tot)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       [(file_id, entity_id, fiscal_year_id,
+                         e["classe"], e["nivel"], int(e["integradora"]),
+                         e["conta"], e["descricao"],
+                         e["deb_periodo"], e["cred_periodo"],
+                         e["deb_acum"], e["cred_acum"],
+                         e["devedor"], e["credor"], e["saldo_tot"])
+                        for e in entries])
+        db.commit()
+
+        # Calculate financials immediately
+        financials = calculate_financials(entries)
+        elapsed = round((time.time() - start) * 1000)
+
+        return {
+            "status": "success",
+            "file_id": file_id,
+            "file_name": file.filename,
+            "total_accounts": len(entries),
+            "meta": meta,
+            "financials": financials,
+            "processing_ms": elapsed,
+            "col_map_detected": parsed["col_map"],
+            "message": f"✓ {len(entries)} contas importadas com sucesso em {elapsed}ms"
+        }
+    except HTTPException:
+        db.close()
+        raise
+    except Exception:
+        db.rollback()
+        db.close()
+        raise
 
 
 # ──────────────────────────────────────────
@@ -1053,7 +1065,13 @@ def get_financials(entity_id: str, fiscal_year_id: str, db=Depends(get_db), user
 def get_summary(entity_id: str, fiscal_year_id: str, db=Depends(get_db), user=Depends(get_current_user)):
     if not can_access_entity(entity_id, user): raise HTTPException(403, "Acesso negado")
     """Dashboard summary: KPIs + alerts + compliance checklist."""
-    fin = get_financials(entity_id, fiscal_year_id, db=db)
+    rows = db.execute(
+        "SELECT * FROM trial_balance_entries WHERE entity_id=? AND fiscal_year_id=? ORDER BY conta",
+        (entity_id, fiscal_year_id)
+    ).fetchall()
+    if not rows:
+        raise HTTPException(404, "Sem dados importados para este período.")
+    fin = calculate_financials([dict(r) for r in rows])
 
     # Compliance checklist (static for now, extend with real data)
     checklist = [
@@ -1075,7 +1093,7 @@ def get_summary(entity_id: str, fiscal_year_id: str, db=Depends(get_db), user=De
 # ROUTES — IRC SIMULATION
 # ──────────────────────────────────────────
 @app.post("/api/irc/simulate")
-def simulate_irc(req: IRCSimulationRequest, db=Depends(get_db)):
+def simulate_irc(req: IRCSimulationRequest, db=Depends(get_db), user=Depends(get_current_user)):
     """Full IRC calculation with user-supplied adjustments."""
     rows = db.execute(
         "SELECT * FROM trial_balance_entries WHERE entity_id=? AND fiscal_year_id=? ORDER BY conta",
@@ -1096,10 +1114,19 @@ def simulate_irc(req: IRCSimulationRequest, db=Depends(get_db)):
     irc_reduzida = min(mc_final, 50000) * 0.17
     irc_normal = max(0, mc_final - 50000) * 0.21
     irc_bruto = irc_reduzida + irc_normal
-    irc_liquido = max(0, irc_bruto - req.retencoes_na_fonte)
 
-    pagamentos_conta_devidos = irc_bruto * 0.95
-    saldo_final = irc_liquido - req.pagamentos_conta
+    # Art.107.º n.1 CIRC PPC próximo ano: 80% (VN ≤ €500k) ou 95% (VN > €500k)
+    fin_rows_ppc = db.execute(
+        "SELECT * FROM trial_balance_entries WHERE entity_id=? AND fiscal_year_id=? ORDER BY conta",
+        (req.entity_id, req.fiscal_year_id)
+    ).fetchall()
+    vn_irc = calculate_financials([dict(r) for r in fin_rows_ppc])["pnl"]["vn"] if fin_rows_ppc else 0
+    pct_ppc = 0.95 if vn_irc > 500000 else 0.80
+    pagamentos_conta_devidos = irc_bruto * pct_ppc
+
+    # Acerto final: IRC bruto − retenções na fonte − PPC já pago
+    saldo_final = irc_bruto - req.retencoes_na_fonte - req.pagamentos_conta
+
 
     result = {
         "input": {
@@ -1119,7 +1146,8 @@ def simulate_irc(req: IRCSimulationRequest, db=Depends(get_db)):
             "irc_taxa_normal_base": max(0, mc_final - 50000),
             "irc_taxa_normal_valor": round(irc_normal, 2),
             "irc_bruto": round(irc_bruto, 2),
-            "irc_liquido": round(irc_liquido, 2),
+            "irc_liquidado": round(irc_liquidado, 2),
+            "acerto_final": round(saldo_acerto, 2),
         },
         "payments": {
             "pagamentos_conta_devidos_proximo_ano": round(pagamentos_conta_devidos, 2),
@@ -1166,11 +1194,18 @@ async def ai_chat(req: ChatRequest, db=Depends(get_db)):
     context_str = ""
     if req.entity_id and req.fiscal_year_id:
         try:
-            fin = get_financials(req.entity_id, req.fiscal_year_id, db=db)
+            rows = db.execute(
+                "SELECT * FROM trial_balance_entries WHERE entity_id=? AND fiscal_year_id=? ORDER BY conta",
+                (req.entity_id, req.fiscal_year_id)
+            ).fetchall()
+            fin = calculate_financials([dict(r) for r in rows]) if rows else None
             entity = db.execute("SELECT * FROM entities WHERE id=?", (req.entity_id,)).fetchone()
             entity_name = dict(entity)["name"] if entity else "entidade"
 
-            context_str = f"""
+            if not fin:
+                context_str = "(Sem dados financeiros disponíveis)"
+            else:
+              context_str = f"""
 DADOS REAIS DA EMPRESA:
 Empresa: {entity_name}
 Período: Exercício fiscal
@@ -1298,7 +1333,7 @@ def health():
     return {"status": "ok", "version": "1.0.0", "timestamp": datetime.now().isoformat()}
 
 @app.get("/api/files")
-def list_files(entity_id: str = None, db=Depends(get_db)):
+def list_files(entity_id: str = None, db=Depends(get_db), user=Depends(get_current_user)):
     query = "SELECT tbf.*, e.name as entity_name FROM trial_balance_files tbf JOIN entities e ON tbf.entity_id=e.id"
     params = []
     if entity_id:
