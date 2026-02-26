@@ -723,7 +723,8 @@ def calculate_financials(entries: list) -> dict:
     res_trans = get_val("56", "credor")
 
     disp = depositos + max(0, caixa_dev - caixa_cred)
-    ac = disp + clientes_val + diferimentos
+    inventarios = get_val("32", "devedor") + get_val("33", "devedor") + get_val("34", "devedor") + get_val("35", "devedor")
+    ac = disp + clientes_val + diferimentos + inventarios
     anc = ativo_tang + inv_fin
     at_total = ac + anc
 
@@ -731,6 +732,25 @@ def calculate_financials(entries: list) -> dict:
     pnc = financiamentos_val
     passivo = pc + pnc
     cp = capital_val + reservas_val + res_trans + resultado_liquido
+
+    # ── DEMONSTRAÇÃO DE RESULTADOS COMPLETA (NCRF) ──
+    vendas = get_val("71", "credor")           # 71=Vendas de mercadorias/produtos
+    # prestacoes já calculado acima (conta 72)
+    vn_total = vendas + prestacoes             # VN = 71 + 72
+    cmvmc = get_val("61", "devedor")            # 61=CMVMC
+    mg_bruta = vn_total - cmvmc  # Margem bruta sobre VN
+    var_prod = get_val("73", "credor") - get_val("73", "devedor")  # 73=Variação prod
+    outros_rend_exp = get_val("74", "credor") + get_val("75", "credor") + get_val("76", "credor") + get_val("78", "credor")
+    rbe = mg_bruta + var_prod + outros_rend_exp - fse - gastos_pessoal
+    impar_inv = get_val("65", "devedor")        # 65=Imparidades
+    prov = get_val("67", "devedor")             # 67=Provisões
+    outros_gastos_op = get_val("68", "devedor")
+    ebit = rbe - dep_val - impar_inv - prov - outros_gastos_op
+    rend_fin = get_val("79", "credor")          # 79=Rendimentos financeiros
+    rai_val = ebit + rend_fin - fin_val
+    irc_contab = get_val("8122", "devedor") or get_val("812", "devedor")
+    resultado_liquido_dr = rai_val - irc_contab
+
 
     # ── RÁCIOS ──
     def sd(a, b): return round(a / b, 4) if b else 0
@@ -791,26 +811,8 @@ def calculate_financials(entries: list) -> dict:
     rendimentos_detail = [r for r in rendimentos_detail if r["valor"] > 0]
     gastos_detail = [g for g in gastos_detail if g["valor"] > 0]
 
-    # ── DEMONSTRAÇÃO DE RESULTADOS COMPLETA (NCRF) ──
-    vendas = get_val("71", "credor")           # 71=Vendas de mercadorias/produtos
-    # prestacoes já calculado acima (conta 72)
-    vn_total = vendas + prestacoes             # VN = 71 + 72
-    cmvmc = get_val("61", "devedor")            # 61=CMVMC
-    mg_bruta = vn_total - cmvmc  # Margem bruta sobre VN
-    var_prod = get_val("73", "credor") - get_val("73", "devedor")  # 73=Variação prod
-    outros_rend_exp = get_val("74", "credor") + get_val("75", "credor") + get_val("76", "credor") + get_val("78", "credor")
-    rbe = mg_bruta + var_prod + outros_rend_exp - fse - gastos_pessoal
-    impar_inv = get_val("65", "devedor")        # 65=Imparidades
-    prov = get_val("67", "devedor")             # 67=Provisões
-    outros_gastos_op = get_val("68", "devedor")
-    ebit = rbe - dep_val - impar_inv - prov - outros_gastos_op
-    rend_fin = get_val("79", "credor")          # 79=Rendimentos financeiros
-    rai_val = ebit + rend_fin - fin_val
-    irc_contab = get_val("8122", "devedor") or get_val("812", "devedor")
-    resultado_liquido_dr = rai_val - irc_contab
-
     # ── BALANÇO DETALHADO (NCRF) ──
-    inventarios = get_val("32", "devedor") + get_val("33", "devedor") + get_val("34", "devedor") + get_val("35", "devedor")
+    # inventarios já calculado acima (linha do balanço simples)
     estado_dev = get_val("24", "devedor")       # Estado devedor (IVA a recuperar)
     acionistas = get_val("26", "devedor")       # Acionistas
     outras_crp_dev = get_val("27", "devedor")
@@ -819,7 +821,7 @@ def calculate_financials(entries: list) -> dict:
     partic_rel = get_val("41", "devedor")
     outros_anc = get_val("46", "devedor") + get_val("47", "devedor")
     # Passivo detalhado
-    financ_cp = get_val("25", "credor") if financiamentos_val == 0 else 0  # já em PNC
+    # financ_cp já calculado acima (fin_cp_sub = empréstimos correntes CP)
     outras_cp_pass = get_val("26", "credor") + get_val("28", "credor")
     # Capital próprio detalhado
     res_liquido_ant = get_val("56", "credor")
