@@ -9,7 +9,7 @@ Execução:
     uvicorn main:app --reload --port 8000
 """
 
-import os, json, hashlib, uuid, time, secrets
+import os, json, hashlib, uuid, time, secrets, logging, traceback
 from datetime import datetime, date, timedelta
 from pathlib import Path
 from typing import Optional, List
@@ -467,7 +467,17 @@ def parse_excel_balancete(file_path: Path) -> dict:
     """
     Parse a Portuguese trial balance Excel file.
     Auto-detects columns: Conta, Descrição, Déb/Créd Período, Acumulado, Saldos.
+    Handles various export formats from Portuguese accounting software.
     """
+    import unicodedata
+
+    def normalize(s):
+        """Normalize string: lowercase, remove accents, strip."""
+        if s is None:
+            return ""
+        s = str(s).lower().strip()
+        return unicodedata.normalize('NFD', s).encode('ascii', 'ignore').decode('ascii')
+
     wb = openpyxl.load_workbook(str(file_path), data_only=True)
     ws = wb.active
 
@@ -478,43 +488,79 @@ def parse_excel_balancete(file_path: Path) -> dict:
     col_map = {}
 
     for i, row in enumerate(all_rows):
-        row_text = " ".join(str(c).lower() for c in row if c)
-        if "conta" in row_text and ("débito" in row_text or "debito" in row_text or "déb" in row_text):
+        # Normalize entire row text
+        row_norm = " ".join(normalize(c) for c in row if c)
+        has_conta = any(x in row_norm for x in ("conta", "account", "cod.", "codigo", "cod "))
+        has_deb   = any(x in row_norm for x in ("debito", "deb", "debit"))
+        if has_conta and has_deb:
             header_row_idx = i
-            # Map columns
             for j, cell in enumerate(row):
                 if cell is None:
                     continue
-                t = str(cell).lower().strip()
-                if t in ("conta", "account"):
+                t = normalize(cell)
+                # Conta
+                if t in ("conta", "account", "cod", "cod.", "codigo", "code", "n.conta", "n. conta"):
                     col_map["conta"] = j
-                elif "descrição" in t or "descricao" in t or "description" in t:
-                    col_map["descricao"] = j
-                elif "nível" in t or "nivel" in t or "level" in t:
+                # Descrição
+                elif any(x in t for x in ("descri", "description", "designa", "nome")):
+                    if "conta" not in t:
+                        col_map.setdefault("descricao", j)
+                # Nível/Classe
+                elif any(x in t for x in ("nivel", "level", "niv")):
                     col_map["nivel"] = j
-                elif "classe" in t or "class" in t:
+                elif any(x in t for x in ("classe", "class")):
                     col_map["classe"] = j
                 elif "integr" in t:
                     col_map["integradora"] = j
-                elif "déb" in t and "per" in t:
-                    col_map["deb_periodo"] = j
-                elif "créd" in t and "per" in t:
-                    col_map["cred_periodo"] = j
-                elif "déb" in t and "acu" in t:
-                    col_map["deb_acum"] = j
-                elif "créd" in t and "acu" in t:
-                    col_map["cred_acum"] = j
-                elif "devedor" in t or "deved" in t:
+                # Débito/Crédito Período
+                elif ("deb" in t) and any(x in t for x in ("per", "mov", "cor", "exerc")):
+                    col_map.setdefault("deb_periodo", j)
+                elif ("cred" in t or "cre" in t) and any(x in t for x in ("per", "mov", "cor", "exerc")):
+                    col_map.setdefault("cred_periodo", j)
+                # Débito/Crédito Acumulado
+                elif ("deb" in t) and any(x in t for x in ("acum", "total", "tot")):
+                    col_map.setdefault("deb_acum", j)
+                elif ("cred" in t) and any(x in t for x in ("acum", "total", "tot")):
+                    col_map.setdefault("cred_acum", j)
+                # Saldos finais
+                elif any(x in t for x in ("devedor", "deved")):
                     col_map["devedor"] = j
-                elif "credor" in t:
+                elif "credor" in t and "descri" not in t:
                     col_map["credor"] = j
-                elif "saldo" in t and "tot" in t:
+                elif "saldo" in t and any(x in t for x in ("tot", "fin", "liq")):
                     col_map["saldo_tot"] = j
+                # Fallback: single "deb" or "cred" column (simplified formats)
+                elif t in ("deb", "deb.", "debito", "débito"):
+                    col_map.setdefault("deb_periodo", j)
+                    col_map.setdefault("deb_acum", j)
+                    col_map.setdefault("devedor", j)
+                elif t in ("cred", "cred.", "credito", "crédito"):
+                    col_map.setdefault("cred_periodo", j)
+                    col_map.setdefault("cred_acum", j)
+                    col_map.setdefault("credor", j)
             break
 
     if header_row_idx is None:
-        raise ValueError("Não foi possível detetar o cabeçalho do balancete. "
-                         "Verifique se o ficheiro contém colunas 'Conta' e 'Débito'.")
+        # Try harder: look for any row with numeric accounts
+        for i, row in enumerate(all_rows[:30]):
+            has_conta = any(str(c).strip().isdigit() and len(str(c).strip()) <= 8
+                           for c in row if c is not None)
+            if has_conta:
+                # Treat row before as header
+                header_row_idx = max(0, i - 1)
+                # Map by position heuristic (conta usually first)
+                for j, cell in enumerate(all_rows[header_row_idx] if header_row_idx >= 0 else []):
+                    t = normalize(cell)
+                    if "conta" in t: col_map["conta"] = j
+                    elif "descri" in t: col_map["descricao"] = j
+                break
+
+    if header_row_idx is None or "conta" not in col_map:
+        raise ValueError(
+            "Não foi possível detetar o cabeçalho do balancete. "
+            "Verifique se o ficheiro contém colunas 'Conta' e 'Débito'. "
+            f"Colunas detectadas: {list(col_map.keys()) or 'nenhuma'}"
+        )
 
     # ── Extract metadata from header area ──
     meta = {"empresa": None, "nif": None, "periodo": None, "ano": None}
@@ -523,18 +569,16 @@ def parse_excel_balancete(file_path: Path) -> dict:
             if cell is None:
                 continue
             s = str(cell)
-            # NIF pattern: 9 digits possibly with spaces
             import re
             nif_match = re.search(r'\b(\d{9})\b', s)
             if nif_match and not meta["nif"]:
                 meta["nif"] = nif_match.group(1)
-            if ("lda" in s.lower() or "sa" in s.lower() or "unipessoal" in s.lower()
-                    or "consulting" in s.lower() or "lda" in s.lower()):
+            sn = s.lower()
+            if any(x in sn for x in ("lda", "s.a.", " sa ", "unipessoal", "consulting", "lda.")):
                 if not meta["empresa"] or len(s) > len(meta["empresa"]):
                     meta["empresa"] = s.strip()
-            if "exercício" in s.lower() or "balancete" in s.lower():
+            if any(x in sn for x in ("exercício", "balancete", "periodo", "período")):
                 meta["periodo"] = s.strip()
-                # Extract year
                 year_match = re.search(r'\b(20\d\d)\b', s)
                 if year_match:
                     meta["ano"] = int(year_match.group(1))
@@ -546,10 +590,10 @@ def parse_excel_balancete(file_path: Path) -> dict:
             continue
 
         def get(key, default=None):
-            idx = col_map.get(key)
-            if idx is None:
+            ci = col_map.get(key)
+            if ci is None:
                 return default
-            v = row[idx] if idx < len(row) else None
+            v = row[ci] if ci < len(row) else None
             return v
 
         conta = get("conta")
@@ -558,28 +602,45 @@ def parse_excel_balancete(file_path: Path) -> dict:
         conta = str(conta).strip()
         if not conta or not any(c.isdigit() for c in conta):
             continue
+        # Skip pure text rows (totals lines, headers)
+        if len(conta) > 12:
+            continue
 
         def to_float(v):
             if v is None:
                 return 0.0
-            try:
+            if isinstance(v, (int, float)):
                 return float(v)
+            try:
+                return float(str(v).replace(" ", "").replace(",", "."))
             except (ValueError, TypeError):
                 return 0.0
 
+        # Determine nivel and classe
+        nivel_raw = get("nivel")
+        nivel = int(to_float(nivel_raw)) if nivel_raw else len(conta)
+        if nivel > 10:
+            nivel = len(conta)
+
+        classe_raw = get("classe")
+        try:
+            classe = int(to_float(classe_raw)) if classe_raw else int(conta[0])
+        except (ValueError, IndexError):
+            classe = 0
+
         entries.append({
-            "classe": int(to_float(get("classe"))) if get("classe") else int(conta[0]) if conta else 0,
-            "nivel": int(to_float(get("nivel"))) if get("nivel") else len(conta),
+            "classe":     classe,
+            "nivel":      nivel,
             "integradora": bool(get("integradora")) if get("integradora") is not None else False,
-            "conta": conta,
-            "descricao": str(get("descricao", "")).strip(),
+            "conta":      conta,
+            "descricao":  str(get("descricao", "")).strip(),
             "deb_periodo": to_float(get("deb_periodo")),
             "cred_periodo": to_float(get("cred_periodo")),
-            "deb_acum": to_float(get("deb_acum")),
-            "cred_acum": to_float(get("cred_acum")),
-            "devedor": to_float(get("devedor")),
-            "credor": to_float(get("credor")),
-            "saldo_tot": to_float(get("saldo_tot")),
+            "deb_acum":   to_float(get("deb_acum")),
+            "cred_acum":  to_float(get("cred_acum")),
+            "devedor":    to_float(get("devedor")),
+            "credor":     to_float(get("credor")),
+            "saldo_tot":  to_float(get("saldo_tot")),
         })
 
     return {"meta": meta, "entries": entries, "col_map": col_map}
@@ -1161,10 +1222,9 @@ async def import_excel(
     entity_id: str = Form(...),
     fiscal_year_id: str = Form(...),
     file: UploadFile = File(...),
+    user=Depends(get_current_user),
 ):
     """Import a trial balance Excel file. Auto-detects columns and maps to SNC accounts."""
-    if not _rl.check(request, 10, 60):
-        raise HTTPException(429, "Demasiados imports — máximo 10 por minuto.")
     db = new_conn()
     start = time.time()
     try:
@@ -1172,14 +1232,37 @@ async def import_excel(
         if not file.filename.lower().endswith((".xlsx", ".xls", ".csv")):
             raise HTTPException(400, "Formato não suportado. Use .xlsx, .xls ou .csv")
 
-        # Save uploaded file
-        file_id = str(uuid.uuid4())
-        save_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
-        content = await file.read()
-        save_path.write_bytes(content)
+        # Verify entity access
+        if not can_access_entity(entity_id, user):
+            raise HTTPException(403, "Sem acesso a esta entidade")
+
+        # Verify/create fiscal year if needed
+        fy = db.execute("SELECT id FROM fiscal_years WHERE id=?", (fiscal_year_id,)).fetchone()
+        if not fy:
+            # Try to find by entity + year derived from fiscal_year_id  
+            fy_any = db.execute(
+                "SELECT id FROM fiscal_years WHERE entity_id=? ORDER BY year DESC LIMIT 1",
+                (entity_id,)
+            ).fetchone()
+            if fy_any:
+                fiscal_year_id = fy_any["id"]
+            else:
+                # Auto-create fiscal year for current year
+                fy_id_new = str(uuid.uuid4())
+                db.execute("INSERT OR IGNORE INTO fiscal_years (id, entity_id, year) VALUES (?,?,?)",
+                           (fy_id_new, entity_id, datetime.now().year))
+                db.commit()
+                fiscal_year_id = fy_id_new
+
+        # Save uploaded file safely
+        safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._-")[:80]
+        file_id   = str(uuid.uuid4())
+        save_path = UPLOADS_DIR / f"{file_id}_{safe_name}"
+        content_bytes = await file.read()
+        save_path.write_bytes(content_bytes)
 
         # Hash for dedup
-        file_hash = hashlib.md5(content).hexdigest()
+        file_hash = hashlib.md5(content_bytes).hexdigest()
 
         # Parse
         try:
@@ -1189,10 +1272,11 @@ async def import_excel(
             raise HTTPException(422, f"Erro ao processar ficheiro: {str(e)}")
 
         entries = parsed["entries"]
-        meta = parsed["meta"]
+        meta    = parsed["meta"]
 
         if not entries:
-            raise HTTPException(422, "Nenhuma conta encontrada no ficheiro.")
+            save_path.unlink(missing_ok=True)
+            raise HTTPException(422, "Nenhuma conta encontrada. Verifique se o ficheiro contém colunas 'Conta' e 'Débito/Crédito'.")
 
         # Delete previous import for same entity+year (replace strategy)
         old_files = db.execute(
@@ -1242,10 +1326,12 @@ async def import_excel(
     except HTTPException:
         db.close()
         raise
-    except Exception:
+    except Exception as exc:
         db.rollback()
         db.close()
-        raise
+        err_detail = traceback.format_exc()
+        logging.error(f"[import_excel] {exc}\n{err_detail}")
+        raise HTTPException(500, f"Erro interno: {str(exc)}")
 
 
 # ══════════════════════════════════════════════════════════
