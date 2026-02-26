@@ -441,6 +441,15 @@ class ChatRequest(BaseModel):
     fiscal_year_id: Optional[str] = None
     context: Optional[dict] = None
 
+class UpdateEntityRequest(BaseModel):
+    name: Optional[str] = None
+    legal_form: Optional[str] = None
+    cae_code: Optional[str] = None
+    regime_irc: Optional[str] = None
+    regime_iva: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+
 class IRCSimulationRequest(BaseModel):
     entity_id: str
     fiscal_year_id: str
@@ -1056,7 +1065,9 @@ def delete_user(uid: str, db=Depends(get_db), user=Depends(require_admin)):
 
 @app.get("/api/entities")
 def list_entities(db=Depends(get_db), user=Depends(get_current_user)):
-    if user.get("role") == "admin":
+    # Admin e Gestor vêem todas as empresas activas
+    # Cliente vê apenas as suas empresas (portal cliente)
+    if user.get("role") in ("admin", "gestor"):
         rows = db.execute("SELECT * FROM entities WHERE is_active=1 ORDER BY name").fetchall()
     else:
         allowed = user.get("entities") or []
@@ -1094,6 +1105,24 @@ def get_entity(entity_id: str, db=Depends(get_db), user=Depends(get_current_user
                         (entity_id,)).fetchall()
     entity["fiscal_years"] = [dict(y) for y in years]
     return entity
+
+@app.put("/api/entities/{entity_id}")
+def update_entity(entity_id: str, body: UpdateEntityRequest, db=Depends(get_db), user=Depends(require_admin)):
+    """Update entity details (admin only). NIF cannot be changed."""
+    updates = {k: v for k, v in body.dict().items() if v is not None}
+    if not updates:
+        raise HTTPException(400, "Nenhum campo válido para actualizar")
+    if 'name' in updates and not updates['name'].strip():
+        raise HTTPException(400, "O nome não pode estar vazio")
+    set_clause = ', '.join(f"{k}=?" for k in updates)
+    values     = list(updates.values()) + [entity_id]
+    db.execute(f"UPDATE entities SET {set_clause} WHERE id=? AND is_active=1", values)
+    if db.execute("SELECT changes()").fetchone()[0] == 0:
+        raise HTTPException(404, "Cliente não encontrado")
+    db.commit()
+    entity = db.execute("SELECT * FROM entities WHERE id=?", (entity_id,)).fetchone()
+    return dict(entity)
+
 
 @app.delete("/api/entities/{entity_id}")
 def delete_entity(entity_id: str, db=Depends(get_db), user=Depends(require_admin)):
