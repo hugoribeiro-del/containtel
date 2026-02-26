@@ -1236,8 +1236,9 @@ tr:last-child td{border-bottom:none}
     <!-- ══ CLIENTES ══ -->
     <div id="panel-clientes" class="panel">
       <div class="card">
-        <div class="ch"><div class="ct">🏢 Carteira de Clientes</div>
-          <button class="btn btn-p btn-sm" onclick="openModal('mo-new-entity')">+ Novo Cliente</button>
+        <div class="ch">
+          <div><div class="ct">🏢 Carteira de Clientes</div><div class="cs" id="entities-subtitle">Gerir empresas e acessos</div></div>
+          <button class="btn btn-p btn-sm" id="btn-new-entity" onclick="openModal('mo-new-entity')" style="display:none">+ Novo Cliente</button>
         </div>
         <div id="entities-list"><div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">A carregar...</div></div></div>
       </div>
@@ -1360,7 +1361,61 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
-<!-- New entity -->
+<!-- Edit entity -->
+<div class="mo" id="mo-edit-entity" onclick="if(event.target===this)closeModal('mo-edit-entity')">
+  <div class="md">
+    <div class="mh"><div class="mt2">✏️ Editar Cliente</div><button class="mc" onclick="closeModal('mo-edit-entity')">✕</button></div>
+    <div class="mb2">
+      <input type="hidden" id="ee-id">
+      <div class="fr">
+        <div class="fg" style="flex:2"><label class="fl">Denominação Social</label><input class="fi" id="ee-name" type="text" placeholder="Empresa, Lda"></div>
+        <div class="fg"><label class="fl">NIF <span style="font-size:10px;color:#aaa">(não editável)</span></label><input class="fi" id="ee-nif" type="text" readonly style="background:#f5f5f5;color:#aaa;cursor:not-allowed"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Forma Jurídica</label>
+          <select class="fi" id="ee-form">
+            <option value="LDA">Lda</option><option value="SA">SA</option><option value="UNI">Unipessoal Lda</option><option value="SCP">SCP</option><option value="ENI">ENI</option>
+          </select></div>
+        <div class="fg"><label class="fl">CAE</label><input class="fi" id="ee-cae" type="text" placeholder="ex: 62010"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Regime IRC</label>
+          <select class="fi" id="ee-irc">
+            <option value="geral">Regime Geral</option><option value="pme">PME Simplificado</option><option value="simplificado">Regime Simplificado</option><option value="isento">Isento</option>
+          </select></div>
+        <div class="fg"><label class="fl">Regime IVA</label>
+          <select class="fi" id="ee-iva">
+            <option value="geral">Regime Normal</option><option value="isento">Isento Art.9.º</option><option value="trimestral">Regime Trimestral</option><option value="caixa">Regime de Caixa</option>
+          </select></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="ee-email" type="email" placeholder="geral@empresa.pt"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="btn btn-p" style="flex:1" onclick="saveEditEntity()">Guardar Alterações</button>
+        <button class="btn" onclick="closeModal('mo-edit-entity')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="mo-manage-access" onclick="if(event.target===this)closeModal('mo-manage-access')">
+  <div class="md" style="max-width:520px">
+    <div class="mh">
+      <div><div class="mt2">👥 Gerir Acessos</div><div style="font-size:12px;color:#aaa;margin-top:2px" id="ma-entity-name"></div></div>
+      <button class="mc" onclick="closeModal('mo-manage-access')">✕</button>
+    </div>
+    <div class="mb2">
+      <input type="hidden" id="ma-entity-id">
+      <div style="font-size:12px;color:#888;margin-bottom:12px;padding:10px;background:var(--cream);border-radius:8px">
+        💡 Selecione quais utilizadores têm acesso a este cliente. Administradores têm acesso automático a todos os clientes.
+      </div>
+      <div id="ma-users-list"></div>
+      <button class="btn" style="width:100%;margin-top:12px" onclick="closeModal('mo-manage-access')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="mo" id="mo-new-entity" onclick="if(event.target===this)closeModal('mo-new-entity')">
   <div class="md">
     <div class="mh"><div class="mt2">Novo Cliente</div><button class="mc" onclick="closeModal('mo-new-entity')">✕</button></div>
@@ -1498,26 +1553,133 @@ async function api(path, opts={}) {
 
 // ══ ENTITIES ══
 async function loadEntities() {
-  const list = document.getElementById('entities-list');
+  const list    = document.getElementById('entities-list');
+  const btnNew  = document.getElementById('btn-new-entity');
+  const isAdmin = state.user?.role === 'admin';
+  if (btnNew) btnNew.style.display = isAdmin ? '' : 'none';
+
   try {
-    const entities = await api('/entities');
-    if (!entities.length) {
-      list.innerHTML = '<div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">Nenhum cliente ainda</div><div class="empty-s">Clique em "Novo Cliente" para começar.</div></div>';
+    const [entities, users] = await Promise.all([
+      api('/entities'),
+      isAdmin ? api('/users') : Promise.resolve([]),
+    ]);
+
+    if (!entities || !entities.length) {
+      list.innerHTML = isAdmin
+        ? `<div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">Nenhum cliente ainda</div>
+            <button class="btn btn-p" style="margin-top:12px" onclick="openModal('mo-new-entity')">+ Criar primeiro cliente</button></div>`
+        : `<div class="empty"><div class="empty-ico">🏢</div><div class="empty-t">Nenhum cliente atribuído</div><div class="empty-s">Contacte o administrador</div></div>`;
       return;
     }
+
     const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
+    // Mapa entity_id → utilizadores com acesso
+    const entAccess = {};
+    if (isAdmin && users) {
+      users.forEach(u => {
+        if (u.role === 'admin') return;
+        (u.entity_ids || []).forEach(eid => {
+          if (!entAccess[eid]) entAccess[eid] = [];
+          entAccess[eid].push(u.name);
+        });
+      });
+    }
+
     list.innerHTML = entities.map((e, i) => {
       const initials = e.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-      const color = colors[i % colors.length];
-      const safeName = escHtml(e.name), safeNif = escHtml(e.nif), safeId = escHtml(e.id);
-      return `<div class="ec" onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)});closeModal('mo-entity')">
-        <div class="ec-av" style="background:${color}">${initials}</div>
-        <div style="flex:1"><div class="ec-n">${safeName}</div><div class="ec-nif">${safeNif} · ${escHtml(e.legal_form)} · CAE ${escHtml(e.cae_code||'—')}</div></div>
-        <button class="btn btn-o btn-sm" onclick="event.stopPropagation();deleteEntity('${e.id}')">🗑</button>
+      const color    = colors[i % colors.length];
+      const access   = entAccess[e.id] || [];
+      const accessBadges = access.length
+        ? access.map(n => `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0f4ff;color:var(--blue);font-size:11px;padding:2px 8px;border-radius:10px;margin:2px">${escHtml(n)}</span>`).join('')
+        : isAdmin ? `<span style="font-size:11px;color:#ccc;font-style:italic">Nenhum utilizador atribuído</span>` : '';
+
+      return `
+      <div style="display:flex;align-items:center;gap:0;border-radius:10px;margin-bottom:6px;border:1px solid var(--cream);overflow:hidden;background:#fff;transition:box-shadow .15s"
+           onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,.07)'" onmouseleave="this.style.boxShadow=''">
+        <div style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;min-width:0"
+             onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)})">
+          <div class="ec-av" style="background:${color};flex-shrink:0">${initials}</div>
+          <div style="min-width:0;flex:1">
+            <div class="ec-n">${escHtml(e.name)}</div>
+            <div class="ec-nif">${escHtml(e.nif)} · ${escHtml(e.legal_form||'')} ${e.cae_code?'· CAE '+escHtml(e.cae_code):''}</div>
+            ${isAdmin && (access.length || true) ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;align-items:center;gap:2px">
+              <span style="font-size:10px;color:#bbb;margin-right:2px;text-transform:uppercase;letter-spacing:.5px">Acessos:</span>
+              ${accessBadges}
+            </div>` : ''}
+          </div>
+        </div>
+        ${isAdmin ? `
+        <div style="display:flex;gap:4px;padding:0 10px;flex-shrink:0;border-left:1px solid var(--cream)">
+          <button title="Gerir acessos" style="background:#f0f4ff;border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--blue);white-space:nowrap;transition:background .15s"
+            onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='#f0f4ff'"
+            onclick="openManageAccess('${e.id}',${JSON.stringify(e.name)})">👥 Acessos</button>
+          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:14px;transition:background .15s"
+            onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='var(--cream)'"
+            onclick="openEditEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)},${JSON.stringify(e.legal_form||'LDA')},${JSON.stringify(e.cae_code||'')},${JSON.stringify(e.regime_irc||'geral')},${JSON.stringify(e.regime_iva||'geral')},${JSON.stringify(e.email||'')})">✏️</button>
+          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:14px;transition:background .15s"
+            onmouseenter="this.style.background='#fcc'" onmouseleave="this.style.background='#fee'"
+            onclick="deleteEntity('${e.id}')">🗑</button>
+        </div>` : ''}
       </div>`;
     }).join('');
   } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar clientes.</div>'; }
 }
+
+// ── Gerir acessos a uma empresa ─────────────────────────────
+async function openManageAccess(entityId, entityName) {
+  const modal = document.getElementById('mo-manage-access');
+  if (!modal) return;
+  document.getElementById('ma-entity-name').textContent = entityName;
+  document.getElementById('ma-entity-id').value = entityId;
+  document.getElementById('ma-users-list').innerHTML = '<div style="text-align:center;padding:16px;color:#bbb">A carregar...</div>';
+  openModal('mo-manage-access');
+
+  try {
+    const users = await api('/users');
+    const gestores = users.filter(u => u.role !== 'admin' && u.is_active);
+    document.getElementById('ma-users-list').innerHTML = gestores.length ? gestores.map(u => {
+      const hasAccess = (u.entity_ids || []).includes(entityId);
+      return `
+      <div id="ma-row-${u.id}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid ${hasAccess?'var(--green)':'var(--cream)'};border-radius:8px;margin-bottom:6px;background:${hasAccess?'#f0faf0':'#fff'};transition:all .2s">
+        <div style="width:34px;height:34px;border-radius:50%;background:${hasAccess?'var(--green)':'#ddd'};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0">
+          ${escHtml(u.name[0].toUpperCase())}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--ink)">${escHtml(u.name)}</div>
+          <div style="font-size:11px;color:#aaa">${escHtml(u.email)} · <span class="role-badge role-${u.role}" style="font-size:10px">${u.role}</span></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="ma-cb-${u.id}" ${hasAccess?'checked':''}
+            style="width:16px;height:16px;accent-color:var(--green);cursor:pointer"
+            onchange="toggleEntityAccess('${u.id}','${entityId}',this.checked,${JSON.stringify(u.entity_ids||[])})">
+          <span style="font-size:12px;color:${hasAccess?'var(--green)':'#aaa'};font-weight:${hasAccess?'600':'400'}" id="ma-lbl-${u.id}">${hasAccess?'Com acesso':'Sem acesso'}</span>
+        </label>
+      </div>`;
+    }).join('') : '<div class="empty"><div class="empty-ico">👥</div><div class="empty-t">Sem utilizadores para atribuir</div><div class="empty-s">Crie utilizadores com role Gestor ou Cliente em Configuração → Utilizadores</div></div>';
+  } catch(e) {
+    document.getElementById('ma-users-list').innerHTML = '<div class="empty">Erro ao carregar utilizadores</div>';
+  }
+}
+
+async function toggleEntityAccess(userId, entityId, grant, currentEntityIds) {
+  const newIds = grant
+    ? [...new Set([...currentEntityIds, entityId])]
+    : currentEntityIds.filter(id => id !== entityId);
+  try {
+    await api('/users/' + userId, { method: 'PUT', body: JSON.stringify({ entity_ids: newIds }) });
+    const lbl = document.getElementById('ma-lbl-' + userId);
+    const row = document.getElementById('ma-row-' + userId);
+    if (lbl) { lbl.textContent = grant ? 'Com acesso' : 'Sem acesso'; lbl.style.color = grant ? 'var(--green)' : '#aaa'; lbl.style.fontWeight = grant ? '600' : '400'; }
+    if (row) { row.style.borderColor = grant ? 'var(--green)' : 'var(--cream)'; row.style.background = grant ? '#f0faf0' : '#fff'; }
+    toast(grant ? '✓ Acesso concedido' : '✓ Acesso removido');
+    loadEntities();
+  } catch(e) {
+    const cb = document.getElementById('ma-cb-' + userId);
+    if (cb) cb.checked = !grant;
+    toast('❌ Erro ao actualizar acesso');
+  }
+}
+
 
 async function loadEntityModal() {
   const list = document.getElementById('mo-entity-list');
@@ -1527,15 +1689,95 @@ async function loadEntityModal() {
       list.innerHTML = '<div class="empty">Nenhum cliente. <a href="#" onclick="openModal(\'mo-new-entity\')">Criar agora →</a></div>';
       return;
     }
-    const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085'];
+    const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
+    const isAdmin = state.user?.role === 'admin';
     list.innerHTML = entities.map((e, i) => {
       const initials = e.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-      return `<div class="ec" onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)});closeModal('mo-entity')">
-        <div class="ec-av" style="background:${colors[i%colors.length]}">${initials}</div>
-        <div><div class="ec-n">${escHtml(e.name)}</div><div class="ec-nif">${escHtml(e.nif)}</div></div>
+      const color = colors[i % colors.length];
+      return `
+      <div class="ec-row" style="display:flex;align-items:center;gap:0;border-radius:10px;margin-bottom:4px;border:1px solid var(--cream);overflow:hidden;transition:box-shadow .15s"
+           onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow=''">
+        <div class="ec" style="flex:1;border:none;margin:0;border-radius:0;min-width:0"
+             onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)});closeModal('mo-entity')">
+          <div class="ec-av" style="background:${color}">${initials}</div>
+          <div style="min-width:0">
+            <div class="ec-n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(e.name)}</div>
+            <div class="ec-nif">${escHtml(e.nif)} · ${escHtml(e.legal_form||'')} ${e.cae_code?'· CAE '+escHtml(e.cae_code):''}</div>
+          </div>
+        </div>
+        ${isAdmin ? `
+        <div style="display:flex;gap:4px;padding:0 8px;flex-shrink:0">
+          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s"
+            onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='var(--cream)'"
+            onclick="event.stopPropagation();openEditEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)},${JSON.stringify(e.legal_form||'LDA')},${JSON.stringify(e.cae_code||'')},${JSON.stringify(e.regime_irc||'geral')},${JSON.stringify(e.regime_iva||'geral')},${JSON.stringify(e.email||'')})">✏️</button>
+          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s"
+            onmouseenter="this.style.background='#fcc'" onmouseleave="this.style.background='#fee'"
+            onclick="event.stopPropagation();deleteEntityModal('${e.id}',${JSON.stringify(e.name)})">🗑</button>
+        </div>` : ''}
       </div>`;
     }).join('');
   } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
+}
+
+function openEditEntity(id, name, nif, legalForm, cae, regimeIrc, regimeIva, email) {
+  // Preencher o modal de edição
+  document.getElementById('ee-id').value      = id;
+  document.getElementById('ee-name').value    = name;
+  document.getElementById('ee-nif').value     = nif;
+  document.getElementById('ee-form').value    = legalForm;
+  document.getElementById('ee-cae').value     = cae;
+  document.getElementById('ee-irc').value     = regimeIrc;
+  document.getElementById('ee-iva').value     = regimeIva;
+  document.getElementById('ee-email').value   = email;
+  document.getElementById('ee-nif').readOnly  = true; // NIF não editável (identificador único)
+  openModal('mo-edit-entity');
+}
+
+async function saveEditEntity() {
+  const id    = document.getElementById('ee-id').value;
+  const body  = {
+    name:       document.getElementById('ee-name').value.trim(),
+    legal_form: document.getElementById('ee-form').value,
+    cae_code:   document.getElementById('ee-cae').value.trim(),
+    regime_irc: document.getElementById('ee-irc').value,
+    regime_iva: document.getElementById('ee-iva').value,
+    email:      document.getElementById('ee-email').value.trim(),
+  };
+  if (!body.name) { toast('⚠️ O nome é obrigatório'); return; }
+  const btn = document.querySelector('#mo-edit-entity .btn-p');
+  if (btn) { btn.textContent = 'A guardar...'; btn.disabled = true; }
+  try {
+    await api('/entities/' + id, { method: 'PUT', body: JSON.stringify(body) });
+    toast('✓ Cliente actualizado com sucesso');
+    closeModal('mo-edit-entity');
+    // Actualizar sidebar se for o cliente activo
+    if (state.entityId === id) {
+      state.entityName = body.name;
+      document.getElementById('sb-ename').textContent = body.name;
+      document.getElementById('hdr-client').textContent = body.name.split(',')[0];
+    }
+    loadEntityModal();
+    loadEntities();
+  } catch(e) {
+    if (btn) { btn.textContent = 'Guardar'; btn.disabled = false; }
+  }
+}
+
+async function deleteEntityModal(id, name) {
+  if (!confirm(`Eliminar "${name}"?\n\nTodos os dados fiscais, balancetes e importações deste cliente serão permanentemente apagados. Esta ação não pode ser desfeita.`)) return;
+  try {
+    await api('/entities/' + id, { method: 'DELETE' });
+    toast('✓ Cliente eliminado');
+    if (state.entityId === id) {
+      state.entityId = null; state.entityName = null; state.entityNIF = null;
+      state.financials = null; state.fiscalYearId = null;
+      document.getElementById('sb-ename').textContent = 'Selecionar Cliente...';
+      document.getElementById('sb-enif').textContent  = 'NIF: —';
+      document.getElementById('hdr-client').textContent = 'Nenhum cliente';
+    }
+    loadEntityModal();
+    loadEntities();
+  } catch(e) { /* toast pelo api() */ }
 }
 
 async function createEntity() {
