@@ -1457,6 +1457,7 @@ function nav(p) {
     if (p === 'importar') loadFilesList();
     if (p === 'conformidade') renderConformidade();
     if (p === 'irs') { setTimeout(renderIrsColeta, 100); }
+    if (p === 'saft') loadSaft();
   }
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -4848,8 +4849,20 @@ function printAvaliacao() {
 // ══════════════════════════════════════
 let _saftData = null; // parsed SAF-T data
 
+// ══════════════════════════════════════════════════════════
+// SAF-T FATURAÇÃO — Frontend completo
+// ══════════════════════════════════════════════════════════
+
+// Cache de dados SAF-T carregados
+window._saftData = null;
+
 function loadSaft() {
   saftTab('upload', document.getElementById('saft-btn-upload'));
+  renderSaftUpload();
+  // Se já há dados carregados para esta entidade, carregar analytics
+  if (state.entityId) {
+    _saftLoadAnalytics();
+  }
 }
 
 function saftTab(name, btn) {
@@ -4857,6 +4870,640 @@ function saftTab(name, btn) {
   document.querySelectorAll('[id^="saft-btn-"]').forEach(b => b.classList.remove('active'));
   const el = document.getElementById('saft-tab-' + name);
   if (el) el.style.display = '';
+  if (btn) btn.classList.add('active');
+
+  // Render on demand
+  if (window._saftData) {
+    const a = window._saftData.analytics;
+    if (name === 'kpis')           renderSaftKpis(a);
+    else if (name === 'temporal')  renderSaftTemporal(a);
+    else if (name === 'clientes')  renderSaftClientes(a);
+    else if (name === 'produtos')  renderSaftProdutos(a);
+    else if (name === 'geo')       renderSaftGeo(a);
+    else if (name === 'anomalias') renderSaftAnomalias(a);
+    else if (name === 'conformidade') renderSaftConformidade(a);
+    else if (name === 'recapitulativa') renderSaftRecap(a);
+  }
+}
+
+function renderSaftUpload() {
+  const el = document.getElementById('saft-tab-upload');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="g2" style="align-items:start">
+      <div class="card">
+        <div class="ch"><div class="ct">🧾 Importar SAF-T Faturação</div><div class="cs">Ficheiro XML PT-04 exportado do software de faturação</div></div>
+        <div class="ai in" style="margin-bottom:14px">
+          <div class="a-ico">ℹ️</div>
+          <div><div class="a-t">Como exportar o SAF-T</div>
+          <div class="a-d">No software de faturação: Ficheiro → Exportar → SAF-T PT · Selecionar período anual · Tipo: Faturação</div></div>
+        </div>
+        <div class="dz" id="dz-saft" onclick="document.getElementById('fi-saft').click()" style="cursor:pointer">
+          <input type="file" accept=".xml" id="fi-saft" style="display:none" onchange="handleSaftUpload(event)">
+          <div class="d-ico">🧾</div>
+          <div class="d-t">Arrastar SAF-T XML ou clicar</div>
+          <div class="d-s">Ficheiro XML SAF-T PT-04 · Máx 100MB</div>
+        </div>
+        <div id="saft-upload-status" style="margin-top:12px"></div>
+      </div>
+      <div class="card" id="saft-files-card">
+        <div class="ch"><div class="ct">📋 Ficheiros SAF-T Importados</div></div>
+        <div id="saft-files-list"><div class="empty"><div class="empty-ico">🧾</div><div class="empty-t">Nenhum SAF-T importado</div></div></div>
+      </div>
+    </div>`;
+
+  // Drag & drop
+  const dz = document.getElementById('dz-saft');
+  if (dz) {
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--blue)'; });
+    dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; });
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.style.borderColor = '';
+      const file = e.dataTransfer.files[0];
+      if (file) handleSaftUpload({ target: { files: [file] } });
+    });
+  }
+  _saftLoadFilesList();
+}
+
+async function _saftLoadFilesList() {
+  if (!state.entityId) return;
+  const el = document.getElementById('saft-files-list');
+  if (!el) return;
+  try {
+    const files = await api(`/saft/${state.entityId}/files`);
+    if (!files || !files.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-ico">🧾</div><div class="empty-t">Nenhum SAF-T importado</div></div>';
+      return;
+    }
+    el.innerHTML = files.map(f => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--cream);border-radius:8px;margin-bottom:6px">
+        <div style="font-size:22px">🧾</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--ink)">${escHtml(f.file_name)}</div>
+          <div style="font-size:11px;color:#aaa">${f.fiscal_year||'—'} · ${f.total_invoices||0} documentos · €${fmtN(f.total_debit)} faturado · ${f.imported_at?.slice(0,10)||'—'}</div>
+        </div>
+        <button class="btn btn-sm" style="background:var(--green-l);color:var(--green);border:1px solid var(--green-l);font-size:11px;padding:4px 10px"
+          onclick="_saftSelectFile('${f.id}')">📊 Ver</button>
+        <button class="btn btn-sm" style="background:#fee;color:var(--red);border:1px solid #fcc;font-size:11px;padding:4px 10px"
+          onclick="_saftDeleteFile('${f.id}','${escHtml(f.file_name)}')">🗑</button>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = '<div class="empty">Erro ao carregar</div>'; }
+}
+
+async function _saftLoadAnalytics(saftId) {
+  if (!state.entityId) return;
+  try {
+    const url = saftId
+      ? `/saft/${state.entityId}/analytics?saft_id=${saftId}`
+      : `/saft/${state.entityId}/analytics`;
+    const data = await api(url);
+    if (data && !data.error) {
+      window._saftData = data;
+      _saftShowTabs(true);
+      // Renderizar tab activo
+      const activeBtn = document.querySelector('[id^="saft-btn-"].active');
+      const activeTab = activeBtn?.id?.replace('saft-btn-','') || 'kpis';
+      if (activeTab !== 'upload') {
+        saftTab(activeTab, activeBtn || document.getElementById('saft-btn-kpis'));
+      }
+      return data;
+    }
+  } catch(e) { /* nenhum dado ainda */ }
+}
+
+function _saftShowTabs(show) {
+  const tabs = ['kpis','temporal','clientes','produtos','geo','anomalias','conformidade','recapitulativa'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`saft-btn-${t}`);
+    if (btn) btn.style.opacity = show ? '1' : '0.4';
+  });
+}
+
+async function _saftSelectFile(saftId) {
+  await _saftLoadAnalytics(saftId);
+  saftTab('kpis', document.getElementById('saft-btn-kpis'));
+}
+
+async function _saftDeleteFile(saftId, fileName) {
+  if (!confirm(`Eliminar "${fileName}"?\n\nTodos os dados deste SAF-T serão removidos permanentemente.`)) return;
+  try {
+    const r = await fetch(API + `/saft/${state.entityId}/${saftId}`, {
+      method: 'DELETE',
+      headers: state.token ? { 'Authorization': 'Bearer ' + state.token } : {}
+    });
+    if (!r.ok) throw new Error('Erro ao eliminar');
+    toast('✓ SAF-T eliminado');
+    window._saftData = null;
+    _saftShowTabs(false);
+    _saftLoadFilesList();
+  } catch(e) { toast('❌ ' + e.message, 3000); }
+}
+
+async function handleSaftUpload(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  if (!state.entityId) { toast('⚠️ Selecione um cliente antes de importar'); return; }
+  if (!file.name.toLowerCase().endsWith('.xml')) { toast('❌ Ficheiro deve ser .xml (SAF-T PT-04)'); return; }
+
+  const statusEl = document.getElementById('saft-upload-status');
+  statusEl.innerHTML = `<div class="prog"><div class="prog-f" id="prog-saft" style="width:5%"></div></div>
+    <div class="log" id="log-saft">📤 A enviar ficheiro SAF-T...</div>`;
+  const logEl  = document.getElementById('log-saft');
+  const progEl = document.getElementById('prog-saft');
+
+  const steps = [
+    '📤 A enviar ficheiro...', '🔍 A validar schema PT-04...',
+    '🏢 A processar clientes e produtos...', '📄 A importar faturas e linhas...',
+    '📊 A calcular KPIs e anomalias...', '💾 A guardar na base de dados...'
+  ];
+  let step = 0;
+  const timer = setInterval(() => {
+    if (step < steps.length - 1) {
+      step++;
+      logEl.innerHTML = steps.slice(0, step+1).join('<br>');
+      progEl.style.width = Math.round(((step+1)/steps.length)*85) + '%';
+    }
+  }, 800);
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('entity_id', state.entityId);
+
+    const r = await fetch(API + '/import/saft', {
+      method: 'POST',
+      headers: state.token ? { 'Authorization': 'Bearer ' + state.token } : {},
+      body: fd
+    });
+    clearInterval(timer);
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({ detail: 'Erro de servidor (' + r.status + ')' }));
+      logEl.innerHTML += `<br><br><div style="background:#fee;border:1px solid #fcc;border-radius:6px;padding:10px;font-size:12px">
+        ❌ <strong>Erro:</strong> ${err.detail || 'Erro desconhecido'}
+      </div>`;
+      progEl.style.width = '0%'; progEl.style.background = 'var(--red)';
+      return;
+    }
+
+    const data = await r.json();
+    progEl.style.width = '100%';
+    const hdr = data.header || {};
+    logEl.innerHTML = steps.join('<br>') + `<br><br>
+      <div style="background:#f0faf0;border:1px solid #b7e5c4;border-radius:8px;padding:12px;font-size:12px;margin-top:8px">
+        ✅ <strong>${data.message}</strong><br>
+        🏢 Empresa: ${escHtml(hdr.company_name||'—')} · NIF: ${hdr.tax_registration_number||'—'}<br>
+        📅 Período: ${hdr.start_date||'—'} → ${hdr.end_date||'—'}<br>
+        🧾 ${data.total_invoices} documentos · ${data.customers} clientes · ${data.products} produtos<br>
+        💰 Faturado: €${fmtN(data.total_debit)}
+      </div>`;
+    toast(`✓ SAF-T importado: ${data.total_invoices} documentos`);
+
+    window._saftData = { ...data, analytics: data.analytics };
+    _saftShowTabs(true);
+    _saftLoadFilesList();
+
+    // Navegar para KPIs
+    setTimeout(() => saftTab('kpis', document.getElementById('saft-btn-kpis')), 800);
+  } catch(e) {
+    clearInterval(timer);
+    progEl.style.background = 'var(--red)';
+    logEl.innerHTML += `<br><br><div style="background:#fee;border-radius:6px;padding:10px;font-size:12px">❌ ${e.message}</div>`;
+  }
+  if (evt.target) evt.target.value = '';
+}
+
+// ── KPIs ─────────────────────────────────────────────────────
+function renderSaftKpis(a) {
+  const el = document.getElementById('saft-tab-kpis');
+  if (!el || !a) return;
+  const k = a.kpis;
+  const d = window._saftData;
+  el.innerHTML = `
+    <div class="ch" style="margin-bottom:16px">
+      <div class="ct">📊 KPIs Faturação</div>
+      <div class="cs">${d?.file_name||''} · ${d?.period_start||''} → ${d?.period_end||''}</div>
+    </div>
+    <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:20px">
+      ${_saftKpi('💰','Volume de Negócios',k.total_vn,'€','var(--ink)')}
+      ${_saftKpi('🧾','Faturas Emitidas',k.n_faturas,'','var(--blue)')}
+      ${_saftKpi('🎯','Ticket Médio',k.ticket_medio,'€','var(--green)')}
+      ${_saftKpi('🏢','Clientes Únicos',k.clientes_uniq,'','#7c4dff')}
+      ${_saftKpi('💸','IVA Liquidado',k.total_iva,'€','var(--orange)')}
+      ${_saftKpi('↩','Notas de Crédito',k.total_nc,'€','var(--red)')}
+      ${_saftKpi('🚫','Docs Anulados',k.n_anuladas,'','#aaa')}
+      ${_saftKpi('📉','VN Líquido (s/NC)',k.total_liq,'€','var(--green)')}
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">📊 Estrutura de Faturação</div></div>
+        ${_saftBarChart([
+          {label:'VN Bruto', val:k.total_vn, color:'var(--blue)'},
+          {label:'Notas Crédito', val:k.total_nc, color:'var(--red)'},
+          {label:'IVA Liquidado', val:k.total_iva, color:'var(--orange)'},
+          {label:'VN Líquido', val:k.total_liq, color:'var(--green)'},
+        ])}
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🏢 Concentração de Clientes</div></div>
+        ${_saftConcentracao(a)}
+      </div>
+    </div>`;
+}
+
+function _saftKpi(ico, label, val, prefix, color) {
+  const display = prefix === '€' ? `€${fmtN(val)}` : fmtN(val) + (prefix||'');
+  return `<div class="card" style="padding:14px 16px">
+    <div style="font-size:22px;margin-bottom:6px">${ico}</div>
+    <div style="font-size:11px;color:#aaa;margin-bottom:3px">${label}</div>
+    <div style="font-size:20px;font-weight:700;color:${color};font-family:'DM Mono',monospace">${display}</div>
+  </div>`;
+}
+
+function _saftBarChart(data) {
+  const max = Math.max(...data.map(d => d.val), 1);
+  return `<div style="display:flex;flex-direction:column;gap:10px;padding:8px 0">` +
+    data.map(d => `
+    <div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:#666">${d.label}</span>
+        <span style="color:${d.color};font-family:'DM Mono',monospace;font-weight:600">€${fmtN(d.val)}</span>
+      </div>
+      <div style="height:10px;background:var(--cream);border-radius:5px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(d.val/max*100)}%;background:${d.color};border-radius:5px;transition:width .4s"></div>
+      </div>
+    </div>`).join('') + `</div>`;
+}
+
+function _saftConcentracao(a) {
+  const top = a.top_clientes?.slice(0,5) || [];
+  const conc = a.concentracao || {};
+  const hhi_label = conc.hhi > 2500 ? '🔴 Alta concentração' : conc.hhi > 1500 ? '🟡 Concentração moderada' : '🟢 Baixa concentração';
+  return `
+    <div style="display:flex;justify-content:space-between;margin-bottom:14px">
+      <div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--ink)">${conc.top3_pct||0}%</div><div style="font-size:11px;color:#aaa">Top 3 clientes</div></div>
+      <div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--ink)">${Math.round(conc.hhi||0)}</div><div style="font-size:11px;color:#aaa">HHI</div></div>
+      <div style="text-align:center;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:12px">${hhi_label}</div>
+    </div>
+    ${top.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--cream)">
+      <div style="flex:1;font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.company_name||c.customer_id)}</div>
+      <div style="font-size:12px;font-family:'DM Mono',monospace;color:var(--green);white-space:nowrap">€${fmtN(c.liq)}</div>
+      <div style="font-size:11px;color:#aaa;white-space:nowrap">${c.pct_vn}%</div>
+    </div>`).join('')}`;
+}
+
+// ── Temporal ──────────────────────────────────────────────────
+function renderSaftTemporal(a) {
+  const el = document.getElementById('saft-tab-temporal');
+  if (!el || !a) return;
+  const months = a.temporal || [];
+  if (!months.length) { el.innerHTML = `<div class="empty"><div class="empty-ico">📅</div><div class="empty-t">Sem dados temporais</div></div>`; return; }
+
+  const maxGross = Math.max(...months.map(m => m.gross), 1);
+  el.innerHTML = `
+    <div class="card">
+      <div class="ch"><div class="ct">📅 Faturação Mensal</div><div class="cs">Volume de negócios por mês</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>Mês</th><th class="nr">Faturas</th><th class="nr">VN Bruto</th>
+            <th class="nr">NC</th><th class="nr">Líquido</th><th class="nr">IVA</th>
+            <th style="width:160px">Barra</th>
+          </tr></thead>
+          <tbody>
+            ${months.map(m => `
+            <tr>
+              <td class="mono">${m.mes}</td>
+              <td class="nr mono">${m.n_faturas}</td>
+              <td class="nr mono" style="color:var(--blue)">€${fmtN(m.gross)}</td>
+              <td class="nr mono" style="color:var(--red)">${m.nc > 0 ? '−€'+fmtN(m.nc) : '—'}</td>
+              <td class="nr mono" style="color:var(--green);font-weight:700">€${fmtN(m.liquido)}</td>
+              <td class="nr mono" style="color:var(--orange)">€${fmtN(m.iva)}</td>
+              <td>
+                <div style="height:10px;background:var(--cream);border-radius:5px;overflow:hidden">
+                  <div style="height:100%;width:${Math.round(m.gross/maxGross*100)}%;background:var(--blue);border-radius:5px"></div>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--cream);font-weight:700">
+              <td>Total</td>
+              <td class="nr mono">${months.reduce((s,m)=>s+m.n_faturas,0)}</td>
+              <td class="nr mono" style="color:var(--blue)">€${fmtN(months.reduce((s,m)=>s+m.gross,0))}</td>
+              <td class="nr mono" style="color:var(--red)">−€${fmtN(months.reduce((s,m)=>s+m.nc,0))}</td>
+              <td class="nr mono" style="color:var(--green)">€${fmtN(months.reduce((s,m)=>s+m.liquido,0))}</td>
+              <td class="nr mono" style="color:var(--orange)">€${fmtN(months.reduce((s,m)=>s+m.iva,0))}</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Clientes ──────────────────────────────────────────────────
+function renderSaftClientes(a) {
+  const el = document.getElementById('saft-tab-clientes');
+  if (!el || !a) return;
+  const clientes = a.top_clientes || [];
+  el.innerHTML = `
+    <div class="card">
+      <div class="ch"><div class="ct">🏢 Top Clientes por Faturação</div><div class="cs">${clientes.length} clientes com faturação</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Cliente</th><th>NIF</th><th>País</th>
+            <th class="nr">Faturas</th><th class="nr">Bruto</th>
+            <th class="nr">NC</th><th class="nr">Líquido</th><th class="nr">% VN</th>
+          </tr></thead>
+          <tbody>
+            ${clientes.map((c,i) => `
+            <tr>
+              <td style="color:#aaa;font-family:'DM Mono',monospace">${i+1}</td>
+              <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(c.company_name||c.customer_id)}</td>
+              <td class="mono" style="color:#888">${c.nif||'—'}</td>
+              <td><span class="badge b-bl">${c.country||'PT'}</span></td>
+              <td class="nr mono">${c.n_faturas}</td>
+              <td class="nr mono" style="color:var(--blue)">€${fmtN(c.gross)}</td>
+              <td class="nr mono" style="color:var(--red)">${c.nc > 0 ? '−€'+fmtN(c.nc) : '—'}</td>
+              <td class="nr mono" style="color:var(--green);font-weight:700">€${fmtN(c.liq)}</td>
+              <td class="nr mono">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="height:6px;width:${Math.min(c.pct_vn,100)*0.6}px;background:var(--green);border-radius:3px;flex-shrink:0"></div>
+                  <span>${c.pct_vn}%</span>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Produtos ──────────────────────────────────────────────────
+function renderSaftProdutos(a) {
+  const el = document.getElementById('saft-tab-produtos');
+  if (!el || !a) return;
+  const prods = a.top_produtos || [];
+  el.innerHTML = `
+    <div class="card">
+      <div class="ch"><div class="ct">📦 Top Produtos/Serviços</div><div class="cs">${prods.length} referências</div></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Código</th><th class="nr">Linhas</th>
+            <th class="nr">Qtd</th><th class="nr">Base s/IVA</th>
+            <th class="nr">IVA</th><th class="nr">% VN</th>
+          </tr></thead>
+          <tbody>
+            ${prods.map((p,i) => `
+            <tr>
+              <td style="color:#aaa;font-family:'DM Mono',monospace">${i+1}</td>
+              <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis">${escHtml(p.product_code)}</td>
+              <td class="nr mono">${p.n_linhas}</td>
+              <td class="nr mono">${fmtN(p.qty)}</td>
+              <td class="nr mono" style="color:var(--blue)">€${fmtN(p.base)}</td>
+              <td class="nr mono" style="color:var(--orange)">€${fmtN(p.iva)}</td>
+              <td class="nr mono">
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="height:6px;width:${Math.min(p.pct_vn,100)*0.6}px;background:var(--blue);border-radius:3px;flex-shrink:0"></div>
+                  <span>${p.pct_vn}%</span>
+                </div>
+              </td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Geografia ─────────────────────────────────────────────────
+function renderSaftGeo(a) {
+  const el = document.getElementById('saft-tab-geo');
+  if (!el || !a) return;
+  const geo = a.geography || [];
+  const countryNames = {PT:'Portugal',PT_RA:'Regiões Autónomas PT',ES:'Espanha',FR:'França',DE:'Alemanha',
+    GB:'Reino Unido',US:'Estados Unidos',BR:'Brasil',AO:'Angola',MZ:'Moçambique',
+    CH:'Suíça',NL:'Holanda',BE:'Bélgica',IT:'Itália',LU:'Luxemburgo'};
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">🗺️ Faturação por País</div></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>País</th><th class="nr">Faturas</th><th class="nr">Faturado</th><th class="nr">%</th></tr></thead>
+            <tbody>
+              ${geo.map(g => `
+              <tr>
+                <td><strong>${g.country}</strong><span style="color:#aaa;font-size:11px;margin-left:6px">${countryNames[g.country]||''}</span></td>
+                <td class="nr mono">${g.n_faturas}</td>
+                <td class="nr mono" style="color:var(--green)">€${fmtN(g.gross)}</td>
+                <td class="nr mono">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="height:8px;width:${Math.min(g.pct,100)*0.8}px;background:var(--blue);border-radius:4px;flex-shrink:0"></div>
+                    <span>${g.pct}%</span>
+                  </div>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🌍 Distribuição Visual</div></div>
+        ${_saftGeoChart(geo)}
+      </div>
+    </div>`;
+}
+
+function _saftGeoChart(geo) {
+  const total = geo.reduce((s,g) => s + g.gross, 0);
+  if (!total) return '<div class="empty">Sem dados</div>';
+  const colors = ['var(--blue)','var(--green)','var(--orange)','#7c4dff','var(--red)','#00acc1','#f06292'];
+  // Donut via SVG simples
+  let offset = 0;
+  const r = 70, cx = 85, cy = 85;
+  const circumference = 2 * Math.PI * r;
+  const slices = geo.slice(0,7).map((g, i) => {
+    const pct = g.gross / total;
+    const dash = pct * circumference;
+    const gap  = circumference - dash;
+    const s = `<circle r="${r}" cx="${cx}" cy="${cy}" fill="none" stroke="${colors[i%colors.length]}" stroke-width="30"
+      stroke-dasharray="${dash} ${gap}"
+      stroke-dashoffset="${-offset * circumference}"
+      style="transform-origin:${cx}px ${cy}px;transform:rotate(-90deg)"/>`;
+    offset += pct;
+    return { svg: s, g, color: colors[i%colors.length] };
+  });
+  return `
+    <div style="display:flex;align-items:center;gap:20px">
+      <svg width="170" height="170" viewBox="0 0 170 170">
+        ${slices.map(s => s.svg).join('')}
+        <text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="12" fill="#888">Total</text>
+        <text x="${cx}" y="${cy+12}" text-anchor="middle" font-size="11" fill="var(--ink)" font-weight="700">€${fmtN(total/1000,1)}k</text>
+      </svg>
+      <div style="font-size:12px;display:flex;flex-direction:column;gap:6px">
+        ${slices.map(s => `
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:10px;height:10px;border-radius:2px;background:${s.color};flex-shrink:0"></div>
+          <span style="color:var(--ink)">${s.g.country}</span>
+          <span style="color:#aaa">${s.g.pct}%</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ── Anomalias ─────────────────────────────────────────────────
+function renderSaftAnomalias(a) {
+  const el = document.getElementById('saft-tab-anomalias');
+  if (!el || !a) return;
+  const anomalias = a.anomalias || [];
+  const severityConfig = {
+    alta:  { bg:'#fff5f5', border:'var(--red)',    ico:'🔴', label:'Alta' },
+    media: { bg:'#fff9e6', border:'var(--orange)',  ico:'🟡', label:'Média' },
+    baixa: { bg:'#f0faf0', border:'var(--green)',   ico:'🟢', label:'Baixa' },
+    info:  { bg:'#f0f4ff', border:'var(--blue)',    ico:'🔵', label:'Info' },
+  };
+  el.innerHTML = `
+    <div class="card">
+      <div class="ch">
+        <div class="ct">⚠️ Anomalias e Alertas</div>
+        <div class="cs">${anomalias.length} item(s) detetado(s)</div>
+      </div>
+      ${!anomalias.length ? `<div class="empty"><div class="empty-ico">✅</div><div class="empty-t">Nenhuma anomalia detetada</div><div class="empty-s">O ficheiro SAF-T não apresenta irregularidades evidentes</div></div>` :
+        anomalias.map(an => {
+          const sc = severityConfig[an.severity] || severityConfig.info;
+          const docs = (an.documentos||[]).slice(0,8).join(', ');
+          return `
+          <div style="padding:14px 16px;margin-bottom:10px;background:${sc.bg};border:1px solid ${sc.border};border-radius:10px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="font-size:18px">${sc.ico}</span>
+              <strong style="color:var(--ink);font-size:13px">${an.titulo}</strong>
+              <span style="margin-left:auto;font-size:11px;color:#888;padding:2px 8px;background:#fff;border-radius:10px">${sc.label}</span>
+            </div>
+            <div style="font-size:12px;color:#555;margin-bottom:${docs?'6px':'0'}">${an.descricao}</div>
+            ${docs ? `<div style="font-size:11px;color:#888;font-family:'DM Mono',monospace">${escHtml(docs)}${an.documentos.length>8?'...':''}</div>` : ''}
+          </div>`;
+        }).join('')
+      }
+    </div>`;
+}
+
+// ── Conformidade SAF-T ────────────────────────────────────────
+function renderSaftConformidade(a) {
+  const el = document.getElementById('saft-tab-conformidade');
+  if (!el || !a) return;
+  const k    = a.kpis || {};
+  const anoms = a.anomalias || [];
+  const score = Math.max(0, 100 - anoms.filter(x => x.severity === 'alta').length * 25
+                              - anoms.filter(x => x.severity === 'media').length * 10);
+  const scoreColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--orange)' : 'var(--red)';
+
+  const checks = [
+    { label: 'Hash de assinatura presente', ok: !anoms.find(x=>x.tipo==='hash_ausente'), ref: 'Desp.Lei 28/2019' },
+    { label: 'Numeração sequencial contínua', ok: !anoms.find(x=>x.tipo==='saltos_numeracao'), ref: 'CIVA Art.36.º' },
+    { label: 'Rácio NC/FT normal (<15%)', ok: !anoms.find(x=>x.tipo==='ratio_nc_elevado'), ref: 'AT circular' },
+    { label: 'NIF em faturas >€1.000', ok: !anoms.find(x=>x.tipo==='sem_nif_acima_1000'), ref: 'CIVA Art.36.º n.5' },
+    { label: 'IVA liquidado em todos os documentos', ok: !anoms.find(x=>x.tipo==='isencao_iva'), ref: 'CIVA Art.1.º' },
+  ];
+
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">✅ Score de Conformidade</div></div>
+        <div style="text-align:center;padding:20px 0">
+          <div style="font-size:52px;font-weight:700;color:${scoreColor};font-family:'DM Mono',monospace">${score}%</div>
+          <div style="font-size:13px;color:#888;margin-top:4px">${score>=80?'Conformidade Boa':score>=60?'Atenção Recomendada':'Revisão Necessária'}</div>
+          <div style="height:12px;background:var(--cream);border-radius:6px;margin:16px 0;overflow:hidden">
+            <div style="height:100%;width:${score}%;background:${scoreColor};border-radius:6px;transition:width .6s"></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${checks.map(c => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:${c.ok?'#f0faf0':'#fff5f5'};border-radius:8px;border:1px solid ${c.ok?'var(--green)':'var(--red)'}">
+            <span>${c.ok?'✅':'❌'}</span>
+            <span style="flex:1;font-size:13px;color:var(--ink)">${c.label}</span>
+            <span style="font-size:11px;color:#aaa">${c.ref}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">📋 Resumo Documentos</div></div>
+        <div style="display:flex;flex-direction:column;gap:10px;padding-top:8px">
+          ${[
+            ['Total documentos', k.n_faturas + (k.n_nc||0)],
+            ['Faturas (FT/FS/FR)', k.n_faturas],
+            ['Notas de Crédito', k.n_nc||0],
+            ['Documentos anulados', k.n_anuladas||0],
+            ['Clientes distintos', k.clientes_uniq],
+          ].map(([l,v]) => `
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--cream)">
+            <span style="font-size:13px;color:#666">${l}</span>
+            <span style="font-size:13px;font-weight:700;color:var(--ink);font-family:'DM Mono',monospace">${fmtN(v)}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Recap / OSS ───────────────────────────────────────────────
+function renderSaftRecap(a) {
+  const el = document.getElementById('saft-tab-recapitulativa');
+  if (!el || !a) return;
+  const recap = a.recapitulativa || [];
+  const oss   = a.oss || [];
+  el.innerHTML = `
+    <div class="g2">
+      <div class="card">
+        <div class="ch"><div class="ct">🇪🇺 Declaração Recapitulativa (UE)</div><div class="cs">Vendas intracomunitárias sujeitas a reporte AT</div></div>
+        ${!recap.length ? `<div class="empty"><div class="empty-ico">🇪🇺</div><div class="empty-t">Sem vendas intracomunitárias</div></div>` : `
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>País UE</th><th class="nr">Docs</th><th class="nr">Base s/IVA</th><th class="nr">IVA</th></tr></thead>
+            <tbody>
+              ${recap.map(r => `
+              <tr>
+                <td><strong>${r.country}</strong></td>
+                <td class="nr mono">${r.n}</td>
+                <td class="nr mono" style="color:var(--blue)">€${fmtN(r.gross)}</td>
+                <td class="nr mono" style="color:var(--orange)">€${fmtN(r.iva)}</td>
+              </tr>`).join('')}
+            </tbody>
+            <tfoot><tr style="background:var(--cream);font-weight:700">
+              <td>Total</td><td class="nr mono">${recap.reduce((s,r)=>s+r.n,0)}</td>
+              <td class="nr mono" style="color:var(--blue)">€${fmtN(recap.reduce((s,r)=>s+r.gross,0))}</td>
+              <td class="nr mono" style="color:var(--orange)">€${fmtN(recap.reduce((s,r)=>s+r.iva,0))}</td>
+            </tr></tfoot>
+          </table>
+        </div>`}
+        <div class="ai in" style="margin-top:14px"><div class="a-ico">ℹ️</div>
+          <div><div class="a-t">Atenção</div><div class="a-d">Vendas a empresas UE com NIF intracomunitário: sujeitas a declaração recapitulativa mensal/trimestral (Mod. 349). Verificar enquadramento com o TOC.</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ch"><div class="ct">🌍 Vendas Fora da UE (OSS)</div><div class="cs">Eventuais obrigações OSS / IOSS</div></div>
+        ${!oss.length ? `<div class="empty"><div class="empty-ico">🌍</div><div class="empty-t">Sem vendas fora da UE</div></div>` : `
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>País</th><th class="nr">Docs</th><th class="nr">Faturado</th></tr></thead>
+            <tbody>
+              ${oss.map(o => `
+              <tr>
+                <td><strong>${o.country}</strong></td>
+                <td class="nr mono">${o.n}</td>
+                <td class="nr mono" style="color:var(--green)">€${fmtN(o.gross)}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`}
+      </div>
+    </div>`;
+}
+
+ '';
   if (btn) btn.classList.add('active');
   renderSaftTab(name);
 }
@@ -6770,22 +7417,76 @@ function exportIRCExcel() {
 
 // ══ IVA ══
 function renderIVA() {
-  if (!state.financials) return;
-  const f = state.financials.pnl;
-  const totR = f.total_rendimentos;
-  const fseBase = state.financials.pnl.gastos_detail.find(g => g.conta.startsWith('62'))?.valor || 0;
+  const el = document.getElementById('iva-content');
+  if (!el) return;
 
+  // ── Modo SAF-T: dados reais do SAF-T se disponíveis ──────────
+  if (window._saftData?.analytics) {
+    const a = window._saftData.analytics;
+    const k = a.kpis;
+    const d = window._saftData;
+    // Calcular por taxa IVA a partir das linhas (usando kpis como proxy)
+    const liqBase  = k.total_liq;
+    const liqIVA   = k.total_iva;
+    // Deduções do SAF-T não estão disponíveis (precisariam do SAF-T de compras)
+    const apurEst  = liqIVA; // conservador: sem deduções SAF-T compras
+    el.innerHTML = `
+      <div class="ai in" style="margin-bottom:14px">
+        <div class="a-ico">🧾</div>
+        <div><div class="a-t">Dados reais do SAF-T — ${escHtml(d.file_name||'')} · ${d.period_start||''} → ${d.period_end||''}</div>
+        <div class="a-d">IVA liquidado calculado das faturas. Para IVA dedutível real importe também o SAF-T de compras/contabilidade.</div></div>
+      </div>
+      <div class="g2" style="margin-bottom:16px">
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:#555;margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--cream)">IVA LIQUIDADO (real)</div>
+          <table><thead><tr><th>Rubrica</th><th class="nr">Base</th><th class="nr">IVA</th></tr></thead><tbody>
+            <tr><td>Vendas e Serviços</td><td class="nr mono">${fmtN(liqBase)}</td><td class="nr mono" style="color:var(--red)">${fmtN(liqIVA)}</td></tr>
+            ${k.total_nc > 0 ? `<tr><td>Notas de Crédito</td><td class="nr mono" style="color:var(--red)">−${fmtN(k.total_nc)}</td><td class="nr mono" style="color:var(--red)">−${fmtN(k.total_nc * liqIVA / Math.max(k.total_vn,1))}</td></tr>` : ''}
+            <tr style="background:rgba(192,57,43,.04)"><td class="bld">Total Liquidado</td><td class="nr mono bld">${fmtN(liqBase)}</td><td class="nr mono bld" style="color:var(--red)">${fmtN(liqIVA)}</td></tr>
+          </tbody></table>
+        </div>
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:#555;margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--cream)">IVA DEDUTÍVEL</div>
+          <div class="ai wn" style="font-size:12px">
+            <div class="a-ico">⚠️</div>
+            <div>Para calcular o IVA dedutível exato é necessário o SAF-T de compras ou o balancete (conta 2432). ${state.financials ? `<br><strong>Estimativa balancete: €${fmtN((state.financials?.pnl?.gastos_detail?.find(g=>g.conta.startsWith('62'))?.valor||0)*0.23)}</strong>` : ''}</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:13px;align-items:center;padding:16px;background:rgba(192,57,43,.05);border-radius:10px;border:1px solid rgba(192,57,43,.12)">
+        <div style="font-size:32px">📤</div>
+        <div>
+          <div style="font-size:12.5px;color:#888">IVA Liquidado (real) · ${d.fiscal_year||state.year}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:26px;color:var(--red);font-weight:500">${fmtEur(liqIVA)}</div>
+          <div style="font-size:12px;color:#aaa;margin-top:2px">${k.n_faturas} faturas · ${k.clientes_uniq} clientes · VN líquido €${fmtN(liqBase)}</div>
+        </div>
+        <div style="margin-left:auto">
+          <button class="btn btn-sm" style="background:var(--green-l);color:var(--green);border:1px solid" onclick="nav('saft')">Ver análise SAF-T completa →</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Modo estimativa: apenas balancete ────────────────────────
+  if (!state.financials) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">💰</div><div class="empty-t">Importe dados para estimar IVA</div></div>`;
+    return;
+  }
+
+  const f       = state.financials.pnl;
+  const totR    = f.total_rendimentos;
+  const fseBase = state.financials.pnl.gastos_detail?.find(g => g.conta.startsWith('62'))?.valor || 0;
   const liqBase = totR;
-  const liqIVA = liqBase * 0.23;
+  const liqIVA  = liqBase * 0.23;
   const dedBase = fseBase;
-  const dedIVA = dedBase * 0.23;
+  const dedIVA  = dedBase * 0.23;
   const apuramento = liqIVA - dedIVA;
 
-  document.getElementById('iva-content').innerHTML = `
+  el.innerHTML = `
     <div class="ai wn" style="margin-bottom:12px">
       <div class="a-ico">⚠️</div>
       <div><div class="a-t">Estimativa simplificada — pressupostos</div>
-      <div class="a-d">Assume taxa 23% em todos os rendimentos e FSE. Actividades isentas (Art.9.º CIVA), taxas reduzidas (6%/13%) e FSE sem IVA não são considerados. Use para orientação; o apuramento real requer dados contabilísticos detalhados.</div></div>
+      <div class="a-d">Assume taxa 23% em todos os rendimentos e FSE. Actividades isentas (Art.9.º CIVA), taxas reduzidas (6%/13%) e FSE sem IVA não são considerados. <strong>Importe o SAF-T para valores reais.</strong></div></div>
     </div>
     <div class="g2" style="margin-bottom:16px">
       <div>
@@ -6809,6 +7510,9 @@ function renderIVA() {
         <div style="font-size:12.5px;color:#888">IVA Apurado Estimado (${state.year})</div>
         <div style="font-family:'DM Mono',monospace;font-size:26px;color:var(--red);font-weight:500">${fmtEur(apuramento)}</div>
         <div style="font-size:12px;color:#aaa;margin-top:2px">= ${fmtN(liqIVA)} liquidado − ${fmtN(dedIVA)} dedutível · Importar SAF-T para valores exatos</div>
+      </div>
+      <div style="margin-left:auto">
+        <button class="btn btn-sm" style="background:var(--blue-l,#e8f0fe);color:var(--blue);font-size:11px" onclick="nav('saft')">🧾 Importar SAF-T</button>
       </div>
     </div>`;
 }
@@ -7022,7 +7726,7 @@ async function handleImport(evt, tipo) {
   }, 600);
 
   try {
-    const endpoint = tipo === 'excel' ? '/import/excel' : '/import/excel'; // SAF-T via same endpoint
+    const endpoint = tipo === 'excel' ? '/import/excel' : '/import/saft';
     const r = await fetch(API + endpoint, {
       method: 'POST',
       headers: state.token ? {'Authorization': 'Bearer ' + state.token} : {},
