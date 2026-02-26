@@ -22,7 +22,8 @@ except ImportError:
 
 import bcrypt
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Security
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends, Security, Request
+from collections import deque
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -30,6 +31,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 import sqlite3
 import openpyxl
+import time
+import collections
 
 # ──────────────────────────────────────────
 # APP SETUP
@@ -43,6 +46,41 @@ app.add_middleware(
     allow_headers=["*"],
     allow_credentials=False,
 )
+
+# ── RATE LIMITER ──────────────────────────────────────────────
+class _RateLimiter:
+    """Token-bucket rate limiter — sem dependências externas."""
+    def __init__(self):
+        self._buckets: dict[str, deque] = {}
+
+    def _key(self, request: Request) -> str:
+        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown")
+        return ip.split(",")[0].strip()
+
+    def check(self, request: Request, max_calls: int, window_secs: int) -> bool:
+        """True = permitido, False = bloqueado."""
+        key  = f"{self._key(request)}:{request.url.path}"
+        now  = time.monotonic()
+        hist = self._buckets.setdefault(key, collections.deque())
+        # Limpar janela expirada
+        while hist and hist[0] < now - window_secs:
+            hist.popleft()
+        if len(hist) >= max_calls:
+            return False
+        hist.append(now)
+        return True
+
+_rl = _RateLimiter()
+
+def rate_limit(max_calls: int = 20, window_secs: int = 60):
+    """Decorator de rate limiting para endpoints FastAPI."""
+    def dependency(request: Request):
+        if not _rl.check(request, max_calls, window_secs):
+            raise HTTPException(
+                status_code=429,
+                detail=f"Demasiados pedidos — máximo {max_calls} por {window_secs}s. Tente mais tarde."
+            )
+    return Depends(dependency)
 
 # ── JWT CONFIG ──
 _JWT_SECRET_ENV = os.environ.get("JWT_SECRET")
@@ -195,6 +233,163 @@ def init_db():
         user_id TEXT NOT NULL,
         entity_id TEXT NOT NULL,
         PRIMARY KEY (user_id, entity_id)
+    );
+
+    -- ── Índices para performance ──
+    CREATE INDEX IF NOT EXISTS idx_tbe_entity_year
+        ON trial_balance_entries(entity_id, fiscal_year_id);
+    CREATE INDEX IF NOT EXISTS idx_tbe_conta
+        ON trial_balance_entries(conta);
+    CREATE INDEX IF NOT EXISTS idx_tbf_entity
+        ON trial_balance_files(entity_id);
+    CREATE INDEX IF NOT EXISTS idx_taxcalc_entity_year
+        ON tax_calculations(entity_id, fiscal_year_id, calc_type);
+    CREATE INDEX IF NOT EXISTS idx_ai_entity
+        ON ai_queries(entity_id);
+    CREATE INDEX IF NOT EXISTS idx_fy_entity
+        ON fiscal_years(entity_id);
+
+    CREATE TABLE IF NOT EXISTS budgets (
+        id        TEXT PRIMARY KEY,
+        entity_id TEXT NOT NULL,
+        year      INTEGER NOT NULL,
+        data      TEXT NOT NULL,
+        updated_at TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY(entity_id) REFERENCES entities(id),
+        UNIQUE(entity_id, year)
+    );
+    CREATE INDEX IF NOT EXISTS idx_budgets_entity
+        ON budgets(entity_id, year);
+
+    CREATE TABLE IF NOT EXISTS conformidade_items (
+        id           TEXT PRIMARY KEY,
+        entity_id    TEXT NOT NULL,
+        year         INTEGER NOT NULL,
+        obrigacao_id TEXT NOT NULL,       -- ex: 'ies', 'mod22', 'iva-t1'
+        estado       TEXT DEFAULT 'pendente', -- pendente | concluido | nao_aplicavel
+        data_conclusao TEXT,
+        notas        TEXT,
+        updated_at   TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY(entity_id) REFERENCES entities(id),
+        UNIQUE(entity_id, year, obrigacao_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_conf_entity_year
+        ON conformidade_items(entity_id, year);
+
+    -- ═══════════════════════════════════════
+    -- SAF-T FATURAÇÃO (PT-04)
+    -- ═══════════════════════════════════════
+    CREATE TABLE IF NOT EXISTS saft_files (
+        id           TEXT PRIMARY KEY,
+        entity_id    TEXT NOT NULL,
+        file_name    TEXT NOT NULL,
+        file_hash    TEXT,
+        fiscal_year  INTEGER,
+        period_start TEXT,
+        period_end   TEXT,
+        company_name TEXT,
+        company_nif  TEXT,
+        software     TEXT,
+        version      TEXT,
+        total_invoices INTEGER DEFAULT 0,
+        total_debit  REAL DEFAULT 0,
+        total_credit REAL DEFAULT 0,
+        imported_at  TEXT DEFAULT (datetime('now')),
+        FOREIGN KEY(entity_id) REFERENCES entities(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_saft_entity ON saft_files(entity_id);
+
+    -- Clientes do SAF-T (MasterFiles/Customer)
+    CREATE TABLE IF NOT EXISTS saft_customers (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        saft_file_id    TEXT NOT NULL,
+        entity_id       TEXT NOT NULL,
+        customer_id     TEXT,
+        account_id      TEXT,
+        company_name    TEXT,
+        contact         TEXT,
+        nif             TEXT,
+        country         TEXT DEFAULT 'PT',
+        postal_code     TEXT,
+        city            TEXT,
+        FOREIGN KEY(saft_file_id) REFERENCES saft_files(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_saft_cust ON saft_customers(saft_file_id);
+    CREATE INDEX IF NOT EXISTS idx_saft_cust_nif ON saft_customers(entity_id, nif);
+
+    -- Produtos/Serviços (MasterFiles/Product)
+    CREATE TABLE IF NOT EXISTS saft_products (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        saft_file_id    TEXT NOT NULL,
+        entity_id       TEXT NOT NULL,
+        product_code    TEXT,
+        product_group   TEXT,
+        product_desc    TEXT,
+        product_type    TEXT,  -- P=produto, S=serviço, O=outros, I=impostos, E=encargos
+        unit_of_measure TEXT,
+        FOREIGN KEY(saft_file_id) REFERENCES saft_files(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_saft_prod ON saft_products(saft_file_id);
+
+    -- Invoices (SalesInvoices/Invoice)
+    CREATE TABLE IF NOT EXISTS saft_invoices (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        saft_file_id    TEXT NOT NULL,
+        entity_id       TEXT NOT NULL,
+        invoice_no      TEXT NOT NULL,
+        invoice_type    TEXT,   -- FT, FR, FS, NC, ND, etc.
+        invoice_date    TEXT,
+        invoice_status  TEXT DEFAULT 'N',  -- N=normal, A=anulada
+        customer_id     TEXT,
+        nif_cliente     TEXT,
+        country_cliente TEXT DEFAULT 'PT',
+        gross_total     REAL DEFAULT 0,
+        net_total       REAL DEFAULT 0,
+        tax_payable     REAL DEFAULT 0,
+        settlement      REAL DEFAULT 0,
+        serie            TEXT,
+        hash_chars      TEXT,    -- primeiros 4 chars do hash
+        FOREIGN KEY(saft_file_id) REFERENCES saft_files(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_saft_inv_file ON saft_invoices(saft_file_id);
+    CREATE INDEX IF NOT EXISTS idx_saft_inv_date ON saft_invoices(entity_id, invoice_date);
+    CREATE INDEX IF NOT EXISTS idx_saft_inv_cust ON saft_invoices(entity_id, customer_id);
+
+    -- Invoice Lines (detalhes por linha/produto)
+    CREATE TABLE IF NOT EXISTS saft_invoice_lines (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id      INTEGER NOT NULL,
+        saft_file_id    TEXT NOT NULL,
+        entity_id       TEXT NOT NULL,
+        line_no         INTEGER,
+        product_code    TEXT,
+        description     TEXT,
+        quantity        REAL DEFAULT 1,
+        unit_price      REAL DEFAULT 0,
+        credit_amount   REAL DEFAULT 0,
+        debit_amount    REAL DEFAULT 0,
+        tax_base        REAL DEFAULT 0,
+        tax_percentage  REAL DEFAULT 0,
+        tax_code        TEXT,  -- NOR, ISE, RED, INT
+        tax_amount      REAL DEFAULT 0,
+        FOREIGN KEY(invoice_id) REFERENCES saft_invoices(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_saft_lines ON saft_invoice_lines(invoice_id);
+    CREATE INDEX IF NOT EXISTS idx_saft_lines_prod ON saft_invoice_lines(saft_file_id, product_code);
+
+    -- Tax Table (MasterFiles/TaxTable)
+    CREATE TABLE IF NOT EXISTS saft_tax_table (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        saft_file_id    TEXT NOT NULL,
+        entity_id       TEXT NOT NULL,
+        tax_type        TEXT,   -- IVA, IS, NS
+        tax_country     TEXT DEFAULT 'PT',
+        tax_code        TEXT,   -- NOR, INT, RED, ISE, OUT
+        tax_description TEXT,
+        tax_expiration  TEXT,
+        tax_percentage  REAL,
+        FOREIGN KEY(saft_file_id) REFERENCES saft_files(id)
     );
     """)
 
@@ -756,7 +951,7 @@ class UserUpdate(BaseModel):
 # ══════════════════════════════════════
 
 @app.post("/api/auth/login")
-def login(req: LoginRequest, db=Depends(get_db)):
+def login(req: LoginRequest, request: Request, db=Depends(get_db), _rl=rate_limit(5, 60)):
     user = db.execute(
         "SELECT * FROM users WHERE email=? AND is_active=1", (req.email,)
     ).fetchone()
@@ -933,11 +1128,14 @@ def create_fiscal_year(entity_id: str, year: int = Form(...), db=Depends(get_db)
 # ──────────────────────────────────────────
 @app.post("/api/import/excel")
 async def import_excel(
+    request: Request,
     entity_id: str = Form(...),
     fiscal_year_id: str = Form(...),
     file: UploadFile = File(...),
 ):
     """Import a trial balance Excel file. Auto-detects columns and maps to SNC accounts."""
+    if not _rl.check(request, 10, 60):
+        raise HTTPException(429, "Demasiados imports — máximo 10 por minuto.")
     db = new_conn()
     start = time.time()
     try:
@@ -1019,6 +1217,744 @@ async def import_excel(
         db.rollback()
         db.close()
         raise
+
+
+# ══════════════════════════════════════════════════════════
+# SAF-T PT-04 PARSER
+# ══════════════════════════════════════════════════════════
+import xml.etree.ElementTree as ET
+
+# Namespaces SAF-T PT-04 (versão 1.04_01)
+_SAFT_NS = {
+    'saft': 'urn:OECD:StandardAuditFile-Tax:PT_1.04_01',
+}
+
+def _find(el, path, ns=_SAFT_NS):
+    """Wrapper seguro para find — tenta com e sem namespace."""
+    r = el.find(path, ns)
+    if r is None:
+        # Tenta sem namespace (alguns softwares omitem)
+        path_clean = path.replace('saft:', '')
+        r = el.find(path_clean)
+    return r
+
+def _text(el, path, default='', ns=_SAFT_NS):
+    """Lê texto de um sub-elemento de forma segura."""
+    node = _find(el, path, ns)
+    return (node.text or '').strip() if node is not None else default
+
+def _float(el, path, default=0.0, ns=_SAFT_NS):
+    try:
+        return float(_text(el, path, '0', ns))
+    except (ValueError, TypeError):
+        return default
+
+def parse_saft_xml(xml_bytes: bytes) -> dict:
+    """
+    Parse SAF-T PT-04 XML.
+    Retorna dict com: header, customers, products, tax_table, invoices.
+    """
+    # Tentar detectar e remover BOM UTF-8/16
+    if xml_bytes.startswith(b'\xef\xbb\xbf'):
+        xml_bytes = xml_bytes[3:]
+
+    try:
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError as e:
+        raise ValueError(f'XML inválido: {e}')
+
+    # Detectar namespace real do ficheiro
+    ns = {}
+    tag = root.tag
+    if tag.startswith('{'):
+        ns_uri = tag[1:tag.index('}')]
+        ns = {'saft': ns_uri}
+    else:
+        ns = {}  # sem namespace
+
+    def f(el, path): return _find(el, path, ns)
+    def t(el, path, d=''): return _text(el, path, d, ns)
+    def n(el, path, d=0.0): return _float(el, path, d, ns)
+
+    # ── HEADER ─────────────────────────────────────────────────
+    hdr = f(root, 'saft:Header') or f(root, 'Header')
+    if hdr is None:
+        raise ValueError('Header SAF-T não encontrado — ficheiro inválido ou não é PT-04')
+
+    header = {
+        'audit_file_version':    t(hdr, 'saft:AuditFileVersion') or t(hdr, 'AuditFileVersion'),
+        'company_id':            t(hdr, 'saft:CompanyID') or t(hdr, 'CompanyID'),
+        'tax_registration_number': t(hdr, 'saft:TaxRegistrationNumber') or t(hdr, 'TaxRegistrationNumber'),
+        'company_name':          t(hdr, 'saft:CompanyName') or t(hdr, 'CompanyName'),
+        'fiscal_year':           t(hdr, 'saft:FiscalYear') or t(hdr, 'FiscalYear'),
+        'start_date':            t(hdr, 'saft:StartDate') or t(hdr, 'StartDate'),
+        'end_date':              t(hdr, 'saft:EndDate') or t(hdr, 'EndDate'),
+        'currency_code':         t(hdr, 'saft:CurrencyCode') or t(hdr, 'CurrencyCode') or 'EUR',
+        'software_company_name': t(hdr, 'saft:SoftwareCompanyName') or t(hdr, 'SoftwareCompanyName'),
+        'product_id':            t(hdr, 'saft:ProductID') or t(hdr, 'ProductID'),
+    }
+
+    # ── MASTER FILES ───────────────────────────────────────────
+    mf = f(root, 'saft:MasterFiles') or f(root, 'MasterFiles') or root
+
+    # Clientes
+    customers = []
+    cust_prefix = 'saft:Customer' if ns else 'Customer'
+    for c in (mf.findall(cust_prefix, ns) if ns else mf.findall('Customer')):
+        addr = f(c, 'saft:BillingAddress') or f(c, 'BillingAddress') or c
+        customers.append({
+            'customer_id':   t(c, 'saft:CustomerID') or t(c, 'CustomerID'),
+            'account_id':    t(c, 'saft:AccountID') or t(c, 'AccountID'),
+            'company_name':  t(c, 'saft:CompanyName') or t(c, 'CompanyName'),
+            'contact':       t(c, 'saft:Contact') or t(c, 'Contact'),
+            'nif':           t(c, 'saft:CustomerTaxID') or t(c, 'CustomerTaxID'),
+            'country':       t(addr, 'saft:Country') or t(addr, 'Country') or 'PT',
+            'postal_code':   t(addr, 'saft:PostalCode') or t(addr, 'PostalCode'),
+            'city':          t(addr, 'saft:City') or t(addr, 'City'),
+        })
+
+    # Produtos
+    products = []
+    prod_prefix = 'saft:Product' if ns else 'Product'
+    for p in (mf.findall(prod_prefix, ns) if ns else mf.findall('Product')):
+        products.append({
+            'product_code':  t(p, 'saft:ProductCode') or t(p, 'ProductCode'),
+            'product_group': t(p, 'saft:ProductGroup') or t(p, 'ProductGroup'),
+            'product_desc':  t(p, 'saft:ProductDescription') or t(p, 'ProductDescription'),
+            'product_type':  t(p, 'saft:ProductType') or t(p, 'ProductType'),
+            'unit_of_measure': t(p, 'saft:UnitOfMeasure') or t(p, 'UnitOfMeasure'),
+        })
+
+    # Tabela de impostos
+    tax_table = []
+    tt = f(mf, 'saft:TaxTable') or f(mf, 'TaxTable')
+    if tt is not None:
+        te_prefix = 'saft:TaxTableEntry' if ns else 'TaxTableEntry'
+        for e in (tt.findall(te_prefix, ns) if ns else tt.findall('TaxTableEntry')):
+            pct_node = f(e, 'saft:TaxPercentage') or f(e, 'TaxPercentage')
+            tax_table.append({
+                'tax_type':        t(e, 'saft:TaxType') or t(e, 'TaxType'),
+                'tax_country':     t(e, 'saft:TaxCountryRegion') or t(e, 'TaxCountryRegion') or 'PT',
+                'tax_code':        t(e, 'saft:TaxCode') or t(e, 'TaxCode'),
+                'tax_description': t(e, 'saft:Description') or t(e, 'Description'),
+                'tax_expiration':  t(e, 'saft:TaxExpirationDate') or t(e, 'TaxExpirationDate'),
+                'tax_percentage':  float(pct_node.text or 0) if pct_node is not None else 0.0,
+            })
+
+    # ── SOURCE DOCUMENTS — SALES INVOICES ──────────────────────
+    invoices  = []
+    inv_lines = []
+    sd = f(root, 'saft:SourceDocuments') or f(root, 'SourceDocuments')
+    si_container = None
+    if sd is not None:
+        si_container = f(sd, 'saft:SalesInvoices') or f(sd, 'SalesInvoices')
+
+    if si_container is not None:
+        inv_prefix = 'saft:Invoice' if ns else 'Invoice'
+        for inv in (si_container.findall(inv_prefix, ns) if ns else si_container.findall('Invoice')):
+            inv_no    = t(inv, 'saft:InvoiceNo') or t(inv, 'InvoiceNo')
+            inv_type  = t(inv, 'saft:InvoiceType') or t(inv, 'InvoiceType')
+            inv_date  = t(inv, 'saft:InvoiceDate') or t(inv, 'InvoiceDate')
+            # Hash — primeiros 4 chars
+            hash_el   = f(inv, 'saft:Hash') or f(inv, 'Hash')
+            hash_chars = (hash_el.text or '')[:4] if hash_el is not None else ''
+
+            # Status
+            status_el = f(inv, 'saft:DocumentStatus') or f(inv, 'DocumentStatus')
+            inv_status = 'N'
+            if status_el is not None:
+                inv_status = t(status_el, 'saft:InvoiceStatus') or t(status_el, 'InvoiceStatus') or 'N'
+
+            # Série (prefixo antes do /)
+            serie = inv_no.split('/')[0] if '/' in inv_no else ''
+
+            # Cliente
+            cust_id = t(inv, 'saft:CustomerID') or t(inv, 'CustomerID')
+
+            # Totals
+            doc_tot = f(inv, 'saft:DocumentTotals') or f(inv, 'DocumentTotals')
+            gross   = n(doc_tot, 'saft:GrossTotal') or n(doc_tot, 'GrossTotal') if doc_tot else 0.0
+            net_tot = n(doc_tot, 'saft:NetTotal') or n(doc_tot, 'NetTotal') if doc_tot else 0.0
+            tax_pay = n(doc_tot, 'saft:TaxPayable') or n(doc_tot, 'TaxPayable') if doc_tot else 0.0
+            settle  = n(doc_tot, 'saft:Settlement') or n(doc_tot, 'Settlement') if doc_tot else 0.0
+
+            # Notas de crédito têm grossTotal negativo — normalizar
+            if inv_type in ('NC', 'ND'):
+                gross   = -abs(gross)
+                net_tot = -abs(net_tot)
+                tax_pay = -abs(tax_pay)
+
+            inv_idx = len(invoices)
+            invoices.append({
+                'invoice_no':     inv_no,
+                'invoice_type':   inv_type,
+                'invoice_date':   inv_date,
+                'invoice_status': inv_status,
+                'customer_id':    cust_id,
+                'gross_total':    gross,
+                'net_total':      net_tot,
+                'tax_payable':    tax_pay,
+                'settlement':     settle,
+                'serie':          serie,
+                'hash_chars':     hash_chars,
+                '_idx':           inv_idx,
+            })
+
+            # Lines
+            line_prefix = 'saft:Line' if ns else 'Line'
+            for line in (inv.findall(line_prefix, ns) if ns else inv.findall('Line')):
+                tax_el   = f(line, 'saft:Tax') or f(line, 'Tax')
+                tax_pct  = n(tax_el, 'saft:TaxPercentage') or n(tax_el, 'TaxPercentage') if tax_el else 0.0
+                tax_code = (t(tax_el, 'saft:TaxCode') or t(tax_el, 'TaxCode') or '') if tax_el else ''
+                # Pode ser crédito ou débito
+                credit = n(line, 'saft:CreditAmount') or n(line, 'CreditAmount')
+                debit  = n(line, 'saft:DebitAmount')  or n(line, 'DebitAmount')
+                tax_base = n(line, 'saft:TaxBase') or n(line, 'TaxBase') or (credit or debit)
+
+                inv_lines.append({
+                    '_inv_idx':      inv_idx,
+                    'line_no':       int(t(line, 'saft:LineNumber') or t(line, 'LineNumber') or 0),
+                    'product_code':  t(line, 'saft:ProductCode') or t(line, 'ProductCode'),
+                    'description':   t(line, 'saft:Description') or t(line, 'Description'),
+                    'quantity':      n(line, 'saft:Quantity') or n(line, 'Quantity') or 1.0,
+                    'unit_price':    n(line, 'saft:UnitPrice') or n(line, 'UnitPrice'),
+                    'credit_amount': credit,
+                    'debit_amount':  debit,
+                    'tax_base':      tax_base,
+                    'tax_percentage': tax_pct,
+                    'tax_code':      tax_code,
+                    'tax_amount':    tax_base * tax_pct / 100 if tax_pct else 0.0,
+                })
+
+    # Totals
+    total_debit  = sum(i['gross_total'] for i in invoices if i['gross_total'] > 0 and i['invoice_status'] == 'N')
+    total_credit = sum(abs(i['gross_total']) for i in invoices if i['gross_total'] < 0 and i['invoice_status'] == 'N')
+
+    return {
+        'header':     header,
+        'customers':  customers,
+        'products':   products,
+        'tax_table':  tax_table,
+        'invoices':   invoices,
+        'inv_lines':  inv_lines,
+        'total_invoices': len([i for i in invoices if i['invoice_status'] == 'N']),
+        'total_debit':    round(total_debit, 2),
+        'total_credit':   round(total_credit, 2),
+    }
+
+
+def _compute_saft_analytics(invoices: list, inv_lines: list, customers: list) -> dict:
+    """
+    Calcula todos os KPIs, análises temporais, por cliente, produto, geo e anomalias.
+    """
+    from collections import defaultdict
+    import re
+
+    # Mapa customer_id → info
+    cust_map = {c['customer_id']: c for c in customers}
+
+    # Faturas válidas (não anuladas)
+    valid_invs = [i for i in invoices if i['invoice_status'] == 'N']
+
+    # ── KPIs GLOBAIS ──────────────────────────────────────────
+    total_vn      = sum(i['gross_total'] for i in valid_invs if i['invoice_type'] not in ('NC','ND'))
+    total_nc      = sum(abs(i['gross_total']) for i in valid_invs if i['invoice_type'] == 'NC')
+    total_liq     = total_vn - total_nc
+    n_faturas     = len([i for i in valid_invs if i['invoice_type'] not in ('NC','ND')])
+    n_nc          = len([i for i in valid_invs if i['invoice_type'] == 'NC'])
+    ticket_medio  = round(total_liq / n_faturas, 2) if n_faturas else 0
+    total_iva     = sum(i['tax_payable'] for i in valid_invs)
+    clientes_uniq = len(set(i['customer_id'] for i in valid_invs))
+    anuladas      = len([i for i in invoices if i['invoice_status'] == 'A'])
+
+    kpis = {
+        'total_vn': round(total_vn, 2),
+        'total_nc': round(total_nc, 2),
+        'total_liq': round(total_liq, 2),
+        'n_faturas': n_faturas,
+        'n_nc': n_nc,
+        'n_anuladas': anuladas,
+        'ticket_medio': ticket_medio,
+        'total_iva': round(total_iva, 2),
+        'clientes_uniq': clientes_uniq,
+    }
+
+    # ── TEMPORAL — por mês ────────────────────────────────────
+    monthly = defaultdict(lambda: {'mes': '', 'n_faturas': 0, 'gross': 0.0, 'iva': 0.0, 'nc': 0.0})
+    for inv in valid_invs:
+        d = inv['invoice_date']
+        if not d or len(d) < 7:
+            continue
+        mes = d[:7]  # YYYY-MM
+        if inv['invoice_type'] not in ('NC','ND'):
+            monthly[mes]['n_faturas'] += 1
+            monthly[mes]['gross']     += inv['gross_total']
+            monthly[mes]['iva']       += inv['tax_payable']
+        else:
+            monthly[mes]['nc']        += abs(inv['gross_total'])
+        monthly[mes]['mes'] = mes
+
+    temporal = sorted(
+        [{'mes': k, **v} for k, v in monthly.items()],
+        key=lambda x: x['mes']
+    )
+    for t in temporal:
+        t['gross'] = round(t['gross'], 2)
+        t['iva']   = round(t['iva'], 2)
+        t['nc']    = round(t['nc'], 2)
+        t['liquido'] = round(t['gross'] - t['nc'], 2)
+
+    # ── TOP CLIENTES ──────────────────────────────────────────
+    cust_sales = defaultdict(lambda: {'n_faturas': 0, 'gross': 0.0, 'nc': 0.0})
+    for inv in valid_invs:
+        cid = inv['customer_id']
+        if inv['invoice_type'] not in ('NC','ND'):
+            cust_sales[cid]['n_faturas'] += 1
+            cust_sales[cid]['gross']     += inv['gross_total']
+        else:
+            cust_sales[cid]['nc']        += abs(inv['gross_total'])
+
+    top_clientes = []
+    for cid, data in cust_sales.items():
+        liq = data['gross'] - data['nc']
+        info = cust_map.get(cid, {})
+        top_clientes.append({
+            'customer_id':   cid,
+            'company_name':  info.get('company_name') or cid,
+            'nif':           info.get('nif', ''),
+            'country':       info.get('country', 'PT'),
+            'n_faturas':     data['n_faturas'],
+            'gross':         round(data['gross'], 2),
+            'nc':            round(data['nc'], 2),
+            'liq':           round(liq, 2),
+            'pct_vn':        round(liq / total_liq * 100, 1) if total_liq else 0,
+        })
+    top_clientes.sort(key=lambda x: x['liq'], reverse=True)
+
+    # Concentração HHI (Herfindahl-Hirschman Index)
+    hhi = sum((c['pct_vn'])**2 for c in top_clientes) if top_clientes else 0
+    top3_pct = sum(c['pct_vn'] for c in top_clientes[:3])
+
+    # ── PRODUTOS ──────────────────────────────────────────────
+    prod_sales = defaultdict(lambda: {'n_linhas': 0, 'qty': 0.0, 'base': 0.0, 'iva': 0.0})
+    for line in inv_lines:
+        inv = invoices[line['_inv_idx']] if line['_inv_idx'] < len(invoices) else {}
+        if inv.get('invoice_status') == 'A':
+            continue
+        code = line['product_code'] or 'SEM CÓDIGO'
+        mult = -1 if inv.get('invoice_type') in ('NC','ND') else 1
+        prod_sales[code]['n_linhas'] += 1
+        prod_sales[code]['qty']      += line['quantity'] * mult
+        prod_sales[code]['base']     += (line['credit_amount'] or line['debit_amount']) * mult
+        prod_sales[code]['iva']      += line['tax_amount'] * mult
+
+    top_produtos = []
+    for code, data in prod_sales.items():
+        top_produtos.append({
+            'product_code': code,
+            'n_linhas':     data['n_linhas'],
+            'qty':          round(data['qty'], 3),
+            'base':         round(data['base'], 2),
+            'iva':          round(data['iva'], 2),
+            'pct_vn':       round(data['base'] / total_liq * 100, 1) if total_liq else 0,
+        })
+    top_produtos.sort(key=lambda x: x['base'], reverse=True)
+
+    # ── GEOGRAFIA ─────────────────────────────────────────────
+    geo = defaultdict(lambda: {'n_faturas': 0, 'gross': 0.0})
+    for inv in valid_invs:
+        if inv['invoice_type'] in ('NC','ND'):
+            continue
+        cid  = inv['customer_id']
+        info = cust_map.get(cid, {})
+        country = info.get('country') or 'PT'
+        # Distinguir Continente / Açores / Madeira por código postal se PT
+        postal = info.get('postal_code') or ''
+        if country == 'PT' and postal:
+            prefix = postal[:4]
+            try:
+                cp = int(prefix)
+                if 1000 <= cp <= 9999:  # Açores 9xxx, Madeira 9xxx
+                    if 9000 <= cp <= 9999:
+                        country = 'PT-RA'  # Regiões Autónomas
+            except:
+                pass
+        geo[country]['n_faturas'] += 1
+        geo[country]['gross']     += inv['gross_total']
+
+    geography = sorted(
+        [{'country': k, 'n_faturas': v['n_faturas'], 'gross': round(v['gross'], 2),
+          'pct': round(v['gross'] / total_vn * 100, 1) if total_vn else 0}
+         for k, v in geo.items()],
+        key=lambda x: x['gross'], reverse=True
+    )
+
+    # ── ANOMALIAS ─────────────────────────────────────────────
+    anomalias = []
+
+    # 1. Faturas sem hash (obrigatório para FT, FS, FR)
+    sem_hash = [i for i in valid_invs if not i['hash_chars'] and i['invoice_type'] in ('FT','FS','FR')]
+    if sem_hash:
+        anomalias.append({
+            'tipo': 'hash_ausente',
+            'severity': 'alta',
+            'titulo': f'{len(sem_hash)} fatura(s) sem hash de assinatura',
+            'descricao': 'Faturas FT/FS/FR devem ter hash AT (assinatura digital). Pode indicar emissão manual fora do software certificado.',
+            'documentos': [i['invoice_no'] for i in sem_hash[:10]],
+        })
+
+    # 2. Saltos de numeração
+    series_nums = defaultdict(list)
+    for inv in valid_invs:
+        serie = inv['serie']
+        no_part = inv['invoice_no'].split('/')[-1] if '/' in inv['invoice_no'] else ''
+        try:
+            series_nums[serie].append(int(no_part))
+        except:
+            pass
+
+    saltos = []
+    for serie, nums in series_nums.items():
+        nums.sort()
+        for i in range(1, len(nums)):
+            if nums[i] - nums[i-1] > 1:
+                saltos.append(f'{serie}/{nums[i-1]+1}–{nums[i]-1}')
+    if saltos:
+        anomalias.append({
+            'tipo': 'saltos_numeracao',
+            'severity': 'media',
+            'titulo': f'{len(saltos)} salto(s) de numeração detetado(s)',
+            'descricao': 'Lacunas na sequência numérica podem indicar documentos omitidos ou numeração não contínua (não conforme com CIVA Art.36.º).',
+            'documentos': saltos[:10],
+        })
+
+    # 3. NCs sem FT correspondente
+    nc_nos  = set(i['invoice_no'] for i in valid_invs if i['invoice_type'] == 'NC')
+    ft_nos  = set(i['invoice_no'] for i in valid_invs if i['invoice_type'] in ('FT','FS','FR'))
+    # (simplificado — verifica se há muitas NCs vs FTs)
+    nc_ratio = len(nc_nos) / max(len(ft_nos), 1)
+    if nc_ratio > 0.15:
+        anomalias.append({
+            'tipo': 'ratio_nc_elevado',
+            'severity': 'media',
+            'titulo': f'Rácio NC/FT elevado: {round(nc_ratio*100,1)}%',
+            'descricao': 'Alto volume de notas de crédito relativamente às faturas emitidas. Pode indicar devoluções anómalas ou ajustamentos frequentes.',
+            'documentos': [],
+        })
+
+    # 4. Clientes sem NIF em faturas > €1.000
+    sem_nif = []
+    for inv in valid_invs:
+        if inv['gross_total'] > 1000 and inv['invoice_type'] not in ('NC','ND'):
+            cid  = inv['customer_id']
+            info = cust_map.get(cid, {})
+            nif  = info.get('nif', '')
+            if not nif or nif in ('999999990', '0'):
+                sem_nif.append(inv['invoice_no'])
+    if sem_nif:
+        anomalias.append({
+            'tipo': 'sem_nif_acima_1000',
+            'severity': 'baixa',
+            'titulo': f'{len(sem_nif)} fatura(s) >€1.000 para consumidor final',
+            'descricao': 'Faturas acima de €1.000 emitidas a consumidores finais (sem NIF). Verificar conformidade com obrigação de identificação (Art.36.º n.5 CIVA).',
+            'documentos': sem_nif[:10],
+        })
+
+    # 5. Faturas com IVA 0% em volume significativo
+    zero_iva = [i for i in valid_invs if i['tax_payable'] == 0 and i['gross_total'] > 100 and i['invoice_type'] not in ('NC','ND')]
+    if len(zero_iva) > 0:
+        anomalias.append({
+            'tipo': 'isencao_iva',
+            'severity': 'info',
+            'titulo': f'{len(zero_iva)} fatura(s) com IVA 0% (isenção)',
+            'descricao': 'Documentos emitidos com isenção de IVA. Verificar enquadramento legal (Art.9.º / Art.13.º CIVA ou regime especial).',
+            'documentos': [i['invoice_no'] for i in zero_iva[:5]],
+        })
+
+    # ── RECAP / OSS ───────────────────────────────────────────
+    # Vendas intracomunitárias (clientes UE fora de PT)
+    ue_countries = {'AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR',
+                    'GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL',
+                    'RO','SE','SI','SK'}
+    recap = defaultdict(lambda: {'gross': 0.0, 'iva': 0.0, 'n': 0})
+    oss   = defaultdict(lambda: {'gross': 0.0, 'n': 0})
+    for inv in valid_invs:
+        if inv['invoice_type'] in ('NC','ND'):
+            continue
+        cid     = inv['customer_id']
+        info    = cust_map.get(cid, {})
+        country = info.get('country', 'PT')
+        if country in ue_countries:
+            recap[country]['gross'] += inv['gross_total']
+            recap[country]['iva']   += inv['tax_payable']
+            recap[country]['n']     += 1
+        elif country not in ('PT', 'PT-RA') and country:
+            oss[country]['gross'] += inv['gross_total']
+            oss[country]['n']     += 1
+
+    recapitulativa = sorted(
+        [{'country': k, 'gross': round(v['gross'],2), 'iva': round(v['iva'],2), 'n': v['n']}
+         for k, v in recap.items()],
+        key=lambda x: x['gross'], reverse=True
+    )
+    oss_summary = sorted(
+        [{'country': k, 'gross': round(v['gross'],2), 'n': v['n']}
+         for k, v in oss.items()],
+        key=lambda x: x['gross'], reverse=True
+    )
+
+    return {
+        'kpis':           kpis,
+        'temporal':       temporal,
+        'top_clientes':   top_clientes[:50],
+        'concentracao':   {'hhi': round(hhi, 1), 'top3_pct': round(top3_pct, 1)},
+        'top_produtos':   top_produtos[:50],
+        'geography':      geography,
+        'anomalias':      anomalias,
+        'recapitulativa': recapitulativa,
+        'oss':            oss_summary,
+    }
+
+
+# ── Endpoint: upload SAF-T ─────────────────────────────────────────────────
+@app.post("/api/import/saft")
+async def import_saft(
+    request: Request,
+    entity_id: str = Form(...),
+    file: UploadFile = File(...),
+):
+    """Import SAF-T PT-04 XML file."""
+    if not _rl.check(request, 5, 60):
+        raise HTTPException(429, "Demasiados imports — máximo 5 por minuto.")
+
+    db = new_conn()
+    try:
+        if not file.filename.lower().endswith('.xml'):
+            raise HTTPException(400, "Formato não suportado. Use ficheiro SAF-T (.xml)")
+
+        if file.size and file.size > 100 * 1024 * 1024:
+            raise HTTPException(400, "Ficheiro demasiado grande (máximo 100MB).")
+
+        content_bytes = await file.read()
+
+        # Hash para dedup
+        file_hash = hashlib.md5(content_bytes).hexdigest()
+
+        # Parse
+        try:
+            parsed = parse_saft_xml(content_bytes)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        except Exception as e:
+            raise HTTPException(422, f"Erro ao processar SAF-T: {str(e)}")
+
+        hdr = parsed['header']
+        saft_id = str(uuid.uuid4())
+
+        # Substituir ficheiro anterior do mesmo ano
+        fiscal_year_str = hdr.get('fiscal_year', '')
+        try:
+            fiscal_year = int(fiscal_year_str)
+        except:
+            fiscal_year = None
+
+        if fiscal_year:
+            old = db.execute(
+                "SELECT id FROM saft_files WHERE entity_id=? AND fiscal_year=?",
+                (entity_id, fiscal_year)
+            ).fetchall()
+            for o in old:
+                oid = o['id']
+                # Apagar em cascata
+                db.execute("DELETE FROM saft_invoice_lines WHERE saft_file_id=?", (oid,))
+                db.execute("DELETE FROM saft_invoices WHERE saft_file_id=?", (oid,))
+                db.execute("DELETE FROM saft_customers WHERE saft_file_id=?", (oid,))
+                db.execute("DELETE FROM saft_products WHERE saft_file_id=?", (oid,))
+                db.execute("DELETE FROM saft_tax_table WHERE saft_file_id=?", (oid,))
+                db.execute("DELETE FROM saft_files WHERE id=?", (oid,))
+
+        # Inserir ficheiro
+        db.execute("""INSERT INTO saft_files
+            (id, entity_id, file_name, file_hash, fiscal_year, period_start, period_end,
+             company_name, company_nif, software, version, total_invoices, total_debit, total_credit)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (saft_id, entity_id, file.filename, file_hash, fiscal_year,
+             hdr.get('start_date'), hdr.get('end_date'),
+             hdr.get('company_name'), hdr.get('tax_registration_number'),
+             hdr.get('software_company_name'), hdr.get('audit_file_version'),
+             parsed['total_invoices'], parsed['total_debit'], parsed['total_credit']))
+
+        # Clientes
+        if parsed['customers']:
+            db.executemany("""INSERT INTO saft_customers
+                (saft_file_id, entity_id, customer_id, account_id, company_name, contact, nif, country, postal_code, city)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                [(saft_id, entity_id, c['customer_id'], c['account_id'], c['company_name'],
+                  c['contact'], c['nif'], c['country'], c['postal_code'], c['city'])
+                 for c in parsed['customers']])
+
+        # Produtos
+        if parsed['products']:
+            db.executemany("""INSERT INTO saft_products
+                (saft_file_id, entity_id, product_code, product_group, product_desc, product_type, unit_of_measure)
+                VALUES (?,?,?,?,?,?,?)""",
+                [(saft_id, entity_id, p['product_code'], p['product_group'], p['product_desc'],
+                  p['product_type'], p['unit_of_measure'])
+                 for p in parsed['products']])
+
+        # Tax table
+        if parsed['tax_table']:
+            db.executemany("""INSERT INTO saft_tax_table
+                (saft_file_id, entity_id, tax_type, tax_country, tax_code, tax_description, tax_expiration, tax_percentage)
+                VALUES (?,?,?,?,?,?,?,?)""",
+                [(saft_id, entity_id, t['tax_type'], t['tax_country'], t['tax_code'],
+                  t['tax_description'], t['tax_expiration'], t['tax_percentage'])
+                 for t in parsed['tax_table']])
+
+        # Invoices + lines em batches
+        inv_ids = {}
+        if parsed['invoices']:
+            for inv in parsed['invoices']:
+                cur = db.execute("""INSERT INTO saft_invoices
+                    (saft_file_id, entity_id, invoice_no, invoice_type, invoice_date, invoice_status,
+                     customer_id, gross_total, net_total, tax_payable, settlement, serie, hash_chars)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (saft_id, entity_id, inv['invoice_no'], inv['invoice_type'], inv['invoice_date'],
+                     inv['invoice_status'], inv['customer_id'], inv['gross_total'], inv['net_total'],
+                     inv['tax_payable'], inv['settlement'], inv['serie'], inv['hash_chars']))
+                inv_ids[inv['_idx']] = cur.lastrowid
+
+        if parsed['inv_lines']:
+            db.executemany("""INSERT INTO saft_invoice_lines
+                (invoice_id, saft_file_id, entity_id, line_no, product_code, description,
+                 quantity, unit_price, credit_amount, debit_amount, tax_base, tax_percentage, tax_code, tax_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                [(inv_ids.get(l['_inv_idx']), saft_id, entity_id, l['line_no'], l['product_code'],
+                  l['description'], l['quantity'], l['unit_price'], l['credit_amount'], l['debit_amount'],
+                  l['tax_base'], l['tax_percentage'], l['tax_code'], l['tax_amount'])
+                 for l in parsed['inv_lines'] if l['_inv_idx'] in inv_ids])
+
+        db.commit()
+
+        # Calcular analytics
+        analytics = _compute_saft_analytics(parsed['invoices'], parsed['inv_lines'], parsed['customers'])
+
+        return {
+            'saft_id':        saft_id,
+            'message':        f"SAF-T importado com sucesso: {parsed['total_invoices']} documentos",
+            'header':         hdr,
+            'total_invoices': parsed['total_invoices'],
+            'total_debit':    parsed['total_debit'],
+            'total_credit':   parsed['total_credit'],
+            'customers':      len(parsed['customers']),
+            'products':       len(parsed['products']),
+            'analytics':      analytics,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Erro interno: {str(e)}")
+    finally:
+        db.close()
+
+
+# ── Endpoint: GET analytics SAF-T ─────────────────────────────────────────
+@app.get("/api/saft/{entity_id}/analytics")
+async def get_saft_analytics(entity_id: str, year: Optional[int] = None):
+    """Retorna analytics SAF-T para uma entidade/ano."""
+    db = new_conn()
+    try:
+        q = "SELECT * FROM saft_files WHERE entity_id=?"
+        params = [entity_id]
+        if year:
+            q += " AND fiscal_year=?"
+            params.append(year)
+        q += " ORDER BY imported_at DESC LIMIT 1"
+
+        saft_file = db.execute(q, params).fetchone()
+        if not saft_file:
+            return {'error': 'no_data', 'message': 'Nenhum SAF-T importado para esta entidade'}
+
+        saft_id = saft_file['id']
+
+        # Carregar dados para analytics
+        invoices_raw = db.execute(
+            "SELECT * FROM saft_invoices WHERE saft_file_id=?", (saft_id,)
+        ).fetchall()
+        lines_raw = db.execute(
+            "SELECT * FROM saft_invoice_lines WHERE saft_file_id=?", (saft_id,)
+        ).fetchall()
+        customers_raw = db.execute(
+            "SELECT * FROM saft_customers WHERE saft_file_id=?", (saft_id,)
+        ).fetchall()
+
+        # Converter para dicts
+        invoices = [dict(r) for r in invoices_raw]
+        # Adicionar _idx para analytics
+        for i, inv in enumerate(invoices):
+            inv['_idx'] = i
+
+        lines = []
+        inv_id_to_idx = {inv['id']: i for i, inv in enumerate(invoices)}
+        for l in lines_raw:
+            ld = dict(l)
+            ld['_inv_idx'] = inv_id_to_idx.get(ld['invoice_id'], -1)
+            lines.append(ld)
+
+        customers = [dict(r) for r in customers_raw]
+
+        analytics = _compute_saft_analytics(invoices, lines, customers)
+
+        return {
+            'saft_id':     saft_id,
+            'file_name':   saft_file['file_name'],
+            'fiscal_year': saft_file['fiscal_year'],
+            'period_start': saft_file['period_start'],
+            'period_end':  saft_file['period_end'],
+            'company_name': saft_file['company_name'],
+            'total_invoices': saft_file['total_invoices'],
+            'total_debit':    saft_file['total_debit'],
+            'imported_at':    saft_file['imported_at'],
+            'analytics': analytics,
+        }
+    finally:
+        db.close()
+
+
+# ── Endpoint: GET lista SAF-T ──────────────────────────────────────────────
+@app.get("/api/saft/{entity_id}/files")
+async def list_saft_files(entity_id: str):
+    db = new_conn()
+    try:
+        rows = db.execute(
+            "SELECT id, file_name, fiscal_year, period_start, period_end, total_invoices, total_debit, total_credit, imported_at FROM saft_files WHERE entity_id=? ORDER BY fiscal_year DESC",
+            (entity_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        db.close()
+
+
+# ── Endpoint: DELETE SAF-T ─────────────────────────────────────────────────
+@app.delete("/api/saft/{entity_id}/{saft_id}")
+async def delete_saft(entity_id: str, saft_id: str):
+    db = new_conn()
+    try:
+        db.execute("DELETE FROM saft_invoice_lines WHERE saft_file_id=? AND entity_id=?", (saft_id, entity_id))
+        db.execute("DELETE FROM saft_invoices WHERE saft_file_id=? AND entity_id=?", (saft_id, entity_id))
+        db.execute("DELETE FROM saft_customers WHERE saft_file_id=? AND entity_id=?", (saft_id, entity_id))
+        db.execute("DELETE FROM saft_products WHERE saft_file_id=? AND entity_id=?", (saft_id, entity_id))
+        db.execute("DELETE FROM saft_tax_table WHERE saft_file_id=? AND entity_id=?", (saft_id, entity_id))
+        db.execute("DELETE FROM saft_files WHERE id=? AND entity_id=?", (saft_id, entity_id))
+        db.commit()
+        return {'ok': True}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, str(e))
+    finally:
+        db.close()
 
 
 # ──────────────────────────────────────────
@@ -1176,7 +2112,7 @@ def simulate_irc(req: IRCSimulationRequest, db=Depends(get_db), user=Depends(get
 # ROUTES — AI ASSISTANT
 # ──────────────────────────────────────────
 @app.post("/api/ai/chat")
-async def ai_chat(req: ChatRequest, db=Depends(get_db)):
+async def ai_chat(req: ChatRequest, request: Request, db=Depends(get_db), _rl_=rate_limit(30, 60)):
     """
     AI assistant with financial context from the database.
     Uses Anthropic Claude API.
@@ -1363,6 +2299,36 @@ def delete_file(file_id: str, db=Depends(get_db), user=Depends(get_current_user)
         pass
     return {"status": "deleted", "file_id": file_id}
 
+@app.get("/api/budget/{entity_id}/{year}")
+def get_budget(entity_id: str, year: int, db=Depends(get_db), user=Depends(get_current_user)):
+    """Carregar orçamento de uma empresa/ano da base de dados."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+    row = db.execute(
+        "SELECT data FROM budgets WHERE entity_id=? AND year=?", (entity_id, year)
+    ).fetchone()
+    if not row:
+        return {"data": {}}
+    import json
+    return {"data": json.loads(row["data"])}
+
+
+@app.put("/api/budget/{entity_id}/{year}")
+def save_budget(entity_id: str, year: int, payload: dict, db=Depends(get_db), user=Depends(get_current_user)):
+    """Gravar/actualizar orçamento de uma empresa/ano."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+    import json, uuid
+    data_json = json.dumps(payload.get("data", {}))
+    db.execute("""
+        INSERT INTO budgets (id, entity_id, year, data, updated_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(entity_id, year) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
+    """, (str(uuid.uuid4()), entity_id, year, data_json))
+    db.commit()
+    return {"ok": True}
+
+
 @app.get("/api/irc/saved")
 def list_irc_saved(entity_id: str, fiscal_year_id: str = None, db=Depends(get_db), user=Depends(get_current_user)):
     """List saved IRC calculations for an entity."""
@@ -1393,6 +2359,119 @@ def root():
         if f.exists():
             return FileResponse(str(f))
     return {"message": "ContaIntel API v1.0 — Aceda a /docs para a documentação"}
+
+# ─────────────────────────────────────────────────────────────
+# CONFORMIDADE — rastreio de estado por obrigação declarativa
+# ─────────────────────────────────────────────────────────────
+
+# Catálogo de obrigações com metadata (independente do estado por empresa)
+OBRIGACOES_CATALOG = [
+    {"id":"ies",       "titulo":"IES — Informação Empresarial Simplificada",    "prazo_mes":7,  "prazo_dia":15, "regulamento":"Art.121.º CIRC"},
+    {"id":"mod22",     "titulo":"Modelo 22 — Declaração Periódica IRC",          "prazo_mes":7,  "prazo_dia":31, "regulamento":"Art.120.º CIRC"},
+    {"id":"mod10",     "titulo":"Modelo 10 — Rendimentos Pagos a Residentes",    "prazo_mes":2,  "prazo_dia":28, "regulamento":"Art.119.º CIRS"},
+    {"id":"iva-t1",    "titulo":"IVA — Declaração 1.º Trimestre",                "prazo_mes":5,  "prazo_dia":15, "regulamento":"Art.41.º CIVA"},
+    {"id":"iva-t2",    "titulo":"IVA — Declaração 2.º Trimestre",                "prazo_mes":8,  "prazo_dia":15, "regulamento":"Art.41.º CIVA"},
+    {"id":"iva-t3",    "titulo":"IVA — Declaração 3.º Trimestre",                "prazo_mes":11, "prazo_dia":15, "regulamento":"Art.41.º CIVA"},
+    {"id":"iva-t4",    "titulo":"IVA — Declaração 4.º Trimestre",                "prazo_mes":2,  "prazo_dia":15, "regulamento":"Art.41.º CIVA"},
+    {"id":"ppc-jul",   "titulo":"Pagamento por Conta — 1.ª prestação (Julho)",   "prazo_mes":7,  "prazo_dia":31, "regulamento":"Art.104.º CIRC"},
+    {"id":"ppc-set",   "titulo":"Pagamento por Conta — 2.ª prestação (Setembro)","prazo_mes":9,  "prazo_dia":30, "regulamento":"Art.104.º CIRC"},
+    {"id":"ppc-dez",   "titulo":"Pagamento por Conta — 3.ª prestação (Dezembro)","prazo_mes":12, "prazo_dia":15, "regulamento":"Art.104.º CIRC"},
+    {"id":"saft-cont", "titulo":"SAF-T Contabilidade — entrega anual",           "prazo_mes":7,  "prazo_dia":15, "regulamento":"Port.302/2016"},
+    {"id":"dmc",       "titulo":"DMC — Declaração Mensal de Remunerações",       "prazo_mes":0,  "prazo_dia":10, "regulamento":"Art.119.º CIRS", "mensal":True},
+]
+
+@app.get("/api/conformidade/{entity_id}/{year}")
+def get_conformidade(entity_id: str, year: int, db=Depends(get_db), user=Depends(get_current_user)):
+    """Retorna o catálogo de obrigações com o estado actual desta empresa/ano."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+
+    rows = db.execute(
+        "SELECT obrigacao_id, estado, data_conclusao, notas, updated_at "
+        "FROM conformidade_items WHERE entity_id=? AND year=?",
+        (entity_id, year)
+    ).fetchall()
+    estado_map = {r["obrigacao_id"]: dict(r) for r in rows}
+
+    result = []
+    for ob in OBRIGACOES_CATALOG:
+        item = dict(ob)
+        s = estado_map.get(ob["id"], {})
+        item["estado"]         = s.get("estado", "pendente")
+        item["data_conclusao"] = s.get("data_conclusao")
+        item["notas"]          = s.get("notas", "")
+        item["updated_at"]     = s.get("updated_at")
+        # Calcular prazo absoluto para o ano em questão
+        if ob["prazo_mes"] > 0:
+            import calendar
+            last_day = calendar.monthrange(year, ob["prazo_mes"])[1]
+            dia = min(ob["prazo_dia"], last_day)
+            item["prazo_data"] = f"{year}-{ob['prazo_mes']:02d}-{dia:02d}"
+        else:
+            item["prazo_data"] = None  # mensal — não tem prazo anual fixo
+        result.append(item)
+
+    return result
+
+
+@app.put("/api/conformidade/{entity_id}/{year}/{obrigacao_id}")
+def update_conformidade(
+    entity_id: str, year: int, obrigacao_id: str,
+    payload: dict,
+    db=Depends(get_db), user=Depends(get_current_user)
+):
+    """Actualiza o estado de uma obrigação (pendente/concluido/nao_aplicavel)."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+
+    valid_ids = {ob["id"] for ob in OBRIGACOES_CATALOG}
+    if obrigacao_id not in valid_ids:
+        raise HTTPException(400, f"Obrigação desconhecida: {obrigacao_id}")
+
+    estado = payload.get("estado", "pendente")
+    if estado not in ("pendente", "concluido", "nao_aplicavel"):
+        raise HTTPException(400, "Estado inválido")
+
+    import uuid as _uuid
+    db.execute("""
+        INSERT INTO conformidade_items (id, entity_id, year, obrigacao_id, estado, data_conclusao, notas, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(entity_id, year, obrigacao_id) DO UPDATE SET
+            estado=excluded.estado,
+            data_conclusao=excluded.data_conclusao,
+            notas=excluded.notas,
+            updated_at=datetime('now')
+    """, (
+        str(_uuid.uuid4()), entity_id, year, obrigacao_id,
+        estado,
+        payload.get("data_conclusao"),
+        payload.get("notas", "")
+    ))
+    db.commit()
+    return {"ok": True, "estado": estado}
+
+
+@app.get("/api/conformidade/{entity_id}/{year}/summary")
+def get_conformidade_summary(entity_id: str, year: int, db=Depends(get_db), user=Depends(get_current_user)):
+    """Resumo rápido: total, concluídos, pendentes."""
+    if not can_access_entity(entity_id, user):
+        raise HTTPException(403, "Acesso negado")
+    rows = db.execute(
+        "SELECT estado, COUNT(*) as n FROM conformidade_items WHERE entity_id=? AND year=? GROUP BY estado",
+        (entity_id, year)
+    ).fetchall()
+    counts = {r["estado"]: r["n"] for r in rows}
+    total = len(OBRIGACOES_CATALOG)
+    concluidos = counts.get("concluido", 0)
+    nao_aplic  = counts.get("nao_aplicavel", 0)
+    return {
+        "total": total,
+        "concluidos": concluidos,
+        "nao_aplicavel": nao_aplic,
+        "pendentes": total - concluidos - nao_aplic,
+        "pct": round(concluidos / max(total - nao_aplic, 1) * 100),
+    }
+
 
 @app.get("/app")
 def app_page():
