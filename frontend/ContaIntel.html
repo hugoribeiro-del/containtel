@@ -252,7 +252,68 @@ tr:last-child td{border-bottom:none}
 .role-gestor{background:rgba(26,58,92,.12);color:var(--blue)}
 .role-cliente{background:rgba(26,122,74,.12);color:var(--green)}
 
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+.skel {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e4e4e4 50%, #f0f0f0 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 6px;
+}
+.skel-kpi   { height: 90px; border-radius: var(--r); box-shadow: var(--sh); }
+.skel-block { border-radius: var(--r); box-shadow: var(--sh); }
+.skel-line  { height: 13px; margin: 7px 0; border-radius: 4px; }
+.skel-line.short  { width: 60%; }
+.skel-line.xshort { width: 35%; }
+
+
+/* ── Toast Stack ── */
+#toast-stack {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column-reverse; gap: 8px;
+  pointer-events: none;
+}
+.toast-item { pointer-events: auto; }
+@keyframes toast-in  { from { opacity:0; transform:translateX(24px) } to { opacity:1; transform:none } }
+@keyframes toast-out { from { opacity:1; transform:none } to { opacity:0; transform:translateX(16px) } }
+
+/* ── Command Palette (Ctrl+K) ── */
+#cmd-overlay {
+  position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.55);
+  display:none;align-items:flex-start;justify-content:center;padding-top:12vh;
+}
+#cmd-overlay.open { display:flex; animation:fade-in .15s ease }
+#cmd-box {
+  width:100%;max-width:580px;background:#fff;border-radius:14px;
+  box-shadow:0 24px 80px rgba(0,0,0,.3);overflow:hidden;
+}
+#cmd-input {
+  width:100%;border:none;outline:none;padding:16px 18px;font-size:16px;
+  font-family:inherit;background:transparent;border-bottom:2px solid var(--cream);
+  color:var(--ink);
+}
+#cmd-results { max-height:420px;overflow-y:auto; }
+.cmd-section { padding:8px 14px 4px;font-size:11px;font-weight:700;
+  color:#aaa;text-transform:uppercase;letter-spacing:.6px; }
+.cmd-item {
+  display:flex;align-items:center;gap:12px;padding:10px 16px;cursor:pointer;
+  transition:background .1s;font-size:13.5px;
+}
+.cmd-item:hover, .cmd-item.selected { background:var(--cream); }
+.cmd-item .cmd-ico { font-size:18px;width:26px;text-align:center;flex-shrink:0 }
+.cmd-item .cmd-main { flex:1;font-weight:500 }
+.cmd-item .cmd-sub { font-size:12px;color:#aaa }
+.cmd-item .cmd-kbd { font-size:11px;background:#f0f0f0;padding:2px 7px;
+  border-radius:4px;color:#888;font-family:monospace }
+.cmd-footer { padding:8px 16px;border-top:1px solid var(--cream);
+  display:flex;gap:16px;font-size:11px;color:#bbb }
+.cmd-footer span { display:flex;align-items:center;gap:4px }
+@keyframes fade-in { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:none} }
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -337,6 +398,11 @@ tr:last-child td{border-bottom:none}
   <div id="hdr">
     <div class="hdr-title" id="hdr-title">Dashboard — <span id="hdr-client">Nenhum cliente selecionado</span></div>
     <button class="btn btn-o btn-sm" onclick="resetConfig()" title="Reconfigurar servidor">⚙️</button>
+    <button class="btn btn-sm" onclick="cmdOpen()" title="Pesquisar (Ctrl+K)"
+      style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.15);gap:8px;min-width:160px;justify-content:flex-start;font-size:12px">
+      🔍 <span style="opacity:.6">Pesquisar...</span>
+      <span style="margin-left:auto;font-size:10px;opacity:.4;font-family:monospace;background:rgba(255,255,255,.1);padding:1px 6px;border-radius:3px">Ctrl+K</span>
+    </button>
     <button class="btn btn-o btn-sm" onclick="logout()" title="Sair">🚪 Sair</button>
     <button class="btn btn-o btn-sm" onclick="nav('importar')">📥 Importar</button>
     <button class="btn btn-p btn-sm" onclick="nav('irc')">🧮 IRC</button>
@@ -390,6 +456,7 @@ tr:last-child td{border-bottom:none}
               <option value="99">Todos os níveis</option>
             </select>
             <button class="btn btn-o btn-sm" onclick="exportCSV()">⬇️ CSV</button>
+          <button class="btn btn-o btn-sm" onclick="exportXLSX()">📊 Excel</button>
           </div>
         </div>
         <input type="text" class="srch" id="bal-search" placeholder="🔍 Pesquisar conta ou descrição..." oninput="loadBalancete()">
@@ -405,6 +472,25 @@ tr:last-child td{border-bottom:none}
 
     <!-- ══ RÁCIOS ══ -->
     <div id="panel-racios" class="panel">
+      <!-- Selector de Sector -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 14px;background:#fff;border-radius:10px;box-shadow:var(--sh);flex-wrap:wrap">
+        <div style="font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.5px">Sector de referência</div>
+        <select id="sector-select" class="fi" style="width:auto;font-size:13px;padding:5px 10px"
+          onchange="setSector(this.value)">
+          <option value="servicos">🏢 Serviços (CAE J/K/L/M/N)</option>
+          <option value="industria">🏭 Indústria (CAE B/C/D/E)</option>
+          <option value="comercio">🛒 Comércio (CAE G)</option>
+          <option value="construcao">🏗️ Construção (CAE F)</option>
+          <option value="hotelaria">🏨 Alojamento & Restauração (CAE I)</option>
+          <option value="saude">🏥 Saúde & Acção Social (CAE Q)</option>
+          <option value="tecnologia">💻 Tecnologia & TIC (CAE J)</option>
+          <option value="transportes">🚚 Transportes & Logística (CAE H)</option>
+        </select>
+        <span id="sector-label" style="font-size:12px;color:var(--blue);background:var(--blue-l);padding:3px 10px;border-radius:20px"></span>
+        <span id="sector-auto-badge" style="display:none;font-size:11px;color:var(--green);background:var(--green-l);padding:2px 8px;border-radius:20px">✓ Auto-detectado (CAE <span id="sector-cae-val"></span>)</span>
+        <span style="font-size:11px;color:#aaa;margin-left:auto">Fonte: BdP Central de Balanços 2023</span>
+      </div>
+
       <!-- TABS -->
       <div style="display:flex;gap:4px;margin-bottom:16px;background:#fff;padding:5px;border-radius:10px;box-shadow:var(--sh);width:fit-content;flex-wrap:wrap">
         <button class="irc-tab active" onclick="racioTab('overview',this)">📊 Visão Geral</button>
@@ -930,21 +1016,33 @@ tr:last-child td{border-bottom:none}
               </select>
             </div>
             <div id="irs-b-simplificado">
-              <div class="irc-row"><span class="irc-label">Volume de negócios / Serviços <span class="irc-ref">Coef. 0.35</span></span>
+              <!-- Aviso limite VN €200k -->
+              <div id="irs-b-vn-warn" style="display:none;background:var(--orange);color:#fff;border-radius:7px;padding:8px 12px;font-size:12px;margin-bottom:8px"></div>
+              <div class="irc-row"><span class="irc-label">Serviços prof. liberais (lista Art.151.º) <span class="irc-ref">Coef. 0.75</span></span>
                 <input class="fi irc-input" type="number" id="irs-b-servicos" value="0" placeholder="0" oninput="irsCalc()"></div>
-              <div class="irc-row"><span class="irc-label">Vendas / Produtos <span class="irc-ref">Coef. 0.15</span></span>
+              <div class="irc-row"><span class="irc-label">Vendas mercadorias / produtos e hotelaria <span class="irc-ref">Coef. 0.15</span></span>
                 <input class="fi irc-input" type="number" id="irs-b-vendas" value="0" placeholder="0" oninput="irsCalc()"></div>
-              <div class="irc-row"><span class="irc-label">Outros rendimentos Cat. B <span class="irc-ref">Coef. 0.95</span></span>
+              <div class="irc-row"><span class="irc-label">Outras prestações de serviços <span class="irc-ref">Coef. 0.35</span></span>
                 <input class="fi irc-input" type="number" id="irs-b-outros" value="0" placeholder="0" oninput="irsCalc()"></div>
+              <div class="irc-row"><span class="irc-label">Outros rendimentos Cat. B não qualificados <span class="irc-ref">Coef. 0.95</span></span>
+                <input class="fi irc-input" type="number" id="irs-b-outros95" value="0" placeholder="0" oninput="irsCalc()"></div>
+              <div class="irc-row"><span class="irc-label">Serviços a ex-entidade patronal (últimos 5 anos) <span class="irc-ref">Coef. 1.00</span></span>
+                <input class="fi irc-input" type="number" id="irs-b-exentidade" value="0" placeholder="0" oninput="irsCalc()"></div>
+              <!-- Deduções Art.31.º-A -->
+              <div style="margin-top:8px;padding:8px 10px;background:var(--cream);border-radius:7px;font-size:12px;color:#888">Deduções específicas Cat. B — Art.31.º-A CIRS</div>
+              <div class="irc-row"><span class="irc-label">Contribuições SS pagas (dedução directa) <span class="irc-ref">Art.31.º-A n.1 a)</span></span>
+                <input class="fi irc-input" type="number" id="irs-b-ss-pagas" value="0" placeholder="0" oninput="irsCalc()"></div>
             </div>
             <div id="irs-b-organizada" style="display:none">
               <div class="irc-row"><span class="irc-label">Resultado contabilístico Cat. B <span class="irc-ref">Art. 32.º</span></span>
                 <input class="fi irc-input" type="number" id="irs-b-resultado" value="0" placeholder="0" oninput="irsCalc()"></div>
             <div id="irs-b-simplificado-extra" style="display:none">
-              <div class="irc-row"><span class="irc-label">Prop. intelectual/ind. (coef. 0.50) <span class="irc-ref">Art.31.º</span></span>
+              <div class="irc-row"><span class="irc-label">Prop. intelectual/ind. — não abrangida EBF <span class="irc-ref">Coef. 0.50</span></span>
               <input class="fi irc-input" type="number" id="irs-b-prop-intl" value="0" placeholder="0" oninput="irsCalc()"></div>
-              <div class="irc-row"><span class="irc-label">Subsídios exploração (coef. 0.30) <span class="irc-ref">Art.31.º</span></span>
+              <div class="irc-row"><span class="irc-label">Subsídios / subvenções exploração <span class="irc-ref">Coef. 0.10 · OE 2023</span></span>
               <input class="fi irc-input" type="number" id="irs-b-subsidios" value="0" placeholder="0" oninput="irsCalc()"></div>
+              <div class="irc-row"><span class="irc-label">Subsídios p/ equipamentos / investimentos <span class="irc-ref">Coef. 0.30</span></span>
+              <input class="fi irc-input" type="number" id="irs-b-subsidios-inv" value="0" placeholder="0" oninput="irsCalc()"></div>
             </div>
             </div>
             <div class="irc-row"><span class="irc-label">Retenções na Fonte Cat. B <span class="irc-ref">Art. 101.º</span></span>
@@ -992,14 +1090,16 @@ tr:last-child td{border-bottom:none}
             <div class="ch" style="margin-top:12px"><div class="ct">🏥 Saúde</div><div class="cs">Art. 78.º-C — 15%, máx €1.000</div></div>
             <div class="irc-row"><span class="irc-label">Despesas de saúde <span class="irc-ref">15%</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-saude" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="ch" style="margin-top:12px"><div class="ct">🎓 Educação</div><div class="cs">Art. 78.º-D — 30%, máx €800</div></div>
-            <div class="irc-row"><span class="irc-label">Despesas de educação <span class="irc-ref">30%</span></span>
+            <div class="ch" style="margin-top:12px"><div class="ct">🎓 Educação</div><div class="cs">Art. 78.º-D — 30%, máx €800 (€1.000 monoparental)</div></div>
+            <div class="irc-row"><span class="irc-label">Despesas de educação <span class="irc-ref">30% (máx €800/€1.000)</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-educacao" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="ch" style="margin-top:12px"><div class="ct">🏡 Habitação</div><div class="cs">Art. 78.º-E — juros habitação própria</div></div>
+            <div class="ch" style="margin-top:12px"><div class="ct">🏡 Habitação e Lares</div><div class="cs">Art. 78.º-E — encargos com imóveis e lares</div></div>
             <div class="irc-row"><span class="irc-label">Juros habitação própria <span class="irc-ref">15%, máx €296</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-habitacao" value="0" placeholder="0" oninput="irsCalc()"></div>
             <div class="irc-row"><span class="irc-label">Rendas habitação própria <span class="irc-ref">15%, máx €502</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-rendas" value="0" placeholder="0" oninput="irsCalc()"></div>
+            <div class="irc-row"><span class="irc-label">Encargos com lares <span class="irc-ref">25%, máx €403,75 — Art.78.º-E n.3</span></span>
+              <input class="fi irc-input" type="number" id="irs-ded-lares" value="0" placeholder="0" oninput="irsCalc()"></div>
           </div>
           <div class="card">
             <div class="ch"><div class="ct">👶 Dependentes & Família</div><div class="cs">Art. 78.º-A CIRS</div></div>
@@ -1011,12 +1111,18 @@ tr:last-child td{border-bottom:none}
             <div class="irc-row"><span class="irc-label">Ascendentes a cargo <span class="irc-ref">€525 / ascend.</span></span>
               <span class="fi irc-input" id="irs-ded-asc-val" style="background:var(--cream);display:flex;align-items:center;justify-content:flex-end">€ 0</span></div>
             <div class="ch" style="margin-top:16px"><div class="ct">🤲 Benefícios Fiscais</div><div class="cs">EBF e legislação especial</div></div>
-            <div class="irc-row"><span class="irc-label">PPR / Planos poupança <span class="irc-ref">20%, máx €400</span></span>
+            <div class="irc-row"><span class="irc-label">PPR / Planos poupança <span class="irc-ref">20%, máx €400/€350/€300 por idade</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-ppr" value="0" placeholder="0" oninput="irsCalc()"></div>
-            <div class="irc-row"><span class="irc-label">IRS Jovem (extra dedução) <span class="irc-ref">Art. 12.º-B</span></span>
-              <input class="fi irc-input" type="number" id="irs-ded-jovem" value="0" placeholder="0" oninput="irsCalc()" readonly style="background:var(--cream)"></div>
-            <div class="irc-row"><span class="irc-label">Ano de IRS Jovem (1-10) <span class="irc-ref">Art.12.º-B CIRS</span></span>
-              <input class="fi irc-input" type="number" id="irs-jovem-ano" value="0" min="0" max="10" placeholder="0=N/A" oninput="irsCalcJovem()"></div>
+            <div class="irc-row"><span class="irc-label">Donativos mecenato <span class="irc-ref">25% — Art.62.º EBF</span></span>
+              <input class="fi irc-input" type="number" id="irs-ded-mecenato" value="0" placeholder="0" oninput="irsCalc()"></div>
+            <div class="irc-row"><span class="irc-label">Crédito regresso ao país <span class="irc-ref">Art.12.º-A CIRS</span></span>
+              <input class="fi irc-input" type="number" id="irs-ded-regresso" value="0" placeholder="0" oninput="irsCalc()"></div>
+            <div class="ch" style="margin-top:16px"><div class="ct">🎯 IRS Jovem — Exclusão de Rendimento</div><div class="cs">Art. 12.º-B — excluído do rendimento coletável (não é dedução à coleta)</div></div>
+            <div class="irc-row"><span class="irc-label">Ano de actividade (1–10) <span class="irc-ref">0 = não aplicável</span></span>
+              <input class="fi irc-input" type="number" id="irs-jovem-ano" value="0" min="0" max="15" placeholder="0=N/A" oninput="irsCalcJovem()"></div>
+            <div class="irc-row"><span class="irc-label">Exclusão calculada <span class="irc-ref">100%/75%/50% do rendimento bruto, máx €55.760</span></span>
+              <input class="fi irc-input" type="number" id="irs-ded-jovem" value="0" placeholder="0" readonly style="background:var(--cream)"></div>
+            <div id="irs-jovem-warn" style="display:none;margin:4px 0 8px;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:6px;font-size:12px;color:#856404"></div>
             <div class="irc-row"><span class="irc-label">Mecenato / Donativos <span class="irc-ref">25% dos donativos</span></span>
               <input class="fi irc-input" type="number" id="irs-ded-mecenato" value="0" placeholder="0" oninput="irsCalc()"></div>
             <div class="irc-row"><span class="irc-label">Regressos emigrantes <span class="irc-ref">Art. 12.º-A</span></span>
@@ -1217,6 +1323,22 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
+
+<!-- ══ COMMAND PALETTE ══ -->
+<div id="cmd-overlay" onclick="if(event.target===this)cmdClose()">
+  <div id="cmd-box">
+    <input id="cmd-input" type="text" placeholder="Pesquisar módulos, clientes, contas SNC..."
+      oninput="cmdSearch(this.value)" onkeydown="cmdKey(event)" autocomplete="off" spellcheck="false">
+    <div id="cmd-results"></div>
+    <div class="cmd-footer">
+      <span>↑↓ navegar</span>
+      <span>↵ seleccionar</span>
+      <span>Esc fechar</span>
+      <span style="margin-left:auto">Ctrl+K para abrir</span>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODALS ══ -->
 
 <!-- Entity selector -->
@@ -1279,7 +1401,7 @@ tr:last-child td{border-bottom:none}
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast-stack"></div>
 
 <script>
 // ══ CONFIG ══
@@ -1416,6 +1538,9 @@ async function loadEntityModal() {
 }
 
 async function createEntity() {
+  const saveBtn = document.querySelector('#mo-new-entity .btn-p');
+  if (saveBtn) { saveBtn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="btn-spin"></span>A criar...</span>'; saveBtn.disabled = true; }
+  const restoreBtn = () => { if (saveBtn) { saveBtn.innerHTML = '+ Criar Cliente'; saveBtn.disabled = false; } };
   const body = {
     name: document.getElementById('ne-name').value.trim(),
     nif: document.getElementById('ne-nif').value.trim(),
@@ -1449,6 +1574,24 @@ async function selectEntity(id, name, nif) {
   state.entityName = name;
   state.entityNIF = nif;
 
+  // ── Feedback imediato: actualizar sidebar e mostrar skeleton ──
+  document.getElementById('sb-ename').textContent = name;
+  document.getElementById('sb-enif').textContent  = 'NIF: ' + nif;
+  document.getElementById('hdr-client').textContent = name.split(',')[0];
+  closeModal('mo-entity');
+
+  // Mostrar skeleton no dashboard enquanto carrega fiscal years + financials
+  document.getElementById('dash-no-data').style.display = 'none';
+  document.getElementById('dash-data').style.display = 'block';
+  document.getElementById('kpi-grid').innerHTML = Array(4).fill(0).map(() =>
+    `<div class="skel skel-kpi"></div>`).join('');
+  document.getElementById('alerts-list').innerHTML =
+    `<div style="padding:8px 0">${Array(3).fill(0).map(() =>
+      `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream)">
+        <div class="skel" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div>
+        <div style="flex:1"><div class="skel skel-line"></div><div class="skel skel-line short"></div></div>
+      </div>`).join('')}</div>`;
+
   // Load fiscal years
   try {
     const years = await api(`/entities/${id}/fiscal-years`);
@@ -1461,11 +1604,27 @@ async function selectEntity(id, name, nif) {
     }
   } catch(e) {}
 
-  // Update sidebar
-  document.getElementById('sb-ename').textContent = name;
-  document.getElementById('sb-enif').textContent = 'NIF: ' + nif;
+  // Update sidebar year (nome e NIF já actualizados acima)
   document.getElementById('sb-yr').textContent = state.year;
   document.getElementById('hdr-client').textContent = name.split(',')[0];
+
+  // ── Auto-seleccionar sector a partir do CAE da empresa ──
+  try {
+    const entityData = await api(`/entities/${id}`);
+    if (entityData?.cae_code) {
+      state.entityCAE = entityData.cae_code;
+      const autoSector = caeToSector(entityData.cae_code);
+      if (autoSector && autoSector !== _activeSector) {
+        // Actualizar dropdown de sector nos rácios sem toast intrusivo
+        const sectorSel = document.getElementById('sector-select');
+        if (sectorSel) sectorSel.value = autoSector;
+        _activeSector = autoSector;
+        state.sector = autoSector;
+        const lbl = document.getElementById('sector-label');
+        if (lbl) lbl.textContent = BENCHMARKS_DB[autoSector]._label;
+      }
+    }
+  } catch(e) { /* silencioso — não bloquear carregamento */ }
 
   // Load financials
   await loadDashboard();
@@ -1477,9 +1636,25 @@ async function loadDashboard() {
   document.getElementById('dash-no-data').style.display = 'none';
   document.getElementById('dash-data').style.display = 'block';
 
+  // ── Skeleton imediato enquanto carrega ──
+  document.getElementById('kpi-grid').innerHTML = Array(4).fill(0).map(() =>
+    `<div class="skel skel-kpi"></div>`).join('');
+  document.getElementById('alerts-list').innerHTML =
+    `<div style="padding:8px 0">${Array(3).fill(0).map(() =>
+      `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--cream)">
+        <div class="skel" style="width:32px;height:32px;border-radius:50%;flex-shrink:0"></div>
+        <div style="flex:1"><div class="skel skel-line"></div><div class="skel skel-line short"></div></div>
+      </div>`).join('')}</div>`;
+  document.getElementById('pnl-body').innerHTML =
+    Array(7).fill(0).map(() =>
+      `<tr><td><div class="skel skel-line"></div></td><td><div class="skel skel-line xshort"></div></td>
+       <td><div class="skel skel-line xshort"></div></td><td><div class="skel skel-line xshort"></div></td></tr>`
+    ).join('');
+
   try {
     const fin = await api(`/entities/${state.entityId}/financials?fiscal_year_id=${state.fiscalYearId}`);
     state.financials = fin;
+    saveDRSnapshot(state.year || new Date().getFullYear(), fin);
 
     // KPIs
     const kpis = [
@@ -1507,7 +1682,7 @@ async function loadDashboard() {
       <div class="ci"><div class="chk ok">✓</div><span>Balancete importado e analisado</span></div>
       <div class="ci"><div class="chk pd">!</div><span>SAF-T — verificar submissão AT</span></div>
       <div class="ci"><div class="chk pd">!</div><span>IES ${state.year-1} — verificar submissão</span></div>
-      <div class="ci"><div class="chk pd">!</div><span>Modelo 22 ${state.year} — prazo 31/05/${state.year+1}</span></div>
+      <div class="ci"><div class="chk pd">!</div><span>Modelo 22 ${state.year} — prazo 31/07/${state.year+1}</span></div>
       <div class="ci"><div class="chk pd">!</div><span>Pagamentos por conta — confirmar</span></div>`;
 
     // P&L
@@ -1535,6 +1710,20 @@ async function loadBalancete() {
   const nivel = document.getElementById('bal-nivel')?.value || 2;
   const search = document.getElementById('bal-search')?.value || '';
   document.getElementById('bal-subtitle').textContent = state.entityName + ' · ' + state.year;
+
+  // Skeleton enquanto carrega
+  const balBody = document.getElementById('bal-body');
+  if (balBody) {
+    balBody.innerHTML = Array(12).fill(0).map((_, i) => `
+      <tr>
+        <td><div class="skel skel-line" style="width:${40 + (i%3)*15}px;margin-left:${(i%4)*12}px"></div></td>
+        <td><div class="skel skel-line" style="width:${80 + (i%5)*20}px"></div></td>
+        <td><div class="skel skel-line xshort" style="margin-left:auto"></div></td>
+        <td><div class="skel skel-line xshort" style="margin-left:auto"></div></td>
+        <td><div class="skel skel-line xshort" style="margin-left:auto"></div></td>
+        <td><div class="skel skel-line xshort" style="margin-left:auto"></div></td>
+      </tr>`).join('');
+  }
 
   try {
     const data = await api(`/entities/${state.entityId}/balancete?fiscal_year_id=${state.fiscalYearId}&nivel_max=${nivel}&search=${encodeURIComponent(search)}`);
@@ -1574,6 +1763,98 @@ function exportCSV() {
   toast('✓ CSV exportado');
 }
 
+// ── Exportar Balancete Excel (.xlsx) ──
+function exportXLSX() {
+  if (!state.balanceteData || !state.balanceteData.length) {
+    toast('⚠️ Carregue o balancete primeiro'); return;
+  }
+  if (typeof XLSX === 'undefined') {
+    toast('❌ Biblioteca Excel não carregada — verifique a ligação', 4000); return;
+  }
+
+  const entity = state.entityName || 'Empresa';
+  const year   = state.year || new Date().getFullYear();
+
+  // ── Cabeçalho informativo ──
+  const infoRows = [
+    ['BALANCETE DE VERIFICAÇÃO', '', '', '', '', '', '', ''],
+    [entity, '', '', '', '', '', '', ''],
+    [`Exercício ${year}`, '', '', '', '', '', '', ''],
+    [`Exportado em ${new Date().toLocaleDateString('pt-PT')}`, '', '', '', '', '', '', ''],
+    [],
+    ['Conta', 'Descrição', 'Déb. Período', 'Créd. Período', 'Déb. Acumulado', 'Créd. Acumulado', 'Devedor', 'Credor'],
+  ];
+
+  // ── Dados ──
+  const dataRows = state.balanceteData.map(r => [
+    r.conta        || '',
+    r.descricao    || '',
+    r.deb_periodo  || 0,
+    r.cred_periodo || 0,
+    r.deb_acum     || 0,
+    r.cred_acum    || 0,
+    r.devedor      || 0,
+    r.credor       || 0,
+  ]);
+
+  // ── Totais ──
+  const totals = [7,8,9,10,11,12,13,14].map((_, i) =>
+    dataRows.reduce((s, r) => s + (Number(r[i + 2]) || 0), 0)
+  );
+  const totalRow = ['', 'TOTAL', ...totals];
+
+  const allRows = [...infoRows, ...dataRows, [], totalRow];
+
+  // ── Criar workbook ──
+  const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+  // Larguras de coluna
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 40 }, { wch: 14 }, { wch: 14 },
+    { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+  ];
+
+  // Merge células do cabeçalho
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:7} }, // Título
+    { s:{r:1,c:0}, e:{r:1,c:7} }, // Empresa
+    { s:{r:2,c:0}, e:{r:2,c:7} }, // Exercício
+    { s:{r:3,c:0}, e:{r:3,c:7} }, // Data
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Balancete');
+
+  // Folha de resumo por classe SNC
+  const classes = [1,2,3,4,5,6,7,8,9];
+  const resumoRows = [
+    ['RESUMO POR CLASSE SNC', ''],
+    [],
+    ['Classe', 'Descrição', 'Devedor', 'Credor', 'Saldo Líquido'],
+  ];
+  const classNames = {
+    1:'Meios Financeiros Líquidos', 2:'Contas a Receber/Pagar',
+    3:'Inventários e Ativos Biológicos', 4:'Investimentos',
+    5:'Capital, Reservas e Resultados', 6:'Gastos',
+    7:'Rendimentos', 8:'Resultados', 9:'Contas de Ordem',
+  };
+  classes.forEach(cl => {
+    const rows = state.balanceteData.filter(r => r.classe === cl);
+    if (!rows.length) return;
+    const dev = rows.reduce((s,r) => s+(r.devedor||0), 0);
+    const cred = rows.reduce((s,r) => s+(r.credor||0), 0);
+    resumoRows.push([`Classe ${cl}`, classNames[cl]||'', dev, cred, dev - cred]);
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(resumoRows);
+  ws2['!cols'] = [{wch:10},{wch:38},{wch:14},{wch:14},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumo SNC');
+
+  // Download
+  XLSX.writeFile(wb, `Balancete_${(entity).replace(/[^a-z0-9]/gi,'_')}_${year}.xlsx`);
+  toast('✓ Excel exportado com 2 folhas (Balancete + Resumo SNC)');
+}
+
 // ══ RÁCIOS ══
 function racioTab(name, btn) {
   document.querySelectorAll('[id^="racios-tab-"]').forEach(el => el.style.display = 'none');
@@ -1584,20 +1865,242 @@ function racioTab(name, btn) {
 }
 
 // ── BENCHMARKS por setor (CAE consultoria/serviços) ──
-const BENCHMARKS = {
-  liquidez_geral:     { bom: 1.5,  medio: 1.0,  ref: 'Setor serviços PT' },
-  liquidez_imediata:  { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
-  solvabilidade:      { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
-  autonomia:          { bom: 0.4,  medio: 0.25, ref: 'BdP 2023' },
-  endividamento:      { bom: 0.6,  medio: 0.75, ref: 'BdP 2023', inverse: true },
-  margem_liquida:     { bom: 10,   medio: 5,    ref: 'Consultoria PT' },
-  margem_ebitda:      { bom: 15,   medio: 8,    ref: 'Consultoria PT' },
-  roe:                { bom: 15,   medio: 8,    ref: 'Avg PME PT' },
-  roa:                { bom: 8,    medio: 4,    ref: 'Avg PME PT' },
-  roce:               { bom: 10,   medio: 5,    ref: 'Avg PME PT' },
-  pmr:                { bom: 60,   medio: 90,   ref: 'Lei 62/2013', inverse: true },
-  pmp:                { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+// ── Benchmarks por sector CAE — BdP Estudos da Central de Balanços ──
+const BENCHMARKS_DB = {
+  servicos: {
+    _label: '🏢 Serviços (CAE J/K/L/M/N)',
+    _ref: 'BdP Central de Balanços 2023',
+    liquidez_geral:    { bom: 1.5,  medio: 1.0,  ref: 'BdP 2023' },
+    liquidez_imediata: { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
+    solvabilidade:     { bom: 0.5,  medio: 0.2,  ref: 'BdP 2023' },
+    autonomia:         { bom: 0.40, medio: 0.25, ref: 'BdP 2023' },
+    endividamento:     { bom: 0.60, medio: 0.75, ref: 'BdP 2023', inverse: true },
+    margem_liquida:    { bom: 10,   medio: 5,    ref: 'BdP 2023' },
+    margem_ebitda:     { bom: 15,   medio: 8,    ref: 'BdP 2023' },
+    roe:               { bom: 15,   medio: 8,    ref: 'BdP 2023' },
+    roa:               { bom: 8,    medio: 4,    ref: 'BdP 2023' },
+    roce:              { bom: 10,   medio: 5,    ref: 'BdP 2023' },
+    pmr:               { bom: 60,   medio: 90,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+  },
+  industria: {
+    _label: '🏭 Indústria (CAE B/C/D/E)',
+    _ref: 'BdP Central de Balanços 2023 — Indústria Transformadora',
+    liquidez_geral:    { bom: 2.0,  medio: 1.2,  ref: 'BdP Indústria 2023' },
+    liquidez_imediata: { bom: 0.7,  medio: 0.3,  ref: 'BdP Indústria 2023' },
+    solvabilidade:     { bom: 0.6,  medio: 0.3,  ref: 'BdP Indústria 2023' },
+    autonomia:         { bom: 0.45, medio: 0.30, ref: 'BdP Indústria 2023' },
+    endividamento:     { bom: 0.55, medio: 0.70, ref: 'BdP Indústria 2023', inverse: true },
+    margem_liquida:    { bom: 7,    medio: 3,    ref: 'BdP Indústria 2023' },
+    margem_ebitda:     { bom: 12,   medio: 6,    ref: 'BdP Indústria 2023' },
+    roe:               { bom: 12,   medio: 6,    ref: 'BdP Indústria 2023' },
+    roa:               { bom: 6,    medio: 3,    ref: 'BdP Indústria 2023' },
+    roce:              { bom: 8,    medio: 4,    ref: 'BdP Indústria 2023' },
+    pmr:               { bom: 45,   medio: 75,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 45,   medio: 75,   ref: 'Lei 62/2013', inverse: true },
+  },
+  comercio: {
+    _label: '🛒 Comércio (CAE G)',
+    _ref: 'BdP Central de Balanços 2023 — Comércio a Retalho/Grosso',
+    liquidez_geral:    { bom: 1.3,  medio: 0.9,  ref: 'BdP Comércio 2023' },
+    liquidez_imediata: { bom: 0.3,  medio: 0.15, ref: 'BdP Comércio 2023' },
+    solvabilidade:     { bom: 0.35, medio: 0.15, ref: 'BdP Comércio 2023' },
+    autonomia:         { bom: 0.30, medio: 0.18, ref: 'BdP Comércio 2023' },
+    endividamento:     { bom: 0.70, medio: 0.82, ref: 'BdP Comércio 2023', inverse: true },
+    margem_liquida:    { bom: 4,    medio: 2,    ref: 'BdP Comércio 2023' },
+    margem_ebitda:     { bom: 6,    medio: 3,    ref: 'BdP Comércio 2023' },
+    roe:               { bom: 12,   medio: 6,    ref: 'BdP Comércio 2023' },
+    roa:               { bom: 4,    medio: 2,    ref: 'BdP Comércio 2023' },
+    roce:              { bom: 6,    medio: 3,    ref: 'BdP Comércio 2023' },
+    pmr:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+  },
+  construcao: {
+    _label: '🏗️ Construção (CAE F)',
+    _ref: 'BdP Central de Balanços 2023 — Construção',
+    liquidez_geral:    { bom: 1.4,  medio: 1.0,  ref: 'BdP Construção 2023' },
+    liquidez_imediata: { bom: 0.4,  medio: 0.2,  ref: 'BdP Construção 2023' },
+    solvabilidade:     { bom: 0.4,  medio: 0.2,  ref: 'BdP Construção 2023' },
+    autonomia:         { bom: 0.35, medio: 0.20, ref: 'BdP Construção 2023' },
+    endividamento:     { bom: 0.65, medio: 0.80, ref: 'BdP Construção 2023', inverse: true },
+    margem_liquida:    { bom: 5,    medio: 2,    ref: 'BdP Construção 2023' },
+    margem_ebitda:     { bom: 10,   medio: 5,    ref: 'BdP Construção 2023' },
+    roe:               { bom: 10,   medio: 5,    ref: 'BdP Construção 2023' },
+    roa:               { bom: 5,    medio: 2.5,  ref: 'BdP Construção 2023' },
+    roce:              { bom: 7,    medio: 3.5,  ref: 'BdP Construção 2023' },
+    pmr:               { bom: 60,   medio: 90,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 45,   medio: 75,   ref: 'Lei 62/2013', inverse: true },
+  },
+  hotelaria: {
+    _label: '🏨 Alojamento & Restauração (CAE I)',
+    _ref: 'BdP Central de Balanços 2023 — Turismo',
+    liquidez_geral:    { bom: 1.2,  medio: 0.8,  ref: 'BdP Turismo 2023' },
+    liquidez_imediata: { bom: 0.4,  medio: 0.2,  ref: 'BdP Turismo 2023' },
+    solvabilidade:     { bom: 0.3,  medio: 0.15, ref: 'BdP Turismo 2023' },
+    autonomia:         { bom: 0.30, medio: 0.18, ref: 'BdP Turismo 2023' },
+    endividamento:     { bom: 0.70, medio: 0.82, ref: 'BdP Turismo 2023', inverse: true },
+    margem_liquida:    { bom: 8,    medio: 3,    ref: 'BdP Turismo 2023' },
+    margem_ebitda:     { bom: 20,   medio: 12,   ref: 'BdP Turismo 2023' },
+    roe:               { bom: 10,   medio: 4,    ref: 'BdP Turismo 2023' },
+    roa:               { bom: 4,    medio: 2,    ref: 'BdP Turismo 2023' },
+    roce:              { bom: 6,    medio: 3,    ref: 'BdP Turismo 2023' },
+    pmr:               { bom: 15,   medio: 30,   ref: 'Setor', inverse: true },
+    pmp:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+  },
+  saude: {
+    _label: '🏥 Saúde & Acção Social (CAE Q)',
+    _ref: 'BdP Central de Balanços 2023 — Saúde',
+    liquidez_geral:    { bom: 1.4,  medio: 1.0,  ref: 'BdP Saúde 2023' },
+    liquidez_imediata: { bom: 0.5,  medio: 0.25, ref: 'BdP Saúde 2023' },
+    solvabilidade:     { bom: 0.45, medio: 0.25, ref: 'BdP Saúde 2023' },
+    autonomia:         { bom: 0.40, medio: 0.25, ref: 'BdP Saúde 2023' },
+    endividamento:     { bom: 0.60, medio: 0.75, ref: 'BdP Saúde 2023', inverse: true },
+    margem_liquida:    { bom: 8,    medio: 4,    ref: 'BdP Saúde 2023' },
+    margem_ebitda:     { bom: 14,   medio: 7,    ref: 'BdP Saúde 2023' },
+    roe:               { bom: 12,   medio: 6,    ref: 'BdP Saúde 2023' },
+    roa:               { bom: 6,    medio: 3,    ref: 'BdP Saúde 2023' },
+    roce:              { bom: 8,    medio: 4,    ref: 'BdP Saúde 2023' },
+    pmr:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+  },
+  tecnologia: {
+    _label: '💻 Tecnologia & TIC (CAE J)',
+    _ref: 'BdP Central de Balanços 2023 — Tecnologia',
+    liquidez_geral:    { bom: 2.0,  medio: 1.2,  ref: 'BdP Tecnologia 2023' },
+    liquidez_imediata: { bom: 1.0,  medio: 0.5,  ref: 'BdP Tecnologia 2023' },
+    solvabilidade:     { bom: 0.6,  medio: 0.35, ref: 'BdP Tecnologia 2023' },
+    autonomia:         { bom: 0.50, medio: 0.35, ref: 'BdP Tecnologia 2023' },
+    endividamento:     { bom: 0.50, medio: 0.65, ref: 'BdP Tecnologia 2023', inverse: true },
+    margem_liquida:    { bom: 15,   medio: 7,    ref: 'BdP Tecnologia 2023' },
+    margem_ebitda:     { bom: 22,   medio: 12,   ref: 'BdP Tecnologia 2023' },
+    roe:               { bom: 20,   medio: 10,   ref: 'BdP Tecnologia 2023' },
+    roa:               { bom: 10,   medio: 5,    ref: 'BdP Tecnologia 2023' },
+    roce:              { bom: 14,   medio: 7,    ref: 'BdP Tecnologia 2023' },
+    pmr:               { bom: 45,   medio: 75,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+  },
+  transportes: {
+    _label: '🚚 Transportes & Logística (CAE H)',
+    _ref: 'BdP Central de Balanços 2023 — Transportes',
+    liquidez_geral:    { bom: 1.3,  medio: 0.9,  ref: 'BdP Transp. 2023' },
+    liquidez_imediata: { bom: 0.4,  medio: 0.2,  ref: 'BdP Transp. 2023' },
+    solvabilidade:     { bom: 0.35, medio: 0.18, ref: 'BdP Transp. 2023' },
+    autonomia:         { bom: 0.30, medio: 0.18, ref: 'BdP Transp. 2023' },
+    endividamento:     { bom: 0.70, medio: 0.82, ref: 'BdP Transp. 2023', inverse: true },
+    margem_liquida:    { bom: 5,    medio: 2,    ref: 'BdP Transp. 2023' },
+    margem_ebitda:     { bom: 12,   medio: 6,    ref: 'BdP Transp. 2023' },
+    roe:               { bom: 10,   medio: 5,    ref: 'BdP Transp. 2023' },
+    roa:               { bom: 5,    medio: 2.5,  ref: 'BdP Transp. 2023' },
+    roce:              { bom: 7,    medio: 3.5,  ref: 'BdP Transp. 2023' },
+    pmr:               { bom: 30,   medio: 60,   ref: 'Lei 62/2013', inverse: true },
+    pmp:               { bom: 45,   medio: 75,   ref: 'Lei 62/2013', inverse: true },
+  },
 };
+
+// Sector activo (começa em serviços por defeito, persistido em state)
+let _activeSector = 'servicos';
+// ── CAE → Sector (baseado na CAE Rev.3 / BdP) ──
+const CAE_TO_SECTOR = {
+  // Agricultura, silvicultura, pesca
+  A: 'servicos',
+  // Indústria extractiva, transformadora, energia
+  B: 'industria', C: 'industria', D: 'industria', E: 'industria',
+  // Construção
+  F: 'construcao',
+  // Comércio
+  G: 'comercio',
+  // Transportes e armazenagem
+  H: 'transportes',
+  // Alojamento, restauração
+  I: 'hotelaria',
+  // Informação e comunicação (TIC)
+  J: 'tecnologia',
+  // Actividades financeiras e de seguros
+  K: 'servicos',
+  // Actividades imobiliárias
+  L: 'servicos',
+  // Actividades de consultoria e científicas
+  M: 'servicos',
+  // Actividades administrativas e de apoio
+  N: 'servicos',
+  // Administração pública
+  O: 'servicos',
+  // Educação
+  P: 'servicos',
+  // Saúde e apoio social
+  Q: 'saude',
+  // Actividades artísticas e recreativas
+  R: 'servicos',
+  // Outras actividades de serviços
+  S: 'servicos',
+};
+
+function caeToSector(caeCode) {
+  if (!caeCode) return null;
+  // CAE começa com 2 dígitos numéricos — usar primeira letra da divisão Rev.3
+  // Divisões numéricas: 01-03=A, 05-09=B, 10-33=C, 35=D, 36-39=E,
+  // 41-43=F, 45-47=G, 49-53=H, 55-56=I, 58-63=J, 64-66=K,
+  // 68=L, 69-75=M, 77-82=N, 84=O, 85=P, 86-88=Q, 90-93=R, 94-99=S
+  const n = parseInt(String(caeCode).substring(0, 2));
+  if (n >= 1  && n <= 3)  return 'servicos';    // Agricultura
+  if (n >= 5  && n <= 9)  return 'industria';   // Extractiva
+  if (n >= 10 && n <= 33) return 'industria';   // Transformadora
+  if (n === 35)           return 'industria';   // Energia
+  if (n >= 36 && n <= 39) return 'industria';   // Água/Resíduos
+  if (n >= 41 && n <= 43) return 'construcao';
+  if (n >= 45 && n <= 47) return 'comercio';
+  if (n >= 49 && n <= 53) return 'transportes';
+  if (n >= 55 && n <= 56) return 'hotelaria';
+  if (n >= 58 && n <= 63) return 'tecnologia';
+  if (n >= 64 && n <= 66) return 'servicos';    // Finanças
+  if (n === 68)           return 'servicos';    // Imobiliário
+  if (n >= 69 && n <= 75) return 'servicos';    // Consultoria/Ciência
+  if (n >= 77 && n <= 82) return 'servicos';    // Administrativo
+  if (n === 84)           return 'servicos';    // Adm. Pública
+  if (n === 85)           return 'servicos';    // Educação
+  if (n >= 86 && n <= 88) return 'saude';
+  if (n >= 90 && n <= 93) return 'servicos';    // Artes
+  if (n >= 94 && n <= 99) return 'servicos';    // Outros
+  return null;
+}
+
+const BENCHMARKS = new Proxy({}, {
+  get(_, key) {
+    const sector = _activeSector;
+    const db = BENCHMARKS_DB[sector] || BENCHMARKS_DB.servicos;
+    return db[key];
+  }
+});
+
+function getSectorBenchmarks() {
+  return BENCHMARKS_DB[_activeSector] || BENCHMARKS_DB.servicos;
+}
+
+function setSector(sector, auto = false) {
+  if (!BENCHMARKS_DB[sector]) return;
+  _activeSector = sector;
+  state.sector = sector;
+  // Re-renderizar rácios com novos benchmarks
+  if (state.financials) renderRacios();
+  // Actualizar label
+  const lbl = document.getElementById('sector-label');
+  if (lbl) lbl.textContent = BENCHMARKS_DB[sector]._label;
+  // Badge auto-detecção
+  const badge = document.getElementById('sector-auto-badge');
+  const caeVal = document.getElementById('sector-cae-val');
+  if (badge) {
+    if (auto && state.entityCAE) {
+      badge.style.display = 'inline';
+      if (caeVal) caeVal.textContent = state.entityCAE;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+  // Actualizar dropdown
+  const sel = document.getElementById('sector-select');
+  if (sel) sel.value = sector;
+  if (!auto) toast('✓ Sector: ' + BENCHMARKS_DB[sector]._label);
+}
 
 function racioStatus(val, key) {
   const b = BENCHMARKS[key];
@@ -1687,11 +2190,30 @@ function benchBar(val, key, unit='') {
 function racioCard(titulo, val, key, formula, unit='', descricao='', gaugeMin=0, gaugeMax=2) {
   const status = racioStatus(val, key);
   const hist = getHistorico(key);
+  // Delta vs ano anterior
+  let deltaHtml = '';
+  if (hist.length >= 2) {
+    const prev = hist[hist.length - 2];
+    const curr = hist[hist.length - 1];
+    if (prev && curr && prev.v != null && curr.v != null && prev.v !== 0) {
+      const delta    = curr.v - prev.v;
+      const deltaPct = (delta / Math.abs(prev.v) * 100);
+      const isInv    = (BENCHMARKS[key]||{}).inverse; // rácios onde menor = melhor
+      const positive = isInv ? delta < 0 : delta > 0;
+      const dColor   = Math.abs(deltaPct) < 0.5 ? '#aaa' : positive ? 'var(--green)' : 'var(--red)';
+      const dArrow   = delta > 0.005 ? '▲' : delta < -0.005 ? '▼' : '—';
+      const dLabel   = Math.abs(deltaPct) < 0.1 ? '—' : `${dArrow} ${Math.abs(deltaPct).toFixed(1)}% vs ${prev.y}`;
+      deltaHtml = `<span style="font-size:11px;color:${dColor};font-weight:600;margin-left:8px">${dLabel}</span>`;
+    }
+  }
   return `<div class="card" style="position:relative">
     <div style="display:flex;align-items:flex-start;gap:14px">
       <div style="flex:1">
         <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">${titulo}</div>
-        <div style="font-size:28px;font-weight:700;color:${status.color};font-family:'DM Mono',monospace">${val}${unit}</div>
+        <div style="display:flex;align-items:baseline;gap:0;flex-wrap:wrap">
+          <div style="font-size:28px;font-weight:700;color:${status.color};font-family:'DM Mono',monospace">${val}${unit}</div>
+          ${deltaHtml}
+        </div>
         <div style="font-size:11px;color:#bbb;margin-top:2px">${formula}</div>
         <span class="badge ${status.cls}" style="margin-top:6px;display:inline-block">${status.label}</span>
       </div>
@@ -1716,6 +2238,36 @@ function saveRacioSnapshot(year, ratios) {
   localStorage.setItem(key, JSON.stringify(history));
 }
 
+// Guardar snapshot completo de DR + Balanço para comparação multi-ano
+function saveDRSnapshot(year, financials) {
+  if (!financials || !state.entityId) return;
+  const key = `containtel_dr_${state.entityId}`;
+  let history = JSON.parse(localStorage.getItem(key) || '{}');
+  history[year] = { pnl: financials.pnl, balanco: financials.balanco };
+  localStorage.setItem(key, JSON.stringify(history));
+}
+
+function _getDRHistory(year) {
+  if (!state.entityId) return null;
+  const key = `containtel_dr_${state.entityId}`;
+  const history = JSON.parse(localStorage.getItem(key) || '{}');
+  return history[year] || null;
+}
+
+// Retorna todos os snapshots DR ordenados por ano — para comparação multi-ano
+function getDRHistory() {
+  if (!state.entityId) return {};
+  const key = `containtel_dr_${state.entityId}`;
+  return JSON.parse(localStorage.getItem(key) || '{}');
+}
+
+// Devolve snapshot do ano anterior ao activo (ou de um ano específico)
+function getPrevYearDR(currentYear) {
+  const history = getDRHistory();
+  const prevYear = String(parseInt(currentYear) - 1);
+  return history[prevYear] || null;
+}
+
 function getRacioHistory() {
   const key = `containtel_racios_${state.entityId}`;
   return JSON.parse(localStorage.getItem(key) || '{}');
@@ -1729,6 +2281,15 @@ function getHistorico(racioKey) {
 }
 
 function renderRacios() {
+  // Sincronizar selector de sector com state
+  const sel = document.getElementById('sector-select');
+  if (sel && state.sector) {
+    sel.value = state.sector;
+    _activeSector = state.sector;
+  }
+  const lbl = document.getElementById('sector-label');
+  if (lbl) lbl.textContent = BENCHMARKS_DB[_activeSector]?._label || '';
+
   if (!state.financials) return;
   const r = state.financials.ratios;
   const year = state.year || new Date().getFullYear();
@@ -2369,6 +2930,12 @@ function renderDFTab(name) {
   const el = document.getElementById('df-tab-' + name);
   if (!el) return;
 
+  // ── Ano anterior — ler do snapshot de rácios/DR guardado ──
+  const prevData = _getDRHistory(year - 1);
+  const pp = prevData?.pnl || null;  // pnl do ano anterior (pode ser null)
+  const pb = prevData?.balanco || null;
+  _drShowPrev = !!pp;
+
   if (name === 'dr') {
     // Full Demonstração de Resultados (NCRF model)
     el.innerHTML = `
@@ -2387,30 +2954,31 @@ function renderDFTab(name) {
                 <th style="text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Rubricas</th>
                 <th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Notas</th>
                 <th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px">${year}</th>
+                ${pp ? `<th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#bbb">${year-1}</th><th style="text-align:right;padding:8px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#bbb">Δ%</th>` : ''}
               </tr>
             </thead>
             <tbody>
-              ${drRow('Vendas e serviços prestados', p.vn || p.total_rendimentos, '4', true)}
-              ${drRow('Custo das mercadorias vendidas e matérias consumidas', p.cmvmc, '5', false, true)}
-              ${drRow('Margem Bruta', (p.vn||p.total_rendimentos) - p.cmvmc, null, false, false, true)}
-              ${drRow('Outros rendimentos e ganhos', p.outros_rendimentos || 0, '6')}
-              ${drRow('Fornecimentos e serviços externos', p.fse || 0, '7', false, true)}
-              ${drRow('Gastos com o pessoal', p.gastos_pessoal || 0, '8', false, true)}
-              ${drRow('Imparidades (perdas/reversões)', p.imparidades || 0, '9', false, true)}
-              ${drRow('Provisões (aumentos/reduções)', p.provisoes || 0, '10', false, true)}
-              ${drRow('Outros gastos e perdas', p.outros_gastos || 0, '11', false, true)}
+              ${drRow('Vendas e serviços prestados', p.vn || p.total_rendimentos, '4', true, false, false, '', false, pp?.vn??pp?.total_rendimentos)}
+              ${drRow('Custo das mercadorias vendidas e matérias consumidas', p.cmvmc, '5', false, true, false, '', false, pp?.cmvmc)}
+              ${drRow('Margem Bruta', (p.vn||p.total_rendimentos) - p.cmvmc, null, false, false, true, '', false, pp?((pp.vn||pp.total_rendimentos)-(pp.cmvmc||0)):undefined)}
+              ${drRow('Outros rendimentos e ganhos', p.outros_rendimentos || 0, '6', false, false, false, '', false, pp?.outros_rendimentos)}
+              ${drRow('Fornecimentos e serviços externos', p.fse || 0, '7', false, true, false, '', false, pp?.fse)}
+              ${drRow('Gastos com o pessoal', p.gastos_pessoal || 0, '8', false, true, false, '', false, pp?.gastos_pessoal)}
+              ${drRow('Imparidades (perdas/reversões)', p.imparidades || 0, '9', false, true, false, '', false, pp?.imparidades)}
+              ${drRow('Provisões (aumentos/reduções)', p.provisoes || 0, '10', false, true, false, '', false, pp?.provisoes)}
+              ${drRow('Outros gastos e perdas', p.outros_gastos || 0, '11', false, true, false, '', false, pp?.outros_gastos)}
               ${drSep()}
-              ${drRow('Resultado antes depreciações, gastos fin. e impostos (EBITDA)', p.ebitda, null, false, false, true, 'var(--blue)')}
-              ${drRow('Gastos/reversões depreciações e amortizações', p.depreciacao || 0, '12', false, true)}
+              ${drRow('Resultado antes depreciações, gastos fin. e impostos (EBITDA)', p.ebitda, null, false, false, true, 'var(--blue)', false, pp?.ebitda)}
+              ${drRow('Gastos/reversões depreciações e amortizações', p.depreciacao || 0, '12', false, true, false, '', false, pp?.depreciacao)}
               ${drSep()}
-              ${drRow('Resultado operacional (EBIT)', p.ebit || p.ebitda - p.depreciacao, null, false, false, true)}
-              ${drRow('Rendimentos financeiros', p.rendimentos_financeiros || 0, '13')}
-              ${drRow('Gastos e perdas de financiamento', p.gastos_financiamento || 0, '14', false, true)}
+              ${drRow('Resultado operacional (EBIT)', p.ebit || p.ebitda - p.depreciacao, null, false, false, true, '', false, pp?(pp.ebit??pp.ebitda-pp.depreciacao):undefined)}
+              ${drRow('Rendimentos financeiros', p.rendimentos_financeiros || 0, '13', false, false, false, '', false, pp?.rendimentos_financeiros)}
+              ${drRow('Gastos e perdas de financiamento', p.gastos_financiamento || 0, '14', false, true, false, '', false, pp?.gastos_financiamento)}
               ${drSep()}
-              ${drRow('Resultado antes de impostos (RAI)', p.rai || p.resultado_liquido, null, false, false, true)}
-              ${drRow('Imposto sobre o rendimento do período', p.irc_contabilistico || 0, '15', false, true)}
+              ${drRow('Resultado antes de impostos (RAI)', p.rai || p.resultado_liquido, null, false, false, true, '', false, pp?.rai??pp?.resultado_liquido)}
+              ${drRow('Imposto sobre o rendimento do período', p.irc_contabilistico || 0, '15', false, true, false, '', false, pp?.irc_contabilistico)}
               ${drSep()}
-              ${drRow('RESULTADO LÍQUIDO DO PERÍODO', p.resultado_liquido, null, false, false, true, p.resultado_liquido >= 0 ? 'var(--green)' : 'var(--red)', true)}
+              ${drRow('RESULTADO LÍQUIDO DO PERÍODO', p.resultado_liquido, null, false, false, true, p.resultado_liquido >= 0 ? 'var(--green)' : 'var(--red)', true, pp?.resultado_liquido)}
             </tbody>
           </table>
         </div>
@@ -2542,7 +3110,7 @@ function renderDFTab(name) {
 }
 
 // DR helper rows
-function drRow(label, val, nota, isRend=false, isGasto=false, isTotal=false, color='', bold=false) {
+function drRow(label, val, nota, isRend=false, isGasto=false, isTotal=false, color='', bold=false, prevVal=undefined) {
   if (!val && val !== 0) return '';
   const absVal = Math.abs(val || 0);
   const color2 = color || (isTotal ? (val>=0?'var(--green)':'var(--red)') : 'var(--ink)');
@@ -2550,12 +3118,34 @@ function drRow(label, val, nota, isRend=false, isGasto=false, isTotal=false, col
   const fw = (bold || isTotal) ? 'font-weight:700;' : '';
   const sign = isGasto && val > 0 ? '(' : '';
   const sign2 = isGasto && val > 0 ? ')' : '';
+  // Delta vs ano anterior
+  let deltaCell = '';
+  if (prevVal !== undefined && prevVal !== null) {
+    const absPrev = Math.abs(prevVal || 0);
+    const delta = val - prevVal;
+    const deltaPct = prevVal !== 0 ? (delta / Math.abs(prevVal) * 100) : null;
+    const deltaColor = delta > 0 ? (isGasto ? 'var(--red)' : 'var(--green)') : delta < 0 ? (isGasto ? 'var(--green)' : 'var(--red)') : '#aaa';
+    const deltaArrow = delta > 0 ? '▲' : delta < 0 ? '▼' : '—';
+    const deltaStr = deltaPct !== null ? `${deltaArrow} ${Math.abs(deltaPct).toFixed(1)}%` : deltaArrow;
+    const prevSign = isGasto && prevVal > 0 ? '(' : '';
+    const prevSign2 = isGasto && prevVal > 0 ? ')' : '';
+    deltaCell = `
+      <td style="text-align:right;padding:7px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#bbb;${bg}${isTotal?'border-top:2px solid var(--ink);':''}">${prevSign}${fmtN(absPrev)}${prevSign2}</td>
+      <td style="text-align:right;padding:7px 8px;font-size:11px;color:${deltaColor};font-weight:600;white-space:nowrap;${isTotal?'border-top:2px solid var(--ink);':''}">${deltaStr}</td>`;
+  } else if (_drShowPrev) {
+    // Placeholder vazio quando há coluna anterior mas este item não tem histórico
+    deltaCell = `<td></td><td></td>`;
+  }
   return `<tr style="${bg}border-bottom:1px solid var(--cream)">
-    <td style="padding:7px 12px;font-size:13px;${fw}${isTotal?'border-top:2px solid var(--ink);':''}">${label}</td>
-    <td style="text-align:right;padding:7px 12px;font-size:11px;color:#bbb">${nota||''}</td>
-    <td style="text-align:right;padding:7px 12px;font-family:'DM Mono',monospace;font-size:13px;${fw}color:${color2};${isTotal?'border-top:2px solid var(--ink);':''}">${sign}${fmtN(absVal)}${sign2}</td>
+    <td style="padding:7px 12px;font-size:13px;${fw}${isTotal?'border-top:2px solid var(--ink);':''}${!prevVal&&_drShowPrev?'':''}${isTotal?'border-top:2px solid var(--ink);':''}">${label}</td>
+    <td style="text-align:right;padding:7px 12px;font-size:11px;color:#bbb${isTotal?';border-top:2px solid var(--ink)':''}${bg}">${nota||''}</td>
+    <td style="text-align:right;padding:7px 12px;font-family:'DM Mono',monospace;font-size:13px;${fw}color:${color2};${isTotal?'border-top:2px solid var(--ink);':''}${bg}">${sign}${fmtN(absVal)}${sign2}</td>
+    ${deltaCell}
   </tr>`;
 }
+
+// Flag global para saber se está a mostrar coluna anterior (usada por drRow)
+let _drShowPrev = false;
 function drSep() {
   return '<tr><td colspan="3" style="padding:3px;background:transparent"></td></tr>';
 }
@@ -2577,6 +3167,28 @@ function bRow(label, val, nota, type='', color='') {
 async function gerarReporting(periodo) {
   const out = document.getElementById('reporting-output');
   if (!state.financials) { toast('⚠️ Importe um balancete primeiro'); return; }
+
+  // Skeleton imediato — reporting pode demorar a renderizar
+  out.innerHTML = `
+    <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="skel skel-line" style="width:40%"></div>
+        <div class="skel" style="width:80px;height:24px;border-radius:6px"></div>
+      </div>
+      ${Array(3).fill(0).map(() => `
+        <div style="display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--cream)">
+          <div class="skel skel-line" style="width:55%"></div>
+          ${Array(4).fill(0).map(() =>
+            `<div style="display:flex;justify-content:space-between">
+              <div class="skel skel-line" style="width:45%"></div>
+              <div class="skel skel-line xshort"></div>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+
+  // Pequeno delay para o skeleton ser visível antes do processamento pesado
+  await new Promise(r => setTimeout(r, 30));
+
   const f = state.financials;
   const p = f.pnl;
   const b = f.balanco;
@@ -2636,6 +3248,128 @@ async function gerarReporting(periodo) {
           </tbody>
         </table>
       </div>
+      <!-- Demonstração de Resultados com variação YoY -->
+      ${(() => {
+        const prevDR = getPrevYearDR(state.year || new Date().getFullYear());
+        const prevP  = prevDR?.pnl;
+        const prevB  = prevDR?.balanco;
+        const prevYr = parseInt(state.year || new Date().getFullYear()) - 1;
+        const hasPrev = !!prevP;
+
+        // ── helpers ──────────────────────────────────────────────────
+        const drRow = (label, curr, prev, type = 'normal') => {
+          // type: 'normal' | 'subtotal' | 'total' | 'section' | 'spacer' | 'gasto'
+          if (type === 'spacer') return `<tr><td colspan="4" style="padding:3px 0"></td></tr>`;
+          if (type === 'section') return `<tr><td colspan="4" style="padding:6px 12px 3px;font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.7px;background:#fafafa">${label}</td></tr>`;
+
+          const currV = curr ?? 0;
+          const prevV = prev ?? null;
+          const isGasto   = type === 'gasto';
+          const isSubtot  = type === 'subtotal';
+          const isTotal   = type === 'total';
+
+          let varCell = hasPrev
+            ? `<td style="padding:5px 12px;text-align:right;font-size:12px;color:#ccc">—</td>`
+            : '';
+          let prevCell = '';
+
+          if (hasPrev) {
+            prevCell = `<td style="padding:5px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#aaa">${prevV != null ? fmtEur(prevV) : '—'}</td>`;
+            if (prevV != null && Math.abs(prevV) > 1) {
+              const delta    = currV - prevV;
+              const deltaPct = delta / Math.abs(prevV) * 100;
+              // Para gastos: redução é positivo; para rendimentos/resultados: aumento é positivo
+              const positive = isGasto ? delta < 0 : delta > 0;
+              const col      = Math.abs(deltaPct) < 0.3 ? '#aaa' : positive ? 'var(--green)' : 'var(--red)';
+              const arrow    = Math.abs(delta) < 1 ? '' : delta > 0 ? '▲ ' : '▼ ';
+              const pctStr   = Math.abs(deltaPct) < 0.1 ? '—' : `${arrow}${Math.abs(deltaPct).toFixed(1)}%`;
+              varCell = `<td style="padding:5px 12px;text-align:right;font-size:12px;color:${col};font-family:'DM Mono',monospace;font-weight:600">${pctStr}</td>`;
+            }
+          }
+
+          const styles = isTotal
+            ? 'font-weight:800;font-size:14px;background:var(--ink);color:#fff'
+            : isSubtot
+              ? 'font-weight:700;background:var(--cream)'
+              : 'border-bottom:1px solid #f5f5f5';
+          const mono  = `font-family:'DM Mono',monospace;`;
+          const colCurr = (isTotal && currV < 0) ? 'color:var(--red-l)' : (isTotal && currV > 0) ? 'color:var(--green-l)' : '';
+
+          return `<tr style="${styles}">
+            <td style="padding:${isTotal?'8':'5'}px 12px;font-size:13px">${label}</td>
+            <td style="padding:${isTotal?'8':'5'}px 12px;text-align:right;${mono}${colCurr}">${fmtEur(currV)}</td>
+            ${prevCell}
+            ${varCell}
+          </tr>`;
+        };
+
+        // Resultado financeiro = rendimentos_financeiros - gastos_financiamento
+        const resFinanc     = (p.rendimentos_financeiros||0) - (p.gastos_financiamento||0);
+        const prevResFinanc = prevP ? ((prevP.rendimentos_financeiros||0) - (prevP.gastos_financiamento||0)) : null;
+        const irc           = (p.rai||p.ebit||0) - (p.resultado_liquido_dr||p.resultado_liquido||0);
+        const prevIRC       = prevP ? ((prevP.rai||prevP.ebit||0) - (prevP.resultado_liquido_dr||prevP.resultado_liquido||0)) : null;
+        const rl            = p.resultado_liquido_dr || p.resultado_liquido || 0;
+        const prevRL        = prevP ? (prevP.resultado_liquido_dr || prevP.resultado_liquido || 0) : null;
+
+        const colHeaders = hasPrev
+          ? `<th style="padding:8px 12px;text-align:right;min-width:110px">${state.year||new Date().getFullYear()}</th>
+             <th style="padding:8px 12px;text-align:right;color:#aaa;min-width:110px">${prevYr}</th>
+             <th style="padding:8px 12px;text-align:right;min-width:80px">Var. %</th>`
+          : `<th style="padding:8px 12px;text-align:right">${state.year||new Date().getFullYear()}</th>`;
+
+        return `<div style="margin-bottom:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+            <div style="font-weight:700;font-size:13px;color:var(--blue);text-transform:uppercase;letter-spacing:.5px">
+              Demonstração de Resultados
+            </div>
+            ${hasPrev
+              ? `<div style="font-size:11px;color:var(--green);background:var(--green-l);padding:3px 10px;border-radius:20px;font-weight:600">
+                   ✓ Comparação ${prevYr} → ${state.year||''}
+                 </div>`
+              : `<div style="font-size:11px;color:#aaa">
+                   ℹ️ Importe balancete de ${prevYr} para activar comparação
+                 </div>`}
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--ink)">
+                <th style="padding:9px 12px;text-align:left;color:#fff;font-weight:700">Rubrica (NCRF)</th>
+                ${colHeaders}
+              </tr>
+            </thead>
+            <tbody>
+              ${drRow('RENDIMENTOS', '', null, 'section')}
+              ${drRow('Vendas e Serviços (conta 71/72)', p.vn, prevP?.vn)}
+              ${drRow('Outros Rendimentos Operacionais', p.outros_rendimentos, prevP?.outros_rendimentos)}
+              ${drRow('Total Rendimentos Operacionais', p.total_rendimentos||p.vn, prevP?.total_rendimentos||prevP?.vn, 'subtotal')}
+
+              ${drRow('', '', null, 'spacer')}
+              ${drRow('GASTOS OPERACIONAIS', '', null, 'section')}
+              ${(p.cmvmc||0) > 0 ? drRow('CMVMC (conta 61/62)', p.cmvmc, prevP?.cmvmc, 'gasto') : ''}
+              ${(p.cmvmc||0) > 0 ? drRow('Margem Bruta', p.margem_bruta, prevP?.margem_bruta, 'subtotal') : ''}
+              ${drRow('Fornec. e Serviços Externos (FSE)', p.fse, prevP?.fse, 'gasto')}
+              ${drRow('Gastos com Pessoal (conta 63)', p.gastos_pessoal, prevP?.gastos_pessoal, 'gasto')}
+              ${drRow('Outros Gastos Operacionais', p.outros_gastos, prevP?.outros_gastos, 'gasto')}
+
+              ${drRow('', '', null, 'spacer')}
+              ${drRow('EBITDA', p.ebitda, prevP?.ebitda, 'subtotal')}
+              ${drRow('Amortizações & Imparidades (conta 64/65)', p.depreciacao, prevP?.depreciacao, 'gasto')}
+              ${drRow('EBIT — Resultado Operacional', p.ebit, prevP?.ebit, 'subtotal')}
+
+              ${drRow('', '', null, 'spacer')}
+              ${drRow('RESULTADO FINANCEIRO', '', null, 'section')}
+              ${drRow('Rendimentos Financeiros (conta 79)', p.rendimentos_financeiros, prevP?.rendimentos_financeiros)}
+              ${drRow('Gastos de Financiamento (conta 69)', p.gastos_financiamento, prevP?.gastos_financiamento, 'gasto')}
+              ${drRow('Resultado Financeiro Líquido', resFinanc, prevResFinanc, 'subtotal')}
+
+              ${drRow('', '', null, 'spacer')}
+              ${drRow('Resultado Antes de Impostos (RAI)', p.rai||p.ebit, prevP?.rai||prevP?.ebit, 'subtotal')}
+              ${irc > 0 ? drRow('Imposto sobre Rendimento (IRC)', irc, prevIRC != null && prevIRC > 0 ? prevIRC : null, 'gasto') : ''}
+              ${drRow('RESULTADO LÍQUIDO DO PERÍODO', rl, prevRL, 'total')}
+            </tbody>
+          </table>
+        </div>`;
+      })()}
       <!-- Alertas -->
       ${(f.alerts||[]).length ? `
         <div style="margin-bottom:16px">
@@ -2748,6 +3482,19 @@ let _prazosFilter = 'todos';
 
 async function loadPrazos() {
   document.getElementById('prazos-ano').textContent = new Date().getFullYear();
+  // Skeleton enquanto carrega
+  const grid = document.getElementById('prazos-grid');
+  if (grid) {
+    grid.innerHTML = Array(6).fill(0).map(() => `
+      <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="skel skel-line" style="width:60%"></div>
+          <div class="skel" style="width:60px;height:20px;border-radius:10px"></div>
+        </div>
+        <div class="skel skel-line short"></div>
+        <div class="skel skel-line" style="width:40%;height:10px"></div>
+      </div>`).join('');
+  }
   const prazos = await api('/prazos-fiscais');
   if (!prazos) return;
   _prazosData = prazos;
@@ -2863,20 +3610,95 @@ function irsCalcCatA() {
 function irsCalcCatB() {
   const regime = document.getElementById('irs-b-regime')?.value;
   let liquido = 0;
+  let rendimentoBrutoB = 0;
+
   if (regime === 'simplificado') {
-    const servProf  = irsGetVal('irs-b-servicos');   // Serviços profissionais (lista art.151.º) — coef. 0.75
-    const vendas    = irsGetVal('irs-b-vendas');      // Vendas mercadorias/produtos — coef. 0.15
-    const servOutros= irsGetVal('irs-b-outros');      // Outras prestações de serviços — coef. 0.35
-    const propIntl  = irsGetVal('irs-b-prop-intl') || 0; // Prop. intelectual/ind. — coef. 0.50
-    const subsidios = irsGetVal('irs-b-subsidios') || 0;  // Subsídios exploração — coef. 0.30
-    // CIRS Art.31.º tabela de coeficientes 2024
-    liquido = servProf * 0.75 + vendas * 0.15 + servOutros * 0.35 + propIntl * 0.50 + subsidios * 0.30;
+    // CIRS Art.31.º — Coeficientes 2024 (OE 2023/2024)
+    const servProf   = irsGetVal('irs-b-servicos');    // Art.151.º — prof. liberais            → 0.75
+    const vendas     = irsGetVal('irs-b-vendas');       // Vendas mercad./produtos + hotelaria   → 0.15
+    const servOutros = irsGetVal('irs-b-outros');       // Outras prestações de serviços         → 0.35
+    const outros95   = irsGetVal('irs-b-outros95')  || 0; // Outros rendimentos Cat. B n.q.    → 0.95
+    const exEntidade = irsGetVal('irs-b-exentidade') || 0; // Serviços a ex-entidade patronal  → 1.00
+    const propIntl   = irsGetVal('irs-b-prop-intl')  || 0; // Prop. intelectual (não EBF)       → 0.50
+    const subsidExp  = irsGetVal('irs-b-subsidios')  || 0; // Subsídios exploração              → 0.10 (OE 2023!)
+    const subsidInv  = irsGetVal('irs-b-subsidios-inv') || 0; // Subsídios equipamentos        → 0.30
+
+    rendimentoBrutoB = servProf + vendas + servOutros + outros95 + exEntidade + propIntl + subsidExp + subsidInv;
+
+    // Validação limite VN €200.000 — Art.28.º n.2 CIRS
+    const vnTotal = servProf + vendas + servOutros + outros95 + exEntidade;
+    const warnEl  = document.getElementById('irs-b-vn-warn');
+    if (warnEl) {
+      if (vnTotal > 200000) {
+        warnEl.style.display = 'block';
+        warnEl.textContent   = `⚠️ VN total €${fmtN(vnTotal)} excede o limite de €200.000 para acesso ao regime simplificado (Art.28.º n.2 CIRS). O contribuinte é obrigado a adoptar contabilidade organizada.`;
+      } else {
+        warnEl.style.display = 'none';
+      }
+    }
+
+    // Rendimento bruto tributável antes de deduções Art.31.º-A
+    const rendBruto = servProf * 0.75
+                    + vendas   * 0.15
+                    + servOutros * 0.35
+                    + outros95   * 0.95
+                    + exEntidade * 1.00
+                    + propIntl   * 0.50
+                    + subsidExp  * 0.10   // OE 2023 reduziu de 0.30 para 0.10
+                    + subsidInv  * 0.30;
+
+    // Art.31.º-A n.1 — Deduções específicas regime simplificado:
+    // a) Contribuições obrigatórias SS pagas — dedução directa ao rendimento bruto
+    // b) 4% do VN (máx €1.995) — apenas se VN > 0
+    const ssPagas  = irsGetVal('irs-b-ss-pagas') || 0;
+    const ded4pct  = vnTotal > 0 ? Math.min(vnTotal * 0.04, 1995) : 0;
+    const dedArt31A = ssPagas + ded4pct;
+
+    liquido = Math.max(0, rendBruto - dedArt31A);
+
+    // Mostrar detalhe da dedução 4%
+    const elExtra = document.getElementById('irs-b-simplificado-extra');
+    // Mostrar breakdown se há valores
+    if (rendimentoBrutoB > 0) {
+      let detailEl = document.getElementById('irs-b-calc-detail');
+      if (!detailEl) {
+        detailEl = document.createElement('div');
+        detailEl.id = 'irs-b-calc-detail';
+        detailEl.style.cssText = 'font-size:11px;color:#888;padding:6px 8px;background:var(--cream);border-radius:6px;margin-top:4px;line-height:1.7';
+        const ref = document.getElementById('irs-b-retencoes');
+        if (ref?.parentElement?.parentElement) ref.parentElement.parentElement.insertBefore(detailEl, ref.parentElement);
+      }
+      const rows = [
+        servProf   > 0 ? `Serv. prof. €${fmtN(servProf)} × 0.75 = €${fmtN(servProf*0.75)}`           : '',
+        vendas     > 0 ? `Vendas €${fmtN(vendas)} × 0.15 = €${fmtN(vendas*0.15)}`                    : '',
+        servOutros > 0 ? `Outros serv. €${fmtN(servOutros)} × 0.35 = €${fmtN(servOutros*0.35)}`       : '',
+        outros95   > 0 ? `Outros rend. €${fmtN(outros95)} × 0.95 = €${fmtN(outros95*0.95)}`           : '',
+        exEntidade > 0 ? `Ex-entidade €${fmtN(exEntidade)} × 1.00 = €${fmtN(exEntidade)}`             : '',
+        propIntl   > 0 ? `Prop.intl. €${fmtN(propIntl)} × 0.50 = €${fmtN(propIntl*0.50)}`            : '',
+        subsidExp  > 0 ? `Subsíd.expl. €${fmtN(subsidExp)} × 0.10 = €${fmtN(subsidExp*0.10)}`        : '',
+        subsidInv  > 0 ? `Subsíd.inv. €${fmtN(subsidInv)} × 0.30 = €${fmtN(subsidInv*0.30)}`         : '',
+        ssPagas    > 0 ? `− SS pagas = −€${fmtN(ssPagas)}`                                            : '',
+        ded4pct    > 0 ? `− 4% VN (Art.31.º-A) = −€${fmtN(ded4pct)}`                                 : '',
+      ].filter(Boolean);
+      detailEl.innerHTML = rows.join('<br>') + `<br><strong>= €${fmtN(liquido)} rendimento líquido</strong>`;
+    } else {
+      const detailEl = document.getElementById('irs-b-calc-detail');
+      if (detailEl) detailEl.innerHTML = '';
+    }
+
   } else if (regime === 'organizada') {
     liquido = irsGetVal('irs-b-resultado');
+    rendimentoBrutoB = liquido;
+    // Limpar aviso VN e detail
+    const warnEl = document.getElementById('irs-b-vn-warn');
+    if (warnEl) warnEl.style.display = 'none';
+    const detailEl = document.getElementById('irs-b-calc-detail');
+    if (detailEl) detailEl.innerHTML = '';
   }
+
   const el = document.getElementById('irs-b-liquido');
   if (el) el.textContent = '€ ' + fmtN(liquido);
-  return { liquido, retencoes: irsGetVal('irs-b-retencoes') };
+  return { liquido, retencoes: irsGetVal('irs-b-retencoes'), rendimentoBruto: rendimentoBrutoB };
 }
 
 function irsCalcDeducoes(rendColeta) {
@@ -2897,8 +3719,10 @@ function irsCalcDeducoes(rendColeta) {
   const gerais = Math.min(irsGetVal('irs-ded-gerais') * 0.35, 250);
   // Art. 78.º-C — Saúde (15%, máx €1.000)
   const saude = Math.min(irsGetVal('irs-ded-saude') * 0.15, 1000);
-  // Art. 78.º-D — Educação (30%, máx €800)
-  const educacao = Math.min(irsGetVal('irs-ded-educacao') * 0.30, 800);
+  // Art. 78.º-D — Educação e formação profissional (30%, máx €800 / €1.000 monoparental)
+  const isMonoparental = document.getElementById('irs-estado-civil')?.value === 'monoparental';
+  const educacaoMax = isMonoparental ? 1000 : 800;
+  const educacao = Math.min(irsGetVal('irs-ded-educacao') * 0.30, educacaoMax);
   // Art. 78.º-E — Habitação (encargos com imóveis)
   // Juros de habitação própria (apenas contratos ≤ 31/12/2011): 15%, máx €296
   const habitacao = Math.min(irsGetVal('irs-ded-habitacao') * 0.15, 296);
@@ -2906,17 +3730,22 @@ function irsCalcDeducoes(rendColeta) {
   const rendasBruto = irsGetVal('irs-ded-rendas');
   const rendaMax = (rendColeta <= 7703) ? 800 : 502;
   const rendas = Math.min(rendasBruto * 0.15, rendaMax);
+  // Encargos com lares (Art.78.º-E n.3): 25%, máx €403,75
+  const laresMax = 403.75;
+  const lares = Math.min(irsGetVal('irs-ded-lares') * 0.25, laresMax);
   // PPR — Art.21.º EBF — taxa 20%, limite por idade:
   const pprBruto = irsGetVal('irs-ded-ppr');
   const idadeTitular = parseInt(document.getElementById('irs-idade')?.value || 35);
   const pprMax = idadeTitular < 35 ? 400 : idadeTitular <= 50 ? 350 : 300;
   const ppr = Math.min(pprBruto * 0.20, pprMax);
-  // IRS Jovem
-  const jovem = irsGetVal('irs-ded-jovem');
-  // Mecenato (25%)
+  // Mecenato — Art.62.º EBF: 25% donativos a entidades mecenato (130% para Estado)
   const mecenato = irsGetVal('irs-ded-mecenato') * 0.25;
-  // Regressos
+  // Regressos — Art.12.º-A CIRS: crédito fiscal por regresso (valor já calculado pelo AT)
   const regresso = irsGetVal('irs-ded-regresso');
+
+  // NOTA: IRS Jovem NÃO é dedução à coleta — é exclusão do rendimento coletável
+  // já processada em irsCalcFull (rendimentoColetavel = totalLiquido - isencaoJovem)
+  // NÃO incluir aqui para evitar dupla contagem.
 
   // Deficiência titular — CIRS Art.87.º
   // Grau ≥ 60%: adicional de €4.542 (1.5× dedução Cat A) + €1.900/dependente
@@ -2931,25 +3760,26 @@ function irsCalcDeducoes(rendColeta) {
   setEl('irs-ded-dep-def-val', dedDepDef);
   setEl('irs-ded-asc-val', dedAsc);
 
-  const total = dedDep + dedDepDef + dedAsc + gerais + saude + educacao + habitacao + rendas + ppr + jovem + mecenato + regresso + dedDefTitular;
+  const total = dedDep + dedDepDef + dedAsc + gerais + saude + educacao + habitacao + rendas + lares + ppr + mecenato + regresso + dedDefTitular;
 
   return {
     dedDep, dedDepDef, dedAsc, gerais, saude, educacao,
-    habitacao, rendas, ppr, jovem, mecenato, regresso, dedDefTitular,
+    habitacao, rendas, lares, ppr, mecenato, regresso, dedDefTitular,
     total,
     detail: [
-      { label: 'Dependentes (Art.78.º-A)', valor: dedDep },
-      { label: 'Dependentes c/ deficiência', valor: dedDepDef },
-      { label: 'Ascendentes', valor: dedAsc },
-      { label: 'Despesas gerais (35%, máx €250)', valor: gerais },
-      { label: 'Saúde (15%, máx €1.000)', valor: saude },
-      { label: 'Educação (30%, máx €800)', valor: educacao },
-      { label: 'Juros habitação (15%, máx €296)', valor: habitacao },
-      { label: 'Rendas habitação (15%, máx €502)', valor: rendas },
-      { label: 'PPR (20%, máx €400)', valor: ppr },
-      { label: 'IRS Jovem', valor: jovem },
-      { label: 'Mecenato (25%)', valor: mecenato },
-      { label: 'Deficiência titular', valor: dedDefTitular },
+      { label: 'Dependentes (Art.78.º-A)',                              valor: dedDep },
+      { label: 'Dependentes c/ deficiência (Art.78.º-A)',               valor: dedDepDef },
+      { label: 'Ascendentes (Art.78.º-A)',                              valor: dedAsc },
+      { label: 'Despesas gerais (35%, máx €250 — Art.78.º-B)',          valor: gerais },
+      { label: 'Saúde (15%, máx €1.000 — Art.78.º-C)',                  valor: saude },
+      { label: `Educação (30%, máx €${educacaoMax} — Art.78.º-D)`,      valor: educacao },
+      { label: 'Juros habitação (15%, máx €296 — Art.78.º-E)',          valor: habitacao },
+      { label: 'Rendas habitação (15%, máx €502 — Art.78.º-E)',         valor: rendas },
+      { label: 'Encargos lares (25%, máx €403,75 — Art.78.º-E n.3)',    valor: lares },
+      { label: 'PPR (20%, máx €400/350/300 — Art.21.º EBF)',            valor: ppr },
+      { label: 'Mecenato (25% — Art.62.º EBF)',                         valor: mecenato },
+      { label: 'Regresso ao país (Art.12.º-A CIRS)',                    valor: regresso },
+      { label: 'Deficiência titular (Art.87.º CIRS)',                   valor: dedDefTitular },
     ].filter(d => d.valor > 0),
   };
 }
@@ -2988,16 +3818,36 @@ function irsCalc() {
 
 function irsCalcJovem() {
   const anoJovem = parseInt(irsGetVal('irs-jovem-ano')) || 0;
-  if (anoJovem === 0) { 
+  if (anoJovem === 0) {
     const el = document.getElementById('irs-ded-jovem'); if(el) el.value = 0;
     return 0;
   }
-  // Isenção: anos 1-2: 100%, 3-7: 75%, 8-10: 50% — sobre rendimentos Cat A e B
-  const pctIsencao = anoJovem <= 2 ? 1.0 : anoJovem <= 7 ? 0.75 : 0.50;
+
+  // Art.12.º-B n.º 1 CIRS — IRS Jovem: isenção LIMITADA AOS PRIMEIROS 10 ANOS de actividade
+  // Anos 1-2: 100% | Anos 3-7: 75% | Anos 8-10: 50% | Ano > 10: sem isenção
+  if (anoJovem > 10) {
+    const el = document.getElementById('irs-ded-jovem'); if(el) el.value = 0;
+    // Mostrar aviso
+    const warnEl = document.getElementById('irs-jovem-warn');
+    if (warnEl) {
+      warnEl.style.display = 'block';
+      warnEl.textContent = `⚠️ Ano ${anoJovem}: o benefício IRS Jovem é limitado aos primeiros 10 anos (Art.12.º-B n.º 3 CIRS). Sem isenção aplicável.`;
+    }
+    irsCalc();
+    return 0;
+  }
+
+  const pctIsencao = anoJovem <= 2 ? 1.0 : anoJovem <= 7 ? 0.75 : 0.50; // 8-10 = 50%
+
+  // Ocultar aviso se válido
+  const warnEl = document.getElementById('irs-jovem-warn');
+  if (warnEl) warnEl.style.display = 'none';
+
+  // Base = bruto Cat A + rendimento bruto Cat B antes de coeficientes (Art.12.º-B n.4 CIRS)
   const catABruto = irsGetVal('irs-a-bruto');
-  const catBLiq   = parseFloat(document.getElementById('irs-b-liquido')?.textContent?.replace(/[€. ]/g,'').replace(',','.') || 0) || 0;
-  const rendBase  = catABruto + catBLiq;
-  const maxIsencao = 55760; // 8× IAS 2024
+  const catBResult = irsCalcCatB(); // calcular directamente para obter rendimentoBruto
+  const rendBase   = catABruto + (catBResult.rendimentoBruto || catBResult.liquido);
+  const maxIsencao = 55760; // 8× IAS AT 2024
   const isencao = Math.min(rendBase * pctIsencao, maxIsencao);
   const el = document.getElementById('irs-ded-jovem');
   if (el) el.value = isencao.toFixed(2);
@@ -3026,18 +3876,24 @@ function irsCalcFull() {
   const catFEnglobar = document.getElementById('irs-f-englobar')?.checked;
   // Cat F englobado: se titular optou por englobamento
   const catFEnglobado = catFEnglobar ? catF : 0;
-  // Cat G englobado: 50% do saldo de MV se opção de englobamento e RC ≤ limite
-  const catGEnglobado = (catGEnglobar && (catA.liquido + catB.liquido + catH) <= 78834) ? catG * 0.5 : 0;
+  // Cat G englobado: 50% do saldo de MV se opção de englobamento
+  // Art.71.º n.5 CIRS — RC ≤ €81.199 (8.º escalão OE 2024)
+  const catGEnglobado = (catGEnglobar && (catA.liquido + catB.liquido + catH) <= 81199) ? catG * 0.5 : 0;
 
-  // IRS Jovem — exclusão de rendimento (Art.12.º-B CIRS), não dedução à coleta
+  // IRS Jovem — exclusão de rendimento bruto (Art.12.º-B n.4 CIRS)
+  // IMPORTANTE: o limite é calculado sobre rendimentos BRUTOS de Cat A e B (não líquidos)
   const anoJovem = parseInt(irsGetVal('irs-jovem-ano')) || 0;
   let isencaoJovem = 0;
-  if (anoJovem > 0) {
-    const pctIsen = anoJovem <= 2 ? 1.0 : anoJovem <= 7 ? 0.75 : 0.50;
-    isencaoJovem = Math.min((catA.liquido + catB.liquido) * pctIsen, 55760);
-    // Auto-preencher campo para que o utilizador veja o valor calculado
+  if (anoJovem > 0 && anoJovem <= 10) {
+    const pctIsen  = anoJovem <= 2 ? 1.0 : anoJovem <= 7 ? 0.75 : 0.50;
+    // Base = bruto Cat A + rendimento bruto Cat B (antes da aplicação de coeficientes)
+    const rendBase = catA.bruto + (catB.rendimentoBruto || catB.liquido);
+    isencaoJovem   = Math.min(rendBase * pctIsen, 55760); // €55.760 = 8× IAS AT 2024
     const elJ = document.getElementById('irs-ded-jovem');
-    if (elJ && parseFloat(elJ.value || 0) === 0) elJ.value = isencaoJovem.toFixed(2);
+    if (elJ) elJ.value = isencaoJovem.toFixed(2);
+  } else if (anoJovem > 10) {
+    const elJ = document.getElementById('irs-ded-jovem');
+    if (elJ) elJ.value = '0';
   }
 
   // Rendimento coletável: Cat A + B + H + F(englobado) + G(englobado 50%) − IRS Jovem
@@ -3069,9 +3925,10 @@ function irsCalcFull() {
   } else if (rendimentoColetavel > 80000) {
     limiteDedDespesas = 1000;
   }
-  // Deduções por despesas (sujeitas ao limite): gerais, saúde, educação, habitação, rendas, PPR, mecenato, regresso
-  const dedDespesas = Math.min(ded.gerais + ded.saude + ded.educacao + ded.habitacao + ded.rendas + ded.ppr + ded.mecenato + ded.regresso, limiteDedDespesas);
-  // Deduções sem limite: dependentes, deficiência, IRS jovem (já excluído do RC)
+  // Deduções por despesas (sujeitas ao limite): gerais, saúde, educação, habitação, rendas, lares, PPR, mecenato, regresso
+  const dedDespesas = Math.min(ded.gerais + ded.saude + ded.educacao + ded.habitacao + ded.rendas + (ded.lares||0) + ded.ppr + ded.mecenato + ded.regresso, limiteDedDespesas);
+  // Deduções sem limite: dependentes, deficiência
+  // NOTA: IRS Jovem NÃO é dedução à coleta — já foi excluído do rendimento coletável acima
   const dedSemLimite = ded.dedDep + ded.dedDepDef + ded.dedAsc + ded.dedDefTitular;
   const totalDed = Math.min(dedDespesas + dedSemLimite, coletaAposQI);
   const coletaAposDed = Math.max(0, coletaAposQI - totalDed);
@@ -3082,7 +3939,8 @@ function irsCalcFull() {
   // Tributação autónoma (28%): Cat E sempre, Cat F e G se não englobados
   const taxaAutE = catE * 0.28;
   const taxaAutF = catFEnglobar ? 0 : catF * 0.28;
-  const taxaAutG = (catGEnglobar && (catA.liquido + catB.liquido + catH) <= 78834) ? 0 : catG * 0.28;
+  // Art.71.º n.5 — Cat G englobado se RC ≤ €81.199 (8.º escalão OE 2024)
+  const taxaAutG = (catGEnglobar && (catA.liquido + catB.liquido + catH) <= 81199) ? 0 : catG * 0.28;
   const taxaAut = taxaAutE + taxaAutF + taxaAutG;
 
   const irsLiquidado = coletaAposDed + taxaAut;
@@ -4745,14 +5603,54 @@ const ORC_LINHAS = [
 
 let _orcData = {}; // { ano: { mes: { id: valor } } }
 
-function loadOrcamento() {
-  const stored = localStorage.getItem('hvr_orcamento_' + (state.entityId||''));
-  try { _orcData = stored ? JSON.parse(stored) : {}; } catch(e) { _orcData = {}; }
+async function loadOrcamento() {
+  const year = state.year || new Date().getFullYear();
+  _orcData = {};
+  if (state.entityId) {
+    try {
+      const res = await api(`/budget/${state.entityId}/${year}`);
+      if (res?.data && Object.keys(res.data).length) {
+        _orcData[year] = res.data;
+      } else {
+        // Tentar migrar dados locais existentes → BD
+        const local = localStorage.getItem('hvr_orcamento_' + state.entityId + '_' + year)
+                   || localStorage.getItem('hvr_orcamento_' + state.entityId);  // legacy key
+        if (local) {
+          try {
+            const parsed = JSON.parse(local);
+            // Se é formato antigo { jan: {...} }, converter para { [year]: {...} }
+            _orcData[year] = parsed[year] || parsed;
+            await saveOrcamento(true); // migrar silenciosamente para BD
+            localStorage.removeItem('hvr_orcamento_' + state.entityId); // limpar legacy
+          } catch(e) {}
+        }
+      }
+    } catch(e) {
+      // Fallback local se API indisponível
+      const local = localStorage.getItem('hvr_orcamento_' + state.entityId + '_' + year);
+      try { if (local) _orcData[year] = JSON.parse(local); } catch(e2) {}
+    }
+  }
   orcTab('previsional', document.getElementById('orc-btn-previsional'));
 }
 
-function saveOrcamento() {
-  localStorage.setItem('hvr_orcamento_' + (state.entityId||''), JSON.stringify(_orcData));
+async function saveOrcamento(silent = false) {
+  if (!state.entityId) return;
+  const year = state.year || new Date().getFullYear();
+  try {
+    await api(`/budget/${state.entityId}/${year}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: _orcData[year] || {} }),
+    });
+    // Fallback local também (offline)
+    localStorage.setItem('hvr_orcamento_' + state.entityId + '_' + year, JSON.stringify(_orcData[year] || {}));
+    if (!silent) toast('✅ Orçamento guardado na base de dados');
+  } catch(e) {
+    // Guardar localmente se API falhar
+    localStorage.setItem('hvr_orcamento_' + state.entityId + '_' + year, JSON.stringify(_orcData[year] || {}));
+    if (!silent) toast('⚠️ Guardado localmente (sem ligação ao servidor)');
+  }
 }
 
 function orcTab(name, btn) {
@@ -4779,7 +5677,7 @@ function renderOrcTab(name) {
           <div style="display:flex;gap:6px">
             <button class="btn btn-o btn-sm" onclick="orcPreencherComReal()">📊 Preencher com Real</button>
             <button class="btn btn-o btn-sm" onclick="orcDistribuirAnual()">⚡ Distribuir Anual</button>
-            <button class="btn btn-p btn-sm" onclick="saveOrcamento();toast('✅ Orçamento guardado!')">💾 Guardar</button>
+            <button class="btn btn-p btn-sm" onclick="saveOrcamento()">💾 Guardar</button>
           </div>
         </div>
       </div>
@@ -5662,6 +6560,9 @@ async function runIRC() { runIRCFull(); }
 async function saveIRCCalc() {
   if (!state.lastIRCCalc) { toast('⚠️ Calcule o IRC primeiro'); return; }
   if (!state.entityId || !state.fiscalYearId) { toast('⚠️ Selecione um cliente'); return; }
+  const saveBtn = document.querySelector('#irc-result-actions .btn-p');
+  if (saveBtn) { saveBtn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="btn-spin"></span>A gravar...</span>'; saveBtn.disabled = true; }
+  const restoreSave = () => { if (saveBtn) { saveBtn.innerHTML = '💾 Gravar Cálculo'; saveBtn.disabled = false; } };
   try {
     const payload = {
       entity_id: state.entityId,
@@ -5674,10 +6575,12 @@ async function saveIRCCalc() {
     };
     const r = await api('/irc/simulate', { method: 'POST', body: JSON.stringify(payload) });
     if (r) {
+      restoreSave();
       toast('✓ Cálculo IRC gravado com sucesso');
       loadIRCSaved();
     }
   } catch(e) {
+    restoreSave();
     toast('❌ Erro ao gravar: ' + e.message, 4000);
   }
 }
@@ -5786,7 +6689,7 @@ function exportIRCPDF() {
       ⚠️ Esta simulação é de caráter informativo. Valide com o processo declarativo oficial (Modelo 22).<br>
       Gerado por ContaIntel — HVR Business Analytics
     </div>
-    <script>window.onload = () => { window.print(); }</script>
+    <scr' + 'ipt>window.onload = () => { window.print(); }</scr' + 'ipt>
   </body></html>`);
   win.document.close();
 }
@@ -5911,16 +6814,149 @@ function renderIVA() {
 }
 
 // ══ CONFORMIDADE ══
-function renderConformidade() {
+// ── Conformidade — rastreio de estado por obrigação ──
+async function renderConformidade() {
   if (!state.entityId) return;
-  const s = state;
-  document.getElementById('conf-subtitle').textContent = (s.entityName||'—') + ' · ' + s.year;
-  document.getElementById('conf-content').innerHTML = `
-    <div class="ai ok"><div class="a-ico">🟢</div><div><div class="a-t">Balancete importado</div><div class="a-d">Dados de ${s.year} disponíveis e analisados.</div></div></div>
-    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">SAF-T Contabilidade</div><div class="a-d">Verificar submissão mensal no Portal AT (https://www.portaldasfinancas.gov.pt)</div></div></div>
-    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">IES ${s.year-1} — Prazo 15 Julho ${s.year}</div><div class="a-d">Informação Empresarial Simplificada. Verificar estado de submissão.</div></div></div>
-    <div class="ai wn"><div class="a-ico">🟡</div><div><div class="a-t">Modelo 22 ${s.year} — Prazo 31 Julho ${s.year+1}</div><div class="a-d">${s.financials?'IRC estimado: '+fmtEur(s.financials.irc_estimate.irc_bruto):'Calcule o IRC primeiro.'}</div></div></div>
-    <div class="ai in"><div class="a-ico">🔵</div><div><div class="a-t">Pagamentos por Conta ${s.year+1}</div><div class="a-d">${s.financials?'Estimativa: '+fmtEur(s.financials.irc_estimate.irc_bruto*0.80)+' (Jul/Set/Dez '+String(parseInt(s.year)+1)+')':'Calcule o IRC para estimar.'}</div></div></div>`;
+  const year = state.year || new Date().getFullYear();
+  const el   = document.getElementById('conf-content');
+  document.getElementById('conf-subtitle').textContent = (state.entityName||'—') + ' · ' + year;
+
+  // Skeleton enquanto carrega
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">` +
+    Array(6).fill(0).map(() => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--cream);border-radius:8px">
+        <div class="skel" style="width:22px;height:22px;border-radius:4px;flex-shrink:0"></div>
+        <div style="flex:1"><div class="skel skel-line" style="width:60%"></div><div class="skel skel-line short" style="width:35%;margin-top:4px"></div></div>
+        <div class="skel" style="width:90px;height:28px;border-radius:6px"></div>
+      </div>`).join('') + `</div>`;
+
+  try {
+    const items = await api(`/conformidade/${state.entityId}/${year}`);
+    if (!items) return;
+
+    // Agrupar por categoria
+    const grupos = {
+      'Obrigações Declarativas': ['ies','mod22','mod10','saft-cont'],
+      'IVA': ['iva-t1','iva-t2','iva-t3','iva-t4'],
+      'Pagamentos por Conta': ['ppc-jul','ppc-set','ppc-dez'],
+      'Obrigações Mensais': ['dmc'],
+    };
+
+    const today = new Date().toISOString().slice(0,10);
+    const itemMap = Object.fromEntries(items.map(i => [i.id, i]));
+
+    // Sumário rápido no topo
+    const concl   = items.filter(i => i.estado === 'concluido').length;
+    const naAplic  = items.filter(i => i.estado === 'nao_aplicavel').length;
+    const total    = items.length - naAplic;
+    const pct      = total > 0 ? Math.round(concl / total * 100) : 100;
+    const pctColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? 'var(--orange)' : 'var(--red)';
+
+    let html = `
+      <!-- Barra de progresso geral -->
+      <div class="card" style="margin-bottom:16px;padding:14px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink)">Conformidade ${year}</div>
+            <div style="font-size:11px;color:#aaa">${concl} de ${total} obrigações concluídas</div>
+          </div>
+          <div style="font-size:28px;font-weight:700;color:${pctColor};font-family:'DM Mono',monospace">${pct}%</div>
+        </div>
+        <div style="height:8px;background:var(--cream);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${pctColor};border-radius:4px;transition:width .4s ease"></div>
+        </div>
+      </div>`;
+
+    for (const [grupTitle, ids] of Object.entries(grupos)) {
+      const grupItems = ids.map(id => itemMap[id]).filter(Boolean);
+      if (!grupItems.length) continue;
+
+      html += `<div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;padding:0 2px">${grupTitle}</div>
+        <div style="display:flex;flex-direction:column;gap:6px">`;
+
+      for (const item of grupItems) {
+        const isConc  = item.estado === 'concluido';
+        const isNApl  = item.estado === 'nao_aplicavel';
+        const isPend  = !isConc && !isNApl;
+        const isVenc  = isPend && item.prazo_data && item.prazo_data < today;
+        const isProx  = isPend && item.prazo_data && !isVenc &&
+                        (new Date(item.prazo_data) - new Date()) < 30*24*3600*1000;
+
+        const borderColor = isConc ? 'var(--green)' : isVenc ? 'var(--red)' : isProx ? 'var(--orange)' : 'var(--cream)';
+        const bgColor     = isConc ? '#f0faf0' : isNApl ? '#f8f8f8' : isVenc ? '#fff5f5' : isProx ? '#fff8f0' : '#fff';
+        const ico         = isConc ? '✅' : isNApl ? '➖' : isVenc ? '🔴' : isProx ? '🟡' : '⬜';
+        const prazoLabel  = item.prazo_data
+          ? `Prazo: ${item.prazo_data.split('-').reverse().join('/')}` + (isVenc?' · Vencido':isProx?' · Em breve':'')
+          : 'Mensal';
+        const prazoColor  = isVenc ? 'var(--red)' : isProx ? 'var(--orange)' : '#aaa';
+
+        html += `
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;
+               background:${bgColor};border:1px solid ${borderColor};border-radius:8px;
+               transition:border-color .2s">
+            <div style="font-size:18px;flex-shrink:0">${ico}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;color:${isNApl?'#aaa':'var(--ink)'};
+                   ${isNApl?'text-decoration:line-through;':''}">${item.titulo}</div>
+              <div style="display:flex;gap:12px;margin-top:3px;flex-wrap:wrap">
+                <span style="font-size:11px;color:${prazoColor}">${prazoLabel}</span>
+                <span style="font-size:11px;color:#ccc">${item.regulamento||''}</span>
+                ${item.data_conclusao ? `<span style="font-size:11px;color:var(--green)">Concluído em ${item.data_conclusao.split('-').reverse().join('/')}</span>` : ''}
+                ${item.notas ? `<span style="font-size:11px;color:#888;font-style:italic">${item.notas}</span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">
+              ${!isConc && !isNApl ? `
+                <button class="btn btn-sm" style="background:var(--green-l);color:var(--green);border:1px solid var(--green-l);font-size:11px;padding:4px 10px"
+                  onclick="confSetEstado('${item.id}','concluido')">✓ Concluído</button>
+                <button class="btn btn-sm" style="background:var(--cream);color:#888;border:1px solid var(--cream);font-size:11px;padding:4px 10px"
+                  onclick="confSetEstado('${item.id}','nao_aplicavel')">➖ N/A</button>` : ''}
+              ${isConc || isNApl ? `
+                <button class="btn btn-sm" style="background:var(--cream);color:#aaa;border:1px solid #eee;font-size:11px;padding:4px 10px"
+                  onclick="confSetEstado('${item.id}','pendente')">↩ Reverter</button>` : ''}
+            </div>
+          </div>`;
+      }
+      html += `</div></div>`;
+    }
+
+    // Nota de rodapé
+    html += `<div style="margin-top:8px;padding:10px 14px;background:var(--cream);border-radius:8px;font-size:11px;color:#aaa">
+      ⚠️ Este rastreio é de carácter informativo. Valide sempre com o Portal das Finanças e o sistema contabilístico oficial.
+    </div>`;
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⚠️</div><div class="empty-t">Erro ao carregar</div><div class="empty-s">${e.message||'Verifique a ligação ao servidor'}</div></div>`;
+  }
+}
+
+async function confSetEstado(obrigacaoId, estado) {
+  if (!state.entityId) return;
+  const year = state.year || new Date().getFullYear();
+  let notas = '';
+  let data_conclusao = null;
+
+  if (estado === 'concluido') {
+    data_conclusao = new Date().toISOString().slice(0,10);
+    // Prompt para nota opcional — não bloqueante
+    const n = prompt(`Nota opcional para "${obrigacaoId}" (pode deixar em branco):`);
+    if (n !== null) notas = n.trim();
+    else return; // cancelou
+  }
+
+  try {
+    await api(`/conformidade/${state.entityId}/${year}/${obrigacaoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado, data_conclusao, notas }),
+    });
+    toast(estado === 'concluido' ? '✅ Marcado como concluído' : estado === 'nao_aplicavel' ? '➖ Marcado como N/A' : '↩ Revertido para pendente');
+    renderConformidade(); // re-render com novo estado
+  } catch(e) {
+    toast('❌ Erro ao guardar: ' + (e.message||''), 4000);
+  }
 }
 
 // ══ IMPORT ══
@@ -6075,7 +7111,7 @@ async function loadFilesList() {
         <td class="mono">${f.imported_at?.slice(0,16)||'—'}</td>
         <td>
           <button class="btn btn-sm" style="background:#fee;color:var(--red);border:1px solid #fcc;font-size:11px;padding:3px 8px"
-            onclick="deleteFile('${f.id}','${escHtml(f.file_name)}')">🗑 Eliminar</button>
+            onclick="deleteFile('${f.id}','${escHtml(f.file_name)}',this)">🗑 Eliminar</button>
         </td>
       </tr>`).join('');
   } catch(e) { tbody.innerHTML = '<tr><td colspan="7" class="empty">Erro ao carregar.</td></tr>'; }
@@ -6083,6 +7119,12 @@ async function loadFilesList() {
 
 async function deleteFile(fileId, fileName) {
   if (!confirm(`Eliminar "${fileName}"?\n\nEsta ação remove permanentemente o ficheiro e todos os lançamentos importados. Os dados do dashboard serão afetados.`)) return;
+
+  // Feedback visual no botão enquanto elimina
+  const btn = document.querySelector(`[onclick*="deleteFile('${fileId}'"]`);
+  const origText = btn?.textContent;
+  if (btn) { btn.textContent = '⏳ A eliminar...'; btn.disabled = true; }
+
   try {
     const r = await fetch(API + '/files/' + fileId, {
       method: 'DELETE',
@@ -6319,7 +7361,8 @@ async function doLogin() {
   const btn = document.getElementById('login-btn');
   const err = document.getElementById('login-err');
   if (!email || !pwd) { err.style.display=''; err.textContent='Preencha email e password'; return; }
-  btn.textContent = 'A entrar...'; btn.disabled = true; err.style.display = 'none';
+  btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="btn-spin"></span>A entrar...</span>';
+  btn.disabled = true; err.style.display = 'none';
   try {
     const r = await fetch(API + '/auth/login', {
       method: 'POST',
@@ -6330,8 +7373,8 @@ async function doLogin() {
     const data = await r.json();
     state.token = data.token;
     state.user = data.user;
-    localStorage.setItem('containtel_token', data.token);
-    localStorage.setItem('containtel_user', JSON.stringify(data.user));
+    sessionStorage.setItem('containtel_token', data.token);
+    sessionStorage.setItem('containtel_user', JSON.stringify(data.user));
     showApp();
     // Load entities filtered by user access
     loadEntityModal();
@@ -6363,8 +7406,8 @@ function updateSidebarUser() {
 
 function logout() {
   state.token = null; state.user = null; state.entityId = null;
-  localStorage.removeItem('containtel_token');
-  localStorage.removeItem('containtel_user');
+  sessionStorage.removeItem('containtel_token');
+  sessionStorage.removeItem('containtel_user');
   showLoginScreen();
 }
 
@@ -6462,6 +7505,9 @@ function toggleEntitySelect() {
 }
 
 async function saveUser() {
+  const saveBtn = document.querySelector('#mo-user .btn-p');
+  if (saveBtn) { saveBtn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="btn-spin"></span>A guardar...</span>'; saveBtn.disabled = true; }
+  const restoreUser = () => { if (saveBtn) { saveBtn.innerHTML = 'Guardar'; saveBtn.disabled = false; } };
   const name = document.getElementById('u-name').value.trim();
   const email = document.getElementById('u-email').value.trim();
   const pwd = document.getElementById('u-pwd').value;
@@ -6496,13 +7542,209 @@ function editUser(user) {
 
 
 // ══ TOAST ══
+// ── Toast Stack — fila de notificações ──
+const _toastQueue = [];
+let _toastActive = false;
+
 function toast(msg, duration=3000) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.style.display = 'none', duration);
+  _toastQueue.push({ msg, duration });
+  if (!_toastActive) _toastNext();
 }
+
+function _toastNext() {
+  if (!_toastQueue.length) { _toastActive = false; return; }
+  _toastActive = true;
+  const { msg, duration } = _toastQueue.shift();
+  const container = document.getElementById('toast-stack');
+  if (!container) return;
+
+  const t = document.createElement('div');
+  t.className = 'toast-item';
+  // Ícone automático por prefixo
+  const isErr  = msg.startsWith('❌');
+  const isWarn = msg.startsWith('⚠️');
+  const isOk   = msg.startsWith('✓') || msg.startsWith('✅');
+  t.style.cssText = `background:${isErr ? '#fee' : isWarn ? '#fff9e6' : '#1a2035'};
+    color:${isErr ? '#c0392b' : isWarn ? '#b7791f' : '#fff'};
+    border-left:4px solid ${isErr ? '#e53e3e' : isWarn ? '#f6ad55' : '#4ade80'};
+    padding:11px 16px 11px 14px; border-radius:8px; font-size:13px; font-weight:500;
+    box-shadow:0 4px 16px rgba(0,0,0,.18); max-width:340px; min-width:220px;
+    display:flex; align-items:center; gap:10px; pointer-events:auto;
+    animation: toast-in .22s cubic-bezier(.4,0,.2,1)`;
+  t.innerHTML = `<span style="flex:1">${msg}</span>
+    <button onclick="this.parentElement.remove();_toastNext()" style="background:none;border:none;cursor:pointer;opacity:.6;font-size:14px;padding:0;color:inherit">✕</button>`;
+  container.appendChild(t);
+
+  setTimeout(() => {
+    t.style.animation = 'toast-out .2s ease forwards';
+    setTimeout(() => { t.remove(); _toastNext(); }, 200);
+  }, duration);
+}
+
+// ══ COMMAND PALETTE ══
+const CMD_MODULES = [
+  { ico:'📊', main:'Dashboard',            sub:'Visão geral financeira',          action:()=>nav('dashboard'),    kbd:'Alt+D' },
+  { ico:'📋', main:'Balancete',             sub:'Ver e pesquisar contas',          action:()=>nav('balancete'),    kbd:'' },
+  { ico:'📈', main:'Rácios Financeiros',    sub:'Liquidez, rentabilidade, etc.',   action:()=>nav('racios'),       kbd:'' },
+  { ico:'📑', main:'Demonstrações',         sub:'Balanço e DR',                    action:()=>nav('df'),           kbd:'' },
+  { ico:'🧮', main:'Simulação IRC',         sub:'Calcular imposto IRC',            action:()=>nav('irc'),          kbd:'' },
+  { ico:'👤', main:'Simulação IRS',         sub:'Calcular imposto IRS',            action:()=>nav('irs'),          kbd:'' },
+  { ico:'💰', main:'Apuramento IVA',        sub:'Estimativa IVA trimestral',       action:()=>nav('iva'),          kbd:'' },
+  { ico:'🗓️', main:'Prazos Fiscais',        sub:'Calendário obrigações',           action:()=>nav('prazos'),       kbd:'' },
+  { ico:'✅', main:'Conformidade',          sub:'Estado das obrigações declarativas', action:()=>nav('conformidade'), kbd:'' },
+  { ico:'🎯', main:'Orçamento',             sub:'Planeamento orçamental',          action:()=>nav('orcamento'),    kbd:'' },
+  { ico:'🔭', main:'Cenários',              sub:'Análise what-if',                 action:()=>nav('cenarios'),     kbd:'' },
+  { ico:'🏢', main:'Avaliação Empresa',     sub:'DCF, múltiplos, patrimonial',     action:()=>nav('avaliacao'),    kbd:'' },
+  { ico:'🧾', main:'SAF-T Faturação',       sub:'Análise do ficheiro SAF-T',       action:()=>nav('saft'),         kbd:'' },
+  { ico:'📥', main:'Importar',              sub:'Importar balancete ou SAF-T',     action:()=>nav('importar'),     kbd:'Ctrl+I' },
+  { ico:'🏢', main:'Clientes',              sub:'Gerir carteira de clientes',      action:()=>nav('clientes'),     kbd:'' },
+  { ico:'🤖', main:'IA Assistente',         sub:'Chat com dados da empresa',       action:()=>nav('ai'),           kbd:'' },
+  { ico:'⚙️', main:'Perfil & Conta',        sub:'Definições e password',           action:()=>nav('perfil'),       kbd:'' },
+  { ico:'🔄', main:'Seleccionar Cliente',   sub:'Trocar empresa activa',           action:()=>openModal('mo-entity'), kbd:'' },
+];
+
+let _cmdIdx = -1;
+
+function cmdOpen() {
+  const overlay = document.getElementById('cmd-overlay');
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('cmd-input').focus(), 50);
+  cmdSearch('');
+  _cmdIdx = -1;
+}
+
+function cmdClose() {
+  document.getElementById('cmd-overlay').classList.remove('open');
+  document.getElementById('cmd-input').value = '';
+}
+
+function cmdSearch(q) {
+  const results = document.getElementById('cmd-results');
+  q = q.toLowerCase().trim();
+
+  // ── Resultados de módulos ──
+  const moduleMatches = CMD_MODULES.filter(m =>
+    !q || m.main.toLowerCase().includes(q) || m.sub.toLowerCase().includes(q)
+  );
+
+  // ── Resultados de contas SNC ──
+  let accountMatches = [];
+  if (state.balanceteData && state.balanceteData.length && q.length >= 2) {
+    accountMatches = state.balanceteData
+      .filter(r => r.conta?.includes(q) || r.descricao?.toLowerCase().includes(q))
+      .slice(0, 8);
+  }
+
+  // ── Resultados de clientes ──
+  let clientMatches = [];
+  if (state.entities && q.length >= 2) {
+    clientMatches = (state.entities || [])
+      .filter(e => e.name?.toLowerCase().includes(q) || e.nif?.includes(q))
+      .slice(0, 5);
+  }
+
+  let html = '';
+
+  if (moduleMatches.length) {
+    html += '<div class="cmd-section">Módulos</div>';
+    html += moduleMatches.map((m, i) =>
+      `<div class="cmd-item" onclick="${m.action.toString().replace(/"/g,"'")};cmdClose()" data-idx="${i}">
+        <span class="cmd-ico">${m.ico}</span>
+        <span class="cmd-main">${m.main}<br><span class="cmd-sub">${m.sub}</span></span>
+        ${m.kbd ? `<span class="cmd-kbd">${m.kbd}</span>` : ''}
+      </div>`
+    ).join('');
+  }
+
+  if (accountMatches.length) {
+    html += '<div class="cmd-section">Contas SNC</div>';
+    html += accountMatches.map(r =>
+      `<div class="cmd-item" onclick="nav('balancete');cmdClose()">
+        <span class="cmd-ico">📒</span>
+        <span class="cmd-main">${r.conta} — ${r.descricao || ''}
+          <br><span class="cmd-sub">Devedor: €${(r.devedor||0).toLocaleString('pt-PT')} · Credor: €${(r.credor||0).toLocaleString('pt-PT')}</span>
+        </span>
+      </div>`
+    ).join('');
+  }
+
+  if (clientMatches.length) {
+    html += '<div class="cmd-section">Clientes</div>';
+    html += clientMatches.map(e =>
+      `<div class="cmd-item" onclick="selectEntity('${e.id}','${e.name.replace(/'/g,"\'")}','${e.nif||''}');cmdClose()">
+        <span class="cmd-ico">🏢</span>
+        <span class="cmd-main">${e.name}<br><span class="cmd-sub">NIF ${e.nif || '—'}</span></span>
+      </div>`
+    ).join('');
+  }
+
+  if (!html) {
+    html = `<div style="padding:28px;text-align:center;color:#bbb;font-size:14px">
+      Sem resultados para "${q}"
+    </div>`;
+  }
+
+  results.innerHTML = html;
+  _cmdIdx = -1;
+}
+
+function cmdKey(e) {
+  const items = document.querySelectorAll('.cmd-item');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _cmdIdx = Math.min(_cmdIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('selected', i === _cmdIdx));
+    if (items[_cmdIdx]) items[_cmdIdx].scrollIntoView({ block:'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _cmdIdx = Math.max(_cmdIdx - 1, 0);
+    items.forEach((el, i) => el.classList.toggle('selected', i === _cmdIdx));
+    if (items[_cmdIdx]) items[_cmdIdx].scrollIntoView({ block:'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_cmdIdx >= 0 && items[_cmdIdx]) items[_cmdIdx].click();
+    else if (items[0]) items[0].click();
+  } else if (e.key === 'Escape') {
+    cmdClose();
+  }
+}
+
+// ══ ATALHOS GLOBAIS ══
+document.addEventListener('keydown', (e) => {
+  // Ignorar quando foco está num input/textarea
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+  // Ctrl+K / Cmd+K — abrir command palette (funciona sempre)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    const overlay = document.getElementById('cmd-overlay');
+    if (overlay.classList.contains('open')) cmdClose();
+    else cmdOpen();
+    return;
+  }
+
+  // Ctrl+I — ir para importar
+  if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+    e.preventDefault(); nav('importar'); return;
+  }
+
+  // Esc — fechar modais e palette
+  if (e.key === 'Escape') {
+    document.getElementById('cmd-overlay')?.classList.remove('open');
+    document.querySelectorAll('.mo.open').forEach(m => m.classList.remove('open'));
+    return;
+  }
+
+  if (isTyping) return; // shortcuts restantes não funcionam quando digitando
+
+  // Alt+D — dashboard
+  if (e.altKey && e.key === 'd') { e.preventDefault(); nav('dashboard'); return; }
+  // Alt+R — rácios
+  if (e.altKey && e.key === 'r') { e.preventDefault(); nav('racios'); return; }
+  // Alt+C — cliente (seleccionar)
+  if (e.altKey && e.key === 'c') { e.preventDefault(); openModal('mo-entity'); return; }
+});
 
 // ══ DRAG & DROP ══
 ['dz-excel','dz-saft'].forEach(id => {
@@ -6523,8 +7765,8 @@ if (!isConfigured()) {
   // Init sidebar state
   initSidebarState();
   // Check for saved token
-  const savedToken = localStorage.getItem('containtel_token');
-  const savedUser = localStorage.getItem('containtel_user');
+  const savedToken = sessionStorage.getItem('containtel_token');
+  const savedUser = sessionStorage.getItem('containtel_user');
   if (savedToken && savedUser) {
     state.token = savedToken;
     updateSidebarUser();
