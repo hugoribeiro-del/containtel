@@ -1573,7 +1573,12 @@ async function loadEntities() {
     }
 
     const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
-    // Mapa entity_id → utilizadores com acesso
+
+    // Guardar num map para evitar JSON inline em atributos HTML
+    window._entityMap = {};
+    entities.forEach(e => { window._entityMap[e.id] = e; });
+
+    // Mapa entity_id → utilizadores com acesso (só admin carrega users)
     const entAccess = {};
     if (isAdmin && users) {
       users.forEach(u => {
@@ -1590,19 +1595,19 @@ async function loadEntities() {
       const color    = colors[i % colors.length];
       const access   = entAccess[e.id] || [];
       const accessBadges = access.length
-        ? access.map(n => `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0f4ff;color:var(--blue);font-size:11px;padding:2px 8px;border-radius:10px;margin:2px">${escHtml(n)}</span>`).join('')
+        ? access.map(n => `<span style="display:inline-flex;align-items:center;background:#f0f4ff;color:var(--blue);font-size:11px;padding:2px 8px;border-radius:10px;margin:2px">${escHtml(n)}</span>`).join('')
         : isAdmin ? `<span style="font-size:11px;color:#ccc;font-style:italic">Nenhum utilizador atribuído</span>` : '';
 
       return `
       <div style="display:flex;align-items:center;gap:0;border-radius:10px;margin-bottom:6px;border:1px solid var(--cream);overflow:hidden;background:#fff;transition:box-shadow .15s"
            onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,.07)'" onmouseleave="this.style.boxShadow=''">
         <div style="flex:1;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;min-width:0"
-             onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)})">
+             data-eid="${e.id}" onclick="selectEntity(this.dataset.eid,window._entityMap[this.dataset.eid]?.name,window._entityMap[this.dataset.eid]?.nif)">
           <div class="ec-av" style="background:${color};flex-shrink:0">${initials}</div>
           <div style="min-width:0;flex:1">
             <div class="ec-n">${escHtml(e.name)}</div>
             <div class="ec-nif">${escHtml(e.nif)} · ${escHtml(e.legal_form||'')} ${e.cae_code?'· CAE '+escHtml(e.cae_code):''}</div>
-            ${isAdmin && (access.length || true) ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;align-items:center;gap:2px">
+            ${isAdmin ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;align-items:center;gap:2px">
               <span style="font-size:10px;color:#bbb;margin-right:2px;text-transform:uppercase;letter-spacing:.5px">Acessos:</span>
               ${accessBadges}
             </div>` : ''}
@@ -1610,19 +1615,28 @@ async function loadEntities() {
         </div>
         ${isAdmin ? `
         <div style="display:flex;gap:4px;padding:0 10px;flex-shrink:0;border-left:1px solid var(--cream)">
-          <button title="Gerir acessos" style="background:#f0f4ff;border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--blue);white-space:nowrap;transition:background .15s"
-            onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='#f0f4ff'"
-            onclick="openManageAccess('${e.id}',${JSON.stringify(e.name)})">👥 Acessos</button>
-          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:14px;transition:background .15s"
-            onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='var(--cream)'"
-            onclick="openEditEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)},${JSON.stringify(e.legal_form||'LDA')},${JSON.stringify(e.cae_code||'')},${JSON.stringify(e.regime_irc||'geral')},${JSON.stringify(e.regime_iva||'geral')},${JSON.stringify(e.email||'')})">✏️</button>
-          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:14px;transition:background .15s"
-            onmouseenter="this.style.background='#fcc'" onmouseleave="this.style.background='#fee'"
-            onclick="deleteEntity('${e.id}')">🗑</button>
+          <button title="Gerir acessos" style="background:#f0f4ff;border:none;border-radius:7px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--blue);white-space:nowrap"
+            data-eid="${e.id}" onclick="openManageAccess(this.dataset.eid,window._entityMap[this.dataset.eid]?.name)">👥 Acessos</button>
+          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px"
+            data-eid="${e.id}" onclick="_entityPanelEdit(this.dataset.eid)">✏️</button>
+          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px"
+            data-eid="${e.id}" onclick="_entityPanelDelete(this.dataset.eid)">🗑</button>
         </div>` : ''}
       </div>`;
     }).join('');
   } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar clientes.</div>'; }
+}
+
+function _entityPanelEdit(eid) {
+  const e = window._entityMap?.[eid];
+  if (!e) return;
+  openEditEntity(e.id, e.name, e.nif, e.legal_form||'LDA', e.cae_code||'', e.regime_irc||'geral', e.regime_iva||'geral', e.email||'');
+}
+
+function _entityPanelDelete(eid) {
+  const e = window._entityMap?.[eid];
+  if (!e) return;
+  deleteEntity(e.id);
 }
 
 // ── Gerir acessos a uma empresa ─────────────────────────────
@@ -1686,19 +1700,24 @@ async function loadEntityModal() {
   try {
     const entities = await api('/entities');
     if (!entities.length) {
-      list.innerHTML = '<div class="empty">Nenhum cliente. <a href="#" onclick="openModal(\'mo-new-entity\')">Criar agora →</a></div>';
+      list.innerHTML = `<div class="empty">Nenhum cliente. <a href="#" onclick="openModal('mo-new-entity')">Criar agora →</a></div>`;
       return;
     }
-    const colors = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
+    const colors  = ['var(--blue)','#2d6a4f','#8e44ad','#c0392b','#16a085','#d35400'];
     const isAdmin = state.user?.role === 'admin';
+
+    // Guardar dados num map — evita JSON inline em atributos HTML (quebra com vírgulas/aspas nos nomes)
+    window._entityModalMap = {};
+    entities.forEach(e => { window._entityModalMap[e.id] = e; });
+
     list.innerHTML = entities.map((e, i) => {
       const initials = e.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-      const color = colors[i % colors.length];
+      const color    = colors[i % colors.length];
       return `
       <div class="ec-row" style="display:flex;align-items:center;gap:0;border-radius:10px;margin-bottom:4px;border:1px solid var(--cream);overflow:hidden;transition:box-shadow .15s"
            onmouseenter="this.style.boxShadow='0 2px 8px rgba(0,0,0,.08)'" onmouseleave="this.style.boxShadow=''">
-        <div class="ec" style="flex:1;border:none;margin:0;border-radius:0;min-width:0"
-             onclick="selectEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)});closeModal('mo-entity')">
+        <div class="ec" style="flex:1;border:none;margin:0;border-radius:0;min-width:0;cursor:pointer"
+             data-eid="${e.id}" onclick="_entityModalSelect(this.dataset.eid)">
           <div class="ec-av" style="background:${color}">${initials}</div>
           <div style="min-width:0">
             <div class="ec-n" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(e.name)}</div>
@@ -1706,17 +1725,36 @@ async function loadEntityModal() {
           </div>
         </div>
         ${isAdmin ? `
-        <div style="display:flex;gap:4px;padding:0 8px;flex-shrink:0">
-          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s"
+        <div style="display:flex;gap:4px;padding:0 8px;flex-shrink:0;border-left:1px solid var(--cream)">
+          <button title="Editar" style="background:var(--cream);border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;transition:background .15s"
             onmouseenter="this.style.background='#dce4f0'" onmouseleave="this.style.background='var(--cream)'"
-            onclick="event.stopPropagation();openEditEntity('${e.id}',${JSON.stringify(e.name)},${JSON.stringify(e.nif)},${JSON.stringify(e.legal_form||'LDA')},${JSON.stringify(e.cae_code||'')},${JSON.stringify(e.regime_irc||'geral')},${JSON.stringify(e.regime_iva||'geral')},${JSON.stringify(e.email||'')})">✏️</button>
-          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:30px;height:30px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:background .15s"
+            data-eid="${e.id}" onclick="event.stopPropagation();_entityModalEdit(this.dataset.eid)">✏️</button>
+          <button title="Apagar" style="background:#fee;border:none;border-radius:7px;width:32px;height:32px;cursor:pointer;font-size:15px;transition:background .15s"
             onmouseenter="this.style.background='#fcc'" onmouseleave="this.style.background='#fee'"
-            onclick="event.stopPropagation();deleteEntityModal('${e.id}',${JSON.stringify(e.name)})">🗑</button>
+            data-eid="${e.id}" onclick="event.stopPropagation();_entityModalDelete(this.dataset.eid)">🗑</button>
         </div>` : ''}
       </div>`;
     }).join('');
   } catch(e) { list.innerHTML = '<div class="empty">Erro ao carregar.</div>'; }
+}
+
+function _entityModalSelect(eid) {
+  const e = window._entityModalMap?.[eid];
+  if (!e) return;
+  selectEntity(e.id, e.name, e.nif);
+  closeModal('mo-entity');
+}
+
+function _entityModalEdit(eid) {
+  const e = window._entityModalMap?.[eid];
+  if (!e) return;
+  openEditEntity(e.id, e.name, e.nif, e.legal_form||'LDA', e.cae_code||'', e.regime_irc||'geral', e.regime_iva||'geral', e.email||'');
+}
+
+function _entityModalDelete(eid) {
+  const e = window._entityModalMap?.[eid];
+  if (!e) return;
+  deleteEntityModal(e.id, e.name);
 }
 
 function openEditEntity(id, name, nif, legalForm, cae, regimeIrc, regimeIva, email) {
