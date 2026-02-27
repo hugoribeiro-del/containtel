@@ -728,8 +728,10 @@ def calculate_financials(entries: list) -> dict:
     anc = ativo_tang + inv_fin
     at_total = ac + anc
 
-    pc = fornec_val + pessoal_pass + estado_val + outras_crp
-    pnc = financiamentos_val
+    # Passivo corrente completo: fornecedores + pessoal + estado + financiamentos CP + outros
+    outras_cp_pass_credor = get_val("26", "credor") + get_val("28", "credor")  # c.26 cred + diferimentos passivo
+    pc = fornec_val + pessoal_pass + estado_val + outras_crp + financ_cp + outras_cp_pass_credor
+    pnc = financiamentos_val  # apenas 251x (MLP)
     passivo = pc + pnc
     cp = capital_val + reservas_val + res_trans + resultado_liquido
 
@@ -830,12 +832,14 @@ def calculate_financials(entries: list) -> dict:
     excedentes = get_val("58", "credor")
 
     # Recalculate with full detail
-    ac_full = disp + clientes_val + inventarios + estado_dev + outras_crp_dev + diferimentos
+    ac_full = disp + clientes_val + inventarios + estado_dev + acionistas + outras_crp_dev + diferimentos
     anc_full = ativo_tang + ativo_intang + inv_prop + partic_rel + inv_fin + outros_anc
     at_full = ac_full + anc_full
     if at_full == 0: at_full = at_total  # fallback
 
-    cp_full = capital_val - acoes_proprias + outras_reservas + excedentes + res_trans + resultado_liquido
+    ajust_fin = get_val("57", "credor") - get_val("57", "devedor")  # c.57 ajustamentos ativos financeiros
+    outras_var_cp = get_val("59", "credor") - get_val("59", "devedor")  # c.59 outras variações CP
+    cp_full = capital_val - acoes_proprias + outras_reservas + excedentes + res_trans + resultado_liquido + ajust_fin + outras_var_cp
     if cp_full == 0: cp_full = cp
 
     return {
@@ -895,7 +899,9 @@ def calculate_financials(entries: list) -> dict:
             "reservas": round(outras_reservas, 2),
             "resultados_transitados": round(res_trans, 2),
             "excedentes_revalorizacao": round(excedentes, 2),
-            "passivo_nao_corrente": round(pnc, 2),
+            # Validação: diferença deve ser 0 se o balanço fechar
+            "diferenca_balanco": round(at_full - cp_full - pc - pnc, 2),
+            "balanco_equilibrado": abs(at_full - cp_full - pc - pnc) < 1.0,
         },
         "ratios": {
             "liquidez_geral": round(liq_geral, 2),
